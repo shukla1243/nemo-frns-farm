@@ -67,7 +67,7 @@ export function Hud({ portraitUrl, near, onAction, toasts, onEmote, unread, onGu
     if (el && !reducedMotion && !el.dataset.in) { el.dataset.in = "1"; animate(el, { translateY: [14, 0], opacity: [0, 1], scale: [0.92, 1], duration: 320, ease: "outBack" }); }
   }, [toasts, reducedMotion]);
 
-  const eat = () => { const f = bestFood(s, "hunger"); if (f) act({ type: "eat", item: f }); else open("bag"); };
+  const eat = () => { const f = bestFood(s, "hunger"); act(f ? { type: "eat", item: f } : { type: "forage" }); };
   const rest = () => { if (s.inv.energyDrink > 0 && s.energy < maxEnergy(s) - 30) act({ type: "drink" }); else if (!s.sleeping) act({ type: "sleep" }); };
   const cheer = () => { const f = bestFood(s, "mood"); if (f) act({ type: "eat", item: f }); else open("bag"); };
   const hungryFood = bestFood(s, "hunger");
@@ -92,13 +92,13 @@ export function Hud({ portraitUrl, near, onAction, toasts, onEmote, unread, onGu
         </div>
       </div>
       <div className="needs">
-        <Meter icon="hunger" value={s.hunger} max={100} tone="orange" label="Hunger" low={s.hunger < 25} action={hungryFood ? `eat ${ITEMS[hungryFood].name}` : "open backpack"} onClick={eat} />
+        <Meter icon="hunger" value={s.hunger} max={100} tone="orange" label="Hunger" low={s.hunger < 25} action={hungryFood ? `eat ${ITEMS[hungryFood].name}` : "forage for food"} onClick={eat} />
         <Meter icon="energy" value={s.energy} max={maxEnergy(s)} tone="gold" label="Energy" low={s.energy < 15} action={s.inv.energyDrink > 0 ? "drink or sleep" : "sleep"} onClick={rest} />
         <Meter icon={mood} value={s.mood} max={100} tone="blue" label="Mood" low={s.mood < 25} action="eat a treat" onClick={cheer} />
       </div>
       {s.hunger < 40 && !s.sleeping && (
         <button type="button" className="eat-now pbtn hot" onClick={eat}>
-          <Icon id={hungryFood ?? "bag"} size={22} /> {hungryFood ? `Eat ${ITEMS[hungryFood].name}` : "No food! Open backpack"}
+          <Icon id={hungryFood ?? "coconut"} size={22} /> {hungryFood ? `Eat ${ITEMS[hungryFood].name}` : "No food! Forage for coconuts"}
         </button>
       )}
       <div className="banners">

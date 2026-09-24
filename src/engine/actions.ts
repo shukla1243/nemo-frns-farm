@@ -54,6 +54,7 @@ export type Action =
   | { type: "claimQuest"; id: number }
   | { type: "seasonClaim"; rank: number; pool: number }
   | { type: "passClaim" }
+  | { type: "forage" }
   | { type: "storyClaim" }
   | { type: "npcGift"; npc: string }
   | { type: "rebirth" }
@@ -150,6 +151,15 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     case "tick": return;
 
     // ---------------- Needs ----------------
+    case "forage": {
+      // Safety net: a Friend with no food can always scrounge a little, so nobody gets stuck starving and broke.
+      requireAwake(s); requirePresent(s);
+      if (foodCount(s) > 0) fail("You still have food in your backpack. Eat that first.");
+      cooldown(s, "forage", 60_000, now);
+      s.inv.coconut += 2;
+      log(s, events, "You found 2 coconuts under the palms. Eat up!", "good", { cue: "reward", icon: "coconut" }, now);
+      return;
+    }
     case "eat": {
       requireAwake(s);
       const food = ITEMS[a.item]?.food;

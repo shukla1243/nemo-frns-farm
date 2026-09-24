@@ -52,6 +52,23 @@ describe("Season Journey", () => {
   });
 });
 
+describe("no dead ends", () => {
+  it("a starving, broke Friend with no food can always forage, on a cooldown", () => {
+    const s = fresh();
+    s.hunger = 0; s.shell = 0; s.rf = 0;
+    for (const id of ["bread", "kelp", "carrot", "coconut", "sardine", "berry"] as const) s.inv[id] = 0;
+    expect(dispatch(s, { type: "gather", kind: "chop" }, T0).ok).toBe(false);
+    const r = dispatch(s, { type: "forage" }, T0);
+    expect(r.ok).toBe(true);
+    expect(r.state.inv.coconut).toBe(2);
+    expect(dispatch(r.state, { type: "forage" }, T0 + 1000).ok).toBe(false); // has food now
+    const ate = dispatch(dispatch(r.state, { type: "eat", item: "coconut" }, T0 + 1000).state, { type: "eat", item: "coconut" }, T0 + 2000).state;
+    expect(ate.hunger).toBeGreaterThan(0);
+    expect(dispatch(ate, { type: "forage" }, T0 + 30_000).ok).toBe(false); // cooldown
+    expect(dispatch(ate, { type: "forage" }, T0 + 61_000).ok).toBe(true);
+  });
+});
+
 describe("island residents", () => {
   it("always stand on a known beach route", () => {
     for (let i = 0; i < RESIDENTS.length; i++) for (let t = 0; t < 400; t += 7) {
