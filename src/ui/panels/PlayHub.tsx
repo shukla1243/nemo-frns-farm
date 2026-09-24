@@ -49,7 +49,7 @@ export function PlayHub({ onClose, go }: { onClose: () => void; go: (station: St
           {status && <small className="hub-status">{status}</small>}
         </span>
         {locked
-          ? <button type="button" className="btn" onClick={() => open(`unlock:${st.zone}` as PanelId)}>Unlock {ZONES[st.zone as ZoneId].name}</button>
+          ? <button type="button" className="btn" onClick={() => open(`unlock:${st.zone}` as PanelId)} aria-label={`Unlock ${ZONES[st.zone as ZoneId].name}`}>Unlock</button>
           : <button type="button" className="btn primary" onClick={() => go(st.id)}>Go</button>}
       </div>
     );
