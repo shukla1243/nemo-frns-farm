@@ -3,7 +3,7 @@ import { chromium } from "playwright";
 const url = process.argv[2] ?? "http://localhost:5173/";
 const which = process.argv[3] ?? "both";
 const b = await chromium.launch();
-const panels = ["play", "pier", "inbox", "home", "farm", "market", "pool", "dock", "wheel", "mines", "abyss", "forge", "harbor", "reef", "board", "shrine", "unlock:cove", "npc:mayor"];
+const panels = ["play", "pier", "inbox", "home", "farm", "market", "pool", "dock", "crabs", "wheel", "mines", "abyss", "forge", "harbor", "reef", "board", "shrine", "unlock:cove", "npc:mayor"];
 for (const [name, vp, mobile] of [["desk", { width: 1280, height: 800 }, false], ["phone", { width: 390, height: 844 }, true]]) {
   if (which !== "both" && which !== name) continue;
   const p = await (await b.newContext({ viewport: vp, deviceScaleFactor: mobile ? 2 : 1, isMobile: mobile, hasTouch: mobile })).newPage();

@@ -11,6 +11,7 @@ import { Panel, Tabs, mmss, useG, type PanelId } from "../common";
 type Card = { station: StationId; blurb: string; risk?: string };
 const GAMES: Card[] = [
   { station: "dock", blurb: "Timing reel. Catch fish for food, SHELL and the 2% Golden Nemo.", risk: "Skill" },
+  { station: "crabs", blurb: "Whack-a-crab arcade. Tap crabs for SHELL and beat your best. No stake.", risk: "Skill" },
   { station: "mines", blurb: "Minesweeper dig. Every safe tile raises the multiplier, a trap takes it all.", risk: "High" },
   { station: "abyss", blurb: "Crash dive. Cash out before the shark bites. Up to 1000x.", risk: "High" },
   { station: "wheel", blurb: "Prize wheel with a 25 RF jackpot. One free spin every 8 hours.", risk: "Luck" },

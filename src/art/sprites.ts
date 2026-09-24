@@ -1,5 +1,6 @@
 /** Scenery, buildings and stations, all painted procedurally in the cozy palette. */
 import { Painter, cached, fromMap, type Sprite } from "./pixel";
+import { CRAB_ROWS } from "./icons";
 
 const S = (key: string, make: () => Sprite) => cached(`spr:${key}`, make);
 
@@ -248,6 +249,16 @@ export const signpost = () => S("signpost", () => {
   p.rect(9, 8, 2, 14, "w");
   p.rect(0, 1, 20, 9, "W").rect(1, 2, 18, 7, "y").rect(0, 1, 20, 1, "w");
   p.rect(7, 4, 6, 4, "u").rect(8, 2, 4, 3, "X").rect(9, 3, 2, 2, "y").px(9, 5, "k").px(10, 5, "k");
+  return p.outline().done();
+});
+/** Crab Beach: a crab sign between two sand holes. */
+export const crabSign = () => S("crabSign", () => {
+  const p = new Painter(32, 26);
+  p.ellipse(5, 22, 4, 2, "S").ellipse(5, 22, 3, 1, "K");
+  p.ellipse(26, 22, 4, 2, "S").ellipse(26, 22, 3, 1, "K");
+  p.rect(15, 12, 2, 14, "w");
+  p.rect(4, 0, 24, 13, "W").rect(5, 1, 22, 11, "y").rect(4, 0, 24, 1, "w");
+  p.draw(fromMap(CRAB_ROWS), 10, 2);
   return p.outline().done();
 });
 

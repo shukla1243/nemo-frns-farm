@@ -21,6 +21,17 @@ const PACKET = [
   "..SSSSSS..",
 ];
 
+export const CRAB_ROWS = [
+  "rr.......rr",
+  "rRr.....rRr",
+  ".rr.k.k.rr.",
+  "..r.r.r.r..",
+  ".rrRRRRRrr.",
+  "rrRRRRRRRrr",
+  ".rrrrrrrrr.",
+  "r.r.....r.r",
+];
+
 const MAPS: Record<string, readonly string[] | { map: readonly string[]; swap: Record<string, string> }> = {
   wood: ["..WWWWWWWWy.", ".WWwWWWWWyYy", ".WWWWWwWWyKy", ".WwWWWWWWyYy", ".WWWWwWWWyYy", "..wwwwwwwwy."],
   stone: ["...XXXX...", "..XzzXXXx.", ".XzXXXXXxx", ".XXXXXxXxx", "XXXXXXXXxx", ".xXXXXXxx.", "..xxxxxx.."],
@@ -91,6 +102,9 @@ const MAPS: Record<string, readonly string[] | { map: readonly string[]; swap: R
   anchor: ["...zz...", "..z..z..", "...zz...", "...XX...", "z..XX..z", "zz.XX.zz", ".zzXXzz.", "..zzzz.."],
   pointer: ["kkkkkkk", ".kuUuk.", "..kuk..", "...k..."],
   person: ["..oo..", ".oOOo.", ".oOOo.", "..oo..", ".BBBB.", "BBBBBB", "BBBBBB"],
+  crab: CRAB_ROWS,
+  crabGold: { map: CRAB_ROWS, swap: { r: "u", R: "U" } },
+  clamTrap: ["..ppppppp..", ".pPPpPPpPp.", "pPPpPPpPPpp", "e.e.e.e.e.e", "rrrrrrrrrrr", ".e.e.e.e.e.", "pPPpPPpPPpp", ".ppppppppp."],
 };
 
 /** Round icons drawn with the painter. */

@@ -17,7 +17,7 @@ export const mmss = (ms: number) => {
 };
 
 export type PanelId =
-  | "home" | "farm" | "market" | "pool" | "dock" | "shrine" | "wheel" | "board" | "mines" | "forge" | "harbor" | "abyss" | "reef"
+  | "home" | "farm" | "market" | "pool" | "dock" | "crabs" | "shrine" | "wheel" | "board" | "mines" | "forge" | "harbor" | "abyss" | "reef"
   | "bag" | "settings" | "help" | "story" | "map" | "pier" | "play" | "inbox" | "report" | `unlock:${string}` | `npc:${string}`;
 
 export type Ctx = {

@@ -265,6 +265,12 @@ button.item:hover:not(:disabled) { filter: brightness(1.05); }
 .reel-zone { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(90deg, #86c95e 0 6px, #4f9a48 6px 8px); }
 .reel-marker { position: absolute; top: -2px; bottom: -2px; width: 8px; margin-left: -4px; background: #fff1a8; box-shadow: 0 0 0 3px var(--ink); }
 
+/* Crab Dash */
+.crab-hud { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 14px; padding: 0 6px; margin-bottom: 8px; font-size: 16px; }
+.crab-hud small { color: var(--muted); }
+.crab-field { display: block; width: 100%; max-width: 480px; aspect-ratio: 4 / 3; margin: 10px auto; image-rendering: pixelated; touch-action: none; cursor: default; box-shadow: 0 0 0 3px var(--ink), 0 6px 0 rgba(43, 29, 26, .45); }
+.crab-field.live { cursor: pointer; }
+
 /* Mines */
 .mines-hud { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 0 6px; font-size: 15px; border-style: solid; border-width: calc(var(--f-paper-s) * var(--fs, 1px)); border-image: var(--f-paper) var(--f-paper-s) fill / calc(var(--f-paper-s) * var(--fs, 1px)) stretch; }
 .mines-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px auto; max-width: 350px; }

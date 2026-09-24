@@ -20,7 +20,8 @@ export type RaidTarget = {
 export type DiveRun = { kind: "dive"; stake: number; currency: Currency; crashAt: number; startedAt: number };
 export type MinesRun = { kind: "mines"; stake: number; currency: Currency; traps: number[]; revealed: number[]; trapCount: number; loot: Partial<Record<ItemId, number>>; safeHint: number | null };
 type FishRun = { kind: "fish"; fish: FishId; zone: number; castAt: number };
-type ActiveRun = DiveRun | MinesRun | FishRun;
+type CrabRun = { kind: "crab"; startedAt: number };
+type ActiveRun = DiveRun | MinesRun | FishRun | CrabRun;
 
 type LastWin = { amount: number; currency: Currency; flips: number; source: string } | null;
 
@@ -37,6 +38,7 @@ export type Stats = {
   minesCashouts: number; bestMinesTiles: number; raidsWon: number; raidsLost: number; defended: number; raidedBy: number;
   bossDamage: number; bossKills: number; ascends: number; ascendFails: number; forges: number; forgeFails: number;
   spins: number; jackpots: number; swaps: number; voyages: number; voyageWins: number; creatorFees: number; toPool: number; trueBurn: number; seasonWins: number; seasonRf: number; flipsWon: number; flipsLost: number; cooked: number; goldnemo: number;
+  crabRuns: number; crabBest: number;
 };
 
 export type GameState = {

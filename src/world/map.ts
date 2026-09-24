@@ -18,7 +18,7 @@ export const ZONE_SHAPES: Record<ZoneId, Ellipse> = {
 };
 
 export type StationId =
-  | "home" | "farm" | "market" | "pool" | "dock" | "shrine" | "wheel" | "board"
+  | "home" | "farm" | "market" | "pool" | "dock" | "crabs" | "shrine" | "wheel" | "board"
   | "chop" | "quarry" | "mines" | "forge" | "harbor" | "abyss" | "reef" | "pier"
   | `unlock:${ZoneId}`
   | `npc:${string}`;
@@ -32,6 +32,7 @@ export const STATIONS: Station[] = [
   { id: "market", zone: "beach", x: 1200, y: 1500, label: "Market", icon: "coin" },
   { id: "pool", zone: "beach", x: 1680, y: 1540, label: "Tide Pool", icon: "wave" },
   { id: "dock", zone: "beach", x: 1560, y: 1700, label: "Fishing Dock", icon: "rod" },
+  { id: "crabs", zone: "beach", x: 1760, y: 1660, label: "Crab Beach", icon: "crab" },
   { id: "farm", zone: "beach", x: 1990, y: 1340, label: "Farm", icon: "carrot" },
   { id: "board", zone: "beach", x: 1960, y: 1590, label: "Bounty Board", icon: "board" },
   { id: "pier", zone: "beach", x: 2090, y: 1470, label: "Voyage Pier", icon: "anchor" },

@@ -17,6 +17,7 @@ export const emptyStats = (): Stats => ({
   minesCashouts: 0, bestMinesTiles: 0, raidsWon: 0, raidsLost: 0, defended: 0, raidedBy: 0,
   bossDamage: 0, bossKills: 0, ascends: 0, ascendFails: 0, forges: 0, forgeFails: 0,
   spins: 0, jackpots: 0, swaps: 0, voyages: 0, voyageWins: 0, creatorFees: 0, toPool: 0, trueBurn: 0, seasonWins: 0, seasonRf: 0, flipsWon: 0, flipsLost: 0, cooked: 0, goldnemo: 0,
+  crabRuns: 0, crabBest: 0,
 });
 
 function createRivals(rng: Rng, now: number): Rival[] {

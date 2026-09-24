@@ -187,6 +187,14 @@ export const FISH_TABLE: { id: FishId; weight: number; xp: number; difficulty: n
 export const FISH_ZONE_BASE = 0.26; // fraction of the reel bar that is "catch"
 export const FISH_ZONE_PER_ROD = 0.018;
 
+// ---------- Crab Dash (skill arcade, SHELL only, never RF) ----------
+export const CRAB = {
+  energy: 6, roundMs: 25_000, shellPerPoint: 3, maxScore: 120,
+  /** A finish is accepted from roundMs minus this, so clock drift can't void a fair round. */
+  finishGraceMs: 2_000,
+  baitAt: 60, pearlAt: 100,
+};
+
 // ---------- Abyss Dive (crash) ----------
 export const DIVE = {
   energy: 10, edge: 0.04, edgePerBlade: 0.002, growth: 0.11, maxMultiplier: 1000,

@@ -1,5 +1,5 @@
 import {
-  ASCEND, BOSS, CROPS, DIVE, ENERGY_DRINK, FISH_ENERGY, FISH_TABLE, FISH_ZONE_BASE, FISH_ZONE_PER_ROD, FLIP, FORGE_CHANCE,
+  ASCEND, BOSS, CRAB, CROPS, DIVE, ENERGY_DRINK, FISH_ENERGY, FISH_TABLE, FISH_ZONE_BASE, FISH_ZONE_PER_ROD, FLIP, FORGE_CHANCE,
   FORGE_PITY_STEP, GATHER, GEAR, GOLDEN_CROP_CHANCE, HOMES, ITEMS, MAX_GEAR, MAX_LEVEL, MAX_PLOTS, MINES, RAID, RECIPES,
   SHOP, WELL_FED_MS, WHEEL, WHEEL_COST, WHEEL_FREE_MS, ZONES, ascendCost, diveMultiplierAt, forgeCost, plotCost,
   titleFor, xpToNext, type CropId, type GearId, type ItemId, type MealId, type ZoneId,
@@ -45,6 +45,9 @@ export type Action =
   | { type: "minesCashout" }
   | { type: "fishCast" }
   | { type: "fishReel"; hit: boolean }
+  | { type: "crabStart" }
+  | { type: "crabFinish"; score: number }
+  | { type: "crabQuit" }
   | { type: "flip" } | { type: "keepWin" }
   | { type: "raid"; target: RaidTarget }
   | { type: "raidReceived"; id: string; attacker: string; amount: number }
@@ -493,6 +496,42 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const rare = r.fish === "angler" || r.fish === "goldnemo";
       log(s, events, `Caught a ${ITEMS[r.fish].name}!${r.fish === "goldnemo" ? " LEGENDARY!" : ""}`, rare ? "epic" : "good", { cue: r.fish === "goldnemo" ? "reveal-legendary" : rare ? "reveal-rare" : "reveal-common", fx: rare ? "confetti" : undefined, icon: r.fish }, now);
       return { caught: true, fish: r.fish };
+    }
+
+    // ---------------- Crab Dash (skill, SHELL only) ----------------
+    case "crabStart": {
+      requireNoRun(s); requireEnergy(s, CRAB.energy);
+      s.energy -= CRAB.energy;
+      s.run = { kind: "crab", startedAt: now };
+      events.push({ tone: "info", text: "Crab Dash! Catch every crab you can.", cue: "action-start" });
+      return { startedAt: now };
+    }
+    case "crabFinish": {
+      const run = s.run; if (!run || run.kind !== "crab") fail("Start a Crab Dash round first.");
+      const r = run as Extract<typeof run, { kind: "crab" }>;
+      if (now < r.startedAt + CRAB.roundMs - CRAB.finishGraceMs) fail("The round is still running.");
+      s.run = null;
+      const score = Number.isFinite(a.score) ? clamp(Math.floor(a.score), 0, CRAB.maxScore) : 0;
+      const shell = giveShell(s, score * CRAB.shellPerPoint * shellMult(s));
+      const xp = 5 + Math.floor(score / 4);
+      addXp(s, events, xp);
+      const items: Partial<Record<ItemId, number>> = {};
+      if (score >= CRAB.baitAt) items.bait = 1;
+      if (score >= CRAB.pearlAt) items.pearl = 1;
+      giveItems(s, items);
+      s.stats.crabRuns++;
+      const best = score > s.stats.crabBest;
+      if (best) s.stats.crabBest = score;
+      const extra = Object.keys(items).length ? `, ${itemsText(items)}` : "";
+      log(s, events, `Crab Dash: ${score} points. +${shell} SHELL, +${xp} XP${extra}.${best ? " New personal best!" : ""}`, best ? "epic" : "good",
+        { cue: best ? "reveal-rare" : "reward", fx: best && score > 0 ? "confetti" : undefined, icon: "crab" }, now);
+      return { score, shell, xp, best };
+    }
+    case "crabQuit": {
+      const run = s.run; if (!run || run.kind !== "crab") fail("No Crab Dash round to leave.");
+      s.run = null;
+      log(s, events, "Crab Dash round left early. No reward.", "info", { cue: "select" }, now);
+      return;
     }
 
     // ---------------- Raids ----------------

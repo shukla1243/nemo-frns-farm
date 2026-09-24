@@ -10,6 +10,7 @@ import { GameContext, type Ctx, type PanelId } from "./ui/common";
 import { BagPanel, FarmPanel, HomePanel, ShrinePanel } from "./ui/panels/Life";
 import { MarketPanel, PoolPanel, UnlockPanel, WheelPanel } from "./ui/panels/Economy";
 import { AbyssPanel, DockPanel, MinesPanel } from "./ui/panels/Games";
+import { CrabPanel } from "./ui/panels/Crab";
 import { BoardPanel, HarborPanel, ReefPanel } from "./ui/panels/Social";
 import { ForgePanel, StoryPanel } from "./ui/panels/Forge";
 import { HelpPanel, SettingsPanel } from "./ui/panels/Settings";
@@ -245,6 +246,7 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
       case "pool": return <PoolPanel onClose={close} />;
       case "wheel": return <WheelPanel onClose={close} />;
       case "dock": return <DockPanel onClose={close} />;
+      case "crabs": return <CrabPanel onClose={close} />;
       case "mines": return <MinesPanel onClose={close} />;
       case "abyss": return <AbyssPanel onClose={close} />;
       case "forge": return <ForgePanel onClose={close} />;

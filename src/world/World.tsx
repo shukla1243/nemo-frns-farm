@@ -60,6 +60,7 @@ export function stationSprite(st: Station, s: GameState, frame: number, bossUp: 
     case "market": return A.market();
     case "pool": return A.tidePool(frame % 3);
     case "dock": return A.dockShack();
+    case "crabs": return A.crabSign();
     case "shrine": return A.shrine();
     case "wheel": return A.wheel(0);
     case "board": return A.board();
