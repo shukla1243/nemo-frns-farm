@@ -73,7 +73,7 @@ cooking meals at Home.
 
 ### Getting rich (and risking it)
 
-- **Safe money:** chop, quarry, farm, fish, fill bounties and sell at the Market.
+- **Safe money:** chop, quarry, farm, fish, play Crab Dash on the beach, fill bounties and sell at the Market.
 - **Risky money:** the Abyss Dive, Tide Mines, double or nothing, raids, the Kraken and the Tide Wheel. Every game shows
   its odds before you play.
 - **Voyages:** send your Friend away for 15 minutes, 1, 6 or 12 hours. Short trips are safe. The long ones usually come

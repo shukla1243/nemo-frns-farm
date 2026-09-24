@@ -27,7 +27,8 @@ Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up
 
 - **Survive.** Hunger, energy and mood drain in real time. Tap the hunger bar or the flashing **Eat now** button to eat
   your best food. Sleep at home to refill energy.
-- **Work.** Chop, quarry, farm (6 crops), fish (timing mini-game), cook, sell at the market, and swap at the Tide Pool.
+- **Work.** Chop, quarry, farm (6 crops), fish (timing mini-game), play **Crab Dash** (a
+  25-second whack-a-crab arcade with a personal best, no stake), cook, sell at the market, and swap at the Tide Pool.
 - **Risk it.** Abyss Dive (crash game), Tide Mines (minesweeper multiplier), double or nothing, raids on real players and
   rival crews, the Kraken world boss (co-op), and the Tide Wheel with a 25 RF jackpot.
 - **Voyage.** Send your Friend away for 15 minutes, 1, 6 or 12 hours. Long voyages have low odds and big upside: RF

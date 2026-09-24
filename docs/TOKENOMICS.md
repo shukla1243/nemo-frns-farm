@@ -21,6 +21,7 @@ comes from shown randomness, and the creator earns fees as assets trade.
 | Source | Gives | Notes |
 |---|---|---|
 | Chopping, quarrying, farming, fishing | SHELL (via selling), materials, food | The main income. Hunger below 25 cuts yields 25%. |
+| Crab Dash | 3 SHELL per point, bait at 60+, a pearl at 100+ | Skill game, 6 energy per round, never pays RF. |
 | Bounties and story chapters | SHELL, items, small RF | Act I to III chapter rewards grow slowly and never end. |
 | Milestones (15 tracks, infinite tiers) | SHELL each tier, `0.25 × tier` RF every third tier | Paid automatically. |
 | Daily streak | 40 to 280 SHELL, bait, 1 RF + a Charm on day 7 | Paid automatically the first time you play each UTC day. |
