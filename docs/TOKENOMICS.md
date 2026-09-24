@@ -29,6 +29,7 @@ comes from shown randomness, and the creator earns fees as assets trade.
 | Kraken world boss | 30 RF shared by damage | Every 20 minutes, split among all hitters (players and rivals). |
 | Voyages | SHELL, RF, relics, stock-token shares | Low odds on the long voyages (see below). |
 | Season prizes | RF from the Season Pool | Top 10 each week. |
+| Season Journey | SHELL and items on 10 tiers, 3 RF in total | Free for every player, resets weekly. |
 
 ## Where tokens go (sinks)
 
@@ -57,6 +58,9 @@ SHELL has its own sinks: building costs, bait, seeds, market purchases, the 2% s
 - The top 10 split the pool 30 / 20 / 12 / 8 / 6 / 5 / 5 / 5 / 5 / 4%. 10% of the pool seeds the next season.
 - Simulated island residents compete too, so a solo player always has a real ladder to climb.
 - Claim your prize at the Bounty Board after the season ends.
+- **Season Journey:** everyone also earns a free 10-tier track from season points (200 to 25,000). It pays SHELL,
+  bait, charms, pearls, Luck Scrolls and materials, plus 3 RF in total across the last two tiers, so players outside the
+  top 10 still get rewarded every week.
 
 ## Odds and costs of every risk
 

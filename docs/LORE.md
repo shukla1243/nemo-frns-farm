@@ -57,7 +57,8 @@ Your Friend is drawn exactly as minted. It never gets recolored, and it earns a 
 2. **Move** by tapping or clicking anywhere, or with WASD and the arrow keys. Press **E** or the big orange button when you
    stand near something.
 3. **Press Play.** The orange Play button lists every game and every place, and **Go** takes you there.
-4. **Follow the note** under your needs bars. That's your current chapter. Tap it to claim the reward.
+4. **Follow the note** under your needs bars. That's your current chapter. The gold arrow on the map points to where it
+   happens, and **Go** takes you there. Tap the note to claim the reward.
 
 ### Staying alive
 
@@ -87,6 +88,7 @@ cooking meals at Home.
 - **Unlock** 7 more regions of the island.
 - **Rebirth** at level 30: start again at level 1 and keep your home, gear and items, with permanent bonuses.
 - **Milestones** and the **daily streak** pay out on their own. Just play.
+- **Season Journey:** a free 10-tier reward track on the Bounty Board that resets every week.
 
 ### Where your RF goes
 

@@ -37,12 +37,16 @@ Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up
 - **Grow forever.** Ascend with odds that fall as you level up. Forge gear from +1 to +10, build 5 homes and unlock 7
   regions. Rebirth at level 30 for permanent bonuses. 15 milestone tracks have infinite tiers. The daily streak pays out
   automatically, and the story goes on forever: 15 chapters in Act I, 12 in Act II, and an Act III that never ends.
+- **Season Journey.** A free 10-tier reward track every week, so every player gets paid for playing, not just the
+  top 10.
 - **Play together.** Everyone spawns into **one shared island world**. You see other Friends walk and emote live, raid
   real players' vaults, hit the same Kraken, and climb the same weekly leaderboard. Solo play works fully offline with
-  simulated rivals, residents and traders.
+  simulated rivals, traders and residents who stroll the beach (clearly labelled as residents).
 
-Everything is one tap away. The orange **Play** button lists every game and place with a **Go** button. The map fast
-travels, and the bell keeps a full notification history, so nothing is missed.
+Everything is one tap away. A gold arrow on the map points at your next story goal, and the **Go** button beside the
+goal takes you there. The orange **Play** button lists every game and place, plus a **Ready now** list (ripe crops, a
+returned voyage, a free spin, gifts, claimable bounties). Coming back after a break opens a **Welcome back** report of
+everything that happened. The map fast travels, and the bell keeps a full notification history, so nothing is missed.
 
 ## Tokenomics in one picture
 
@@ -138,7 +142,7 @@ randomness, and earn creator fees on trades.
 npm ci
 npm run dev        # http://localhost:5173 (also on your LAN for phone testing)
 npm run build      # static site in dist/ (GitHub Pages ready, relative base)
-npm test           # 61 engine, economy, voyage, world and AMM tests (+ Monte Carlo)
+npm test           # engine, economy, voyage, world and AMM tests (+ Monte Carlo)
 npm run sim        # economy simulation tables
 npm run build && npm run test:e2e   # Playwright: full desktop and phone playthrough
 ```
@@ -148,7 +152,7 @@ Requires Node.js 22+. The FriendSDK v0.1.2 package archive is vendored in `vendo
 ## Checks
 
 - `npm run typecheck`: TypeScript strict, 0 errors. `knip`: no unused files, exports or dependencies.
-- `npm test`: 61 of 61 passing. Covers:
+- `npm test`: all passing. Covers:
   - engine rules and the RTP of every chance game
   - AMM invariants and the 70/25/5 sink split
   - seasons, islanders and the endless story
