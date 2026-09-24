@@ -1,0 +1,36 @@
+{
+  "name": "nemo-frns-farm",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "NEMO FRNS FARM - online risk-to-earn island life sim for Rare Friends",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "node tests/e2e/run.mjs",
+    "sim": "vitest run tests/economy.sim.test.ts",
+    "qa:tour": "node tests/e2e/tour.mjs",
+    "qa:panels": "node tests/e2e/panels.mjs"
+  },
+  "dependencies": {
+    "@rarefriends/friendsdk": "file:vendor/rarefriends-friendsdk-0.1.2.tgz",
+    "animejs": "^4.5.0",
+    "nostr-tools": "^2.25.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "trystero": "^0.25.4"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^6.1.1",
+    "playwright": "^1.63.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}
