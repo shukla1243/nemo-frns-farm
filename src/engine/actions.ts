@@ -14,6 +14,7 @@ import { bossStatus, cropReady, eventActive, growMs, startSleep, tick, wakeUp } 
 import { NPC_GIFTS, REBIRTH, SEASON, dayNumber, rebirthCost, seasonNumber } from "./config";
 import { chapterAt } from "./story";
 import { checkMilestones } from "./milestones";
+import { claimPass, passClaimable } from "./pass";
 import { STOCKS, STOCK_SELL_FEE, VOYAGES, foodCount, homeIsle, rollVoyage, stockPrice, type StockId, type VoyageId } from "./voyages";
 import { checkAchievements, newQuest, progress } from "./quests";
 import type { Currency, GameEvent, GameState, RaidTarget } from "./types";
@@ -52,6 +53,7 @@ export type Action =
   | { type: "spin"; free?: boolean }
   | { type: "claimQuest"; id: number }
   | { type: "seasonClaim"; rank: number; pool: number }
+  | { type: "passClaim" }
   | { type: "storyClaim" }
   | { type: "npcGift"; npc: string }
   | { type: "rebirth" }
@@ -759,6 +761,10 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     }
 
     // ---------------- Seasons ----------------
+    case "passClaim": {
+      if (!passClaimable(s)) fail("No Season Journey tiers to claim yet. Earn more season points.");
+      return claimPass(s, events, now);
+    }
     case "seasonClaim": {
       const last = s.lastSeason;
       if (!last) fail("No finished season to claim yet.");

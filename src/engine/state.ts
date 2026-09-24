@@ -54,7 +54,7 @@ export function createState(opts: { friendId: string; name: string; family: numb
     wheelFreeAt: opts.now,
     boss: { epoch: Math.floor(opts.now / BOSS.periodMs), damage: 0, claimed: false },
     pool: createPool(opts.now), world: { burned: 0, creatorFees: 0, volumeRf: 0, seasonPool: 0 },
-    season: { id: seasonIdAt(opts.now), xp: 0, sunk: 0 }, lastSeason: null,
+    season: { id: seasonIdAt(opts.now), xp: 0, sunk: 0, pass: 0 }, lastSeason: null,
     story: 0, npcGifts: {}, rebirths: 0, milestones: {}, streak: { day: 0, count: 0 }, voyage: null, stocks: emptyStocks(), relics: 0, stats: emptyStats(), log: [],
   };
   state.seed = rng.state();

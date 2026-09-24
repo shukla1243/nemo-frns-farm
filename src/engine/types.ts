@@ -62,7 +62,7 @@ export type GameState = {
   pool: Pool;
   /** Island-wide simulated totals (you + simulated traders/rivals). */
   world: { burned: number; creatorFees: number; volumeRf: number; seasonPool: number };
-  season: { id: number; xp: number; sunk: number };
+  season: { id: number; xp: number; sunk: number; pass: number };
   lastSeason: { id: number; score: number; sunk: number; pool: number; claimed: boolean } | null;
   story: number;
   /** npc id -> UTC day number of the last daily gift. */

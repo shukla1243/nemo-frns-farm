@@ -10,3 +10,4 @@ export * from "./amm";
 export * from "./story";
 export * from "./milestones";
 export * from "./voyages";
+export * from "./pass";

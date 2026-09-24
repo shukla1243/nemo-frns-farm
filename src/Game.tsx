@@ -17,8 +17,10 @@ import { MapPanel, NpcDialog } from "./ui/panels/Dialog";
 import { VoyagePanel } from "./ui/panels/Voyage";
 import { PlayHub } from "./ui/panels/PlayHub";
 import { InboxPanel } from "./ui/panels/Inbox";
+import { ReportPanel } from "./ui/panels/Report";
 import { music } from "./game/music";
-import { STATIONS, type StationId } from "./world/map";
+import { STATIONS, UNLOCK_SIGNS, activeStations, type StationId } from "./world/map";
+import { guideTarget } from "./world/guide";
 import { useNet } from "./net/useNet";
 import { CloudSave, cachedCloudKey, deriveCloudKey } from "./net/cloudsave";
 import { loadSprites, portrait, type GenerationSprites } from "./game/sprites";
@@ -28,11 +30,11 @@ import { Fx, type FxKind } from "./ui/Fx";
 
 let toastSeq = 0;
 
-export function Game({ identity, initial, welcome }: { identity: Identity; initial: GameState; welcome: string | null }) {
+export function Game({ identity, initial, welcome, since }: { identity: Identity; initial: GameState; welcome: string | null; since: number | null }) {
   const stateRef = useRef(initial);
   const [s, setS] = useState(initial);
   const [now, setNow] = useState(Date.now());
-  const [panel, setPanel] = useState<PanelId | null>(welcome === "new" ? "story" : null);
+  const [panel, setPanel] = useState<PanelId | null>(welcome === "new" ? "story" : since ? "report" : null);
   const [near, setNear] = useState<Station | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [fx, setFx] = useState<{ kind: FxKind; id: number } | null>(null);
@@ -209,11 +211,12 @@ export function Game({ identity, initial, welcome }: { identity: Identity; initi
 
   const close = useCallback(() => setPanel(null), []);
   const goTo = useCallback((id: StationId) => {
-    const st = STATIONS.find(x => x.id === id);
+    const st = [...STATIONS, ...UNLOCK_SIGNS, ...activeStations(stateRef.current.zones)].find(x => x.id === id);
     if (!st) return;
     worldApi.current?.teleport({ x: st.x, y: st.y + 40 });
     openStation(st);
   }, [openStation]);
+  const guide = s.voyage ? null : guideTarget(s);
   const [seenAt, setSeenAt] = useState(() => { try { return Number(localStorage.getItem("nemo-frns-farm:inbox-seen")) || 0; } catch { return 0; } });
   const unread = s.log.filter(l => l.t > seenAt).length;
   useEffect(() => {
@@ -253,6 +256,7 @@ export function Game({ identity, initial, welcome }: { identity: Identity; initi
       case "story": return <StoryPanel onClose={close} />;
       case "pier": return <VoyagePanel onClose={close} />;
       case "inbox": return <InboxPanel onClose={close} />;
+      case "report": return <ReportPanel onClose={close} go={goTo} since={since ?? Date.now()} />;
       case "play": return <PlayHub onClose={close} go={goTo} />;
       default: return null;
     }
@@ -263,7 +267,7 @@ export function Game({ identity, initial, welcome }: { identity: Identity; initi
       <main className={`game ${shaking ? "shake" : ""}`}>
         <World stateRef={stateRef} spritesRef={spritesRef} peersRef={peersRef} blocked={!!panel} reducedMotion={reducedMotion} apiRef={worldApi}
           onNear={setNear} onInteract={openStation} onMove={(p, f) => sendPos(p.x, p.y, f)} />
-        <Hud portraitUrl={portraitUrl} near={near} onAction={() => near && openStation(near)} toasts={toasts} unread={unread}
+        <Hud portraitUrl={portraitUrl} near={near} onAction={() => near && openStation(near)} toasts={toasts} unread={unread} onGuide={guide ? () => goTo(guide.id) : null}
           onEmote={e => { emote(e); const p = worldApi.current?.pos; if (p) worldApi.current!.floaters.push({ x: p.x, y: p.y - 95, text: e, color: "#fff", born: Date.now() }); }} />
         {renderPanel()}
         {fx && !reducedMotion && <Fx kind={fx.kind} key={fx.id} onDone={() => setFx(null)} />}

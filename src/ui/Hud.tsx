@@ -49,8 +49,8 @@ function Meter({ icon, value, max, tone, label, low, action, onClick }: {
   );
 }
 
-export function Hud({ portraitUrl, near, onAction, toasts, onEmote, unread }: {
-  portraitUrl: string | null; near: Station | null; onAction: () => void; toasts: Toast[]; onEmote: (e: string) => void; unread: number;
+export function Hud({ portraitUrl, near, onAction, toasts, onEmote, unread, onGuide }: {
+  portraitUrl: string | null; near: Station | null; onAction: () => void; toasts: Toast[]; onEmote: (e: string) => void; unread: number; onGuide: (() => void) | null;
 }) {
   const { s, now, act, open, net, identity, reducedMotion } = useG();
   const [muted, setMuted] = useState(sound.muted);
@@ -102,10 +102,13 @@ export function Hud({ portraitUrl, near, onAction, toasts, onEmote, unread }: {
         </button>
       )}
       <div className="banners">
-        <button type="button" className={`quest-note frame-paper ${chDone ? "done" : ""}`} onClick={() => open("story")}>
-          <Icon id={chDone ? "check" : "book"} size={20} />
-          <span><b>{ch.title}</b><small>{chDone ? "Goal reached. Tap to claim your reward." : ch.goal}</small></span>
-        </button>
+        <div className="quest-row">
+          <button type="button" className={`quest-note frame-paper ${chDone ? "done" : ""}`} onClick={() => open("story")}>
+            <Icon id={chDone ? "check" : "book"} size={20} />
+            <span><b>{ch.title}</b><small>{chDone ? "Goal reached. Tap to claim your reward." : ch.goal}</small></span>
+          </button>
+          {onGuide && <button type="button" className="pbtn hot quest-go" onClick={onGuide} aria-label="Go to your story goal">Go</button>}
+        </div>
         {s.voyage && <button type="button" className="event-tag frame-sea" onClick={() => open("pier")}><Icon id="anchor" size={18} />{now < s.voyage.endsAt ? `Voyage: back in ${mmss(s.voyage.endsAt - now)}` : "Voyage is back! Open the chest"}</button>}
         {ev && <span className={`event-tag frame-dark ${ev.id}`}><Icon id={ev.id === "storm" ? "zz" : ev.id === "boom" ? "coin" : ev.id === "meteor" ? "ore" : ev.id === "goldtide" ? "goldnemo" : "spark"} size={18} />{now < ev.startsAt ? `${EVENTS[ev.id].name} in ${mmss(ev.startsAt - now)}` : `${EVENTS[ev.id].name} ${mmss(ev.endsAt - now)}`}</span>}
         {boss?.active && !boss.defeated && <button type="button" className="event-tag frame-dark boss" onClick={() => open("reef")}><Icon id="angler" size={18} />Kraken {Math.round((boss.remaining / boss.hp) * 100)}% · {mmss(boss.endsIn)}</button>}

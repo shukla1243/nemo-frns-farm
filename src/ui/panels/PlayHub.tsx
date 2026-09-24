@@ -5,6 +5,7 @@ import { actOf, chapterAt } from "../../engine/story";
 import { STATIONS, type StationId } from "../../world/map";
 import { stationSprite } from "../../world/World";
 import { Icon, SpriteImg } from "../Icon";
+import { ReadyList } from "./Report";
 import { Panel, Tabs, mmss, useG, type PanelId } from "../common";
 
 type Card = { station: StationId; blurb: string; risk?: string };
@@ -61,6 +62,7 @@ export function PlayHub({ onClose, go }: { onClose: () => void; go: (station: St
         <b>{ch.title}</b>
         <span>{ch.done(s) ? "Goal reached! Tap to claim the chapter reward." : ch.goal}</span>
       </button>
+      <ReadyList go={go} limit={4} />
       <div className="btn-row hub-links">
         <button type="button" className="btn" onClick={() => open("help")}><Icon id="help" size={22} /> How to play and lore</button>
         <button type="button" className="btn" onClick={() => open("board")}><Icon id="trophy" size={22} /> Season and leaderboards</button>

@@ -12,30 +12,26 @@ function randomSeed() {
   return a[0] || 1;
 }
 
-function fmtAway(ms: number) {
-  const m = Math.floor(ms / 60000);
-  return m >= 120 ? `${Math.floor(m / 60)}h` : `${m}m`;
-}
-
 export default function App() {
-  const [session, setSession] = useState<{ identity: Identity; state: GameState; welcome: string | null } | null>(null);
+  const [session, setSession] = useState<{ identity: Identity; state: GameState; welcome: string | null; since: number | null } | null>(null);
 
   if (!session) {
     return <Gate onEnter={identity => {
       const now = Date.now();
       const saved = loadLocal(identity.friendId, identity.guest);
-      let state: GameState, welcome: string | null;
+      let state: GameState, welcome: string | null, since: number | null = null;
       if (saved) {
         const away = now - saved.lastTick;
         saved.name = identity.name; saved.guest = identity.guest; saved.family = identity.family;
         state = dispatch(saved, { type: "tick" }, now).state; // applies offline progress
-        welcome = away > 120_000 ? `Welcome back! You were away ${fmtAway(away)}. Crops kept growing and your Friend rested.` : null;
+        welcome = null;
+        if (away > 120_000) since = saved.lastTick;
       } else {
         state = createState({ friendId: identity.friendId, name: identity.name, family: identity.family, guest: identity.guest, now, seed: randomSeed() });
         welcome = "new";
       }
-      setSession({ identity, state, welcome });
+      setSession({ identity, state, welcome, since });
     }} />;
   }
-  return <Game identity={session.identity} initial={session.state} welcome={session.welcome} />;
+  return <Game identity={session.identity} initial={session.state} welcome={session.welcome} since={session.since} />;
 }

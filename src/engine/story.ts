@@ -44,6 +44,8 @@ const ACT_TWO: Omit<Chapter, "act">[] = [
   { title: "Mythsmith", text: "A blade, a rod or a pick that shines like the volcano's heart.", goal: "Forge any gear to +10", hint: "Luck Scrolls and Charms make the last strikes bearable.", done: s => maxGear(s) >= 10, reward: { rf: 30 * RF } },
   { title: "Reborn", text: "The Coral Shrine offers a strange gift: begin again, stronger than before.", goal: "Perform your first Rebirth", hint: "Reach level 30, then choose Rebirth at the Coral Shrine.", done: s => s.rebirths >= 1, reward: { rf: 25 * RF, items: { blessing: 3 } } },
 ];
+export const ACT_ONE_LEN = ACT_ONE.length;
+export const ACT_TWO_LEN = ACT_TWO.length;
 
 /** Endless Act III: goal tracks cycle while their targets escalate every loop. */
 const ETERNAL: { goal: (t: number) => string; value: (s: GameState) => number; base: number; step: number }[] = [

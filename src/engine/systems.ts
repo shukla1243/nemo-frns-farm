@@ -91,7 +91,7 @@ export function tick(s: GameState, now: number, events: GameEvent[]): void {
   if (sid !== s.season.id) {
     const pool = seasonPoolTotal(s, seasonStartOf(s.season.id) + SEASON.ms - 1, s.season.id);
     s.lastSeason = { id: s.season.id, score: s.season.xp + Math.floor(s.season.sunk / 100 * SEASON.rfScore), sunk: s.season.sunk, pool, claimed: false };
-    s.season = { id: sid, xp: 0, sunk: 0 };
+    s.season = { id: sid, xp: 0, sunk: 0, pass: 0 };
     s.world.seasonPool = Math.floor(s.world.seasonPool * SEASON.rollover);
     log(s, events, "A new Season has begun! Top 10 of last season can claim their prize at the Bounty Board.", "epic", { cue: "anticipation" }, now);
   }

@@ -516,3 +516,12 @@ button.meter:hover { filter: brightness(1.15); }
 .hub-links { margin: 0 0 10px; }
 .hub-links > .btn { flex: 1 1 200px; }
 .help h3 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 16px 0 4px; }
+.quest-row { display: flex; gap: 6px; align-items: stretch; max-width: min(100%, 500px); }
+.quest-go { flex: none; min-width: 58px; font-size: 18px; }
+.ready-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.ready-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: #fff3c4; border: 3px solid #2b1d1a; font-weight: 700; }
+.ready-row .btn { flex: none; min-width: 64px; }
+.journey-track { list-style: none; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; padding: 0; margin: 8px 0 10px; }
+.journey-track li { display: grid; place-items: center; height: 34px; background: #e8d9b5; border: 3px solid #2b1d1a; font-weight: 800; color: #7a6a55; }
+.journey-track li.ready { background: #ffd23f; color: #2b1d1a; animation: bob 1.2s steps(2) infinite; }
+.journey-track li.got { background: #5bb85b; color: #fff; }

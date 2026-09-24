@@ -13,7 +13,8 @@ import type { Peer } from "../net/presence";
 import { buildTerrain, drawWaterGlints } from "../art/tiles";
 import * as A from "../art/sprites";
 import { icon } from "../art/icons";
-import { NPCS, crab, giftReady, gull, villager } from "./npcs";
+import { guideTarget } from "./guide";
+import { NPCS, RESIDENTS, crab, giftReady, gull, residentAt, villager } from "./npcs";
 import type { Sprite } from "../art/pixel";
 import {
   LAND, SPAWN, STATIONS, TILE, UNIT, WORLD, ZONE_SHAPES, activeStations, nearestStation, plotPos, tileAt, tileGrid, walkable, zonesKey,
@@ -39,6 +40,18 @@ const FONT = '"Jersey 15", "Nunito", sans-serif';
 const AURA = ["", "#6cc6e6", "#86c95e", "#f5c542", "#b48ae0", "#ff6f73"];
 
 /** Which sprite represents a station (depends on state for home tier / boss / animation frame). */
+/** Gold pixel arrow pointing along `ang` (radians), tip at (x, y). */
+function guideArrow(ctx: CanvasRenderingContext2D, x: number, y: number, ang: number, sz: number) {
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(ang);
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(-sz * 1.4, -sz); ctx.lineTo(-sz * 1.4, -sz * 0.4); ctx.lineTo(-sz * 2.4, -sz * 0.4);
+  ctx.lineTo(-sz * 2.4, sz * 0.4); ctx.lineTo(-sz * 1.4, sz * 0.4); ctx.lineTo(-sz * 1.4, sz); ctx.closePath();
+  ctx.lineJoin = "miter"; ctx.lineWidth = Math.max(3, sz * 0.35); ctx.strokeStyle = "#2b1d1a"; ctx.stroke();
+  ctx.fillStyle = "#ffd23f"; ctx.fill();
+  ctx.restore();
+}
+
 export function stationSprite(st: Station, s: GameState, frame: number, bossUp: boolean): Sprite {
   if (st.id.startsWith("npc:")) { const n = NPCS.find(x => `npc:${x.id}` === st.id); if (n) return villager(n, Math.floor(frame / 3)); }
   switch (st.id) {
@@ -293,6 +306,12 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
         const hb = ZONE_SHAPES.harbor; const bx = hb.cx + hb.rx + 90 + (i % 2) * 60, by = hb.cy - 200 + i * 200 + Math.round(Math.sin(t + i) * 3);
         ds.push({ y: by, draw: () => put(A.boat(["r", "p", "B"][i]), bx, by) });
       });
+      // simulated residents walking between beach stations
+      const names = RIVAL_NAMES.slice(3, 3 + RESIDENTS.length);
+      const residents = RESIDENTS.map((r, i) => ({ r, name: names[i]?.name ?? "Resident", ...residentAt(i, nowMs / 1000, STATIONS) }));
+      for (const res of residents) {
+        ds.push({ y: res.y, draw: () => { shadow(res.x, res.y, 9); put(villager(res.r, res.walking && !rm ? anim % 2 : 0), res.x, res.y + 6); } });
+      }
       // peers
       for (const peer of peersRef.current.values()) {
         if (!peerSprites.has(peer.friendId) && /^\d+$/.test(peer.friendId)) {
@@ -401,10 +420,25 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
           if (lx < camX - 60 || lx > camX + vw + 60 || ly < camY - 20 || ly > camY + vh + 20) continue;
           label(isNear ? `${text}  [E]` : text, lx, ly, isNear ? "near" : st.id.startsWith("unlock:") ? "lock" : "station");
         }
+        for (const res of residents) if (Math.hypot(res.x - pos.x, res.y - pos.y) < 260) label(`${res.name} (resident)`, res.x / UNIT, res.y / UNIT - 36, "station");
         for (const peer of peersRef.current.values()) label(`Lv${peer.level} ${peer.name}`, peer.x / UNIT, peer.y / UNIT - 42, "peer");
         label(`${s.voyage ? "Sailing: " : ""}Lv${s.level} ${s.name}${s.rebirths ? ` ★${s.rebirths}` : ""}`, pos.x / UNIT, pos.y / UNIT - 50, "you");
         for (const peer of peersRef.current.values()) if (peer.emote && Date.now() - peer.emoteAt < 3500) {
           ctx.drawImage(icon(peer.emote), Math.round((peer.x / UNIT - cx - 9) * S), Math.round((peer.y / UNIT - cy - 66) * S), 18 * S, 18 * S);
+        }
+      }
+      // ---- story guide: a bouncing arrow over the next goal, or an arrow at the screen edge pointing to it ----
+      const goal = s.voyage ? null : guideTarget(s);
+      if (goal) {
+        const W = vw * S, H = vh * S, sz = S * 6;
+        const gx = (goal.x / UNIT - cx) * S, gy = ((goal.y + 8) / UNIT - cy - stationSprite(goal, s, 0, bossUp).height - 14) * S;
+        const top = H * 0.45, bottom = H - 100 * dpr, side = 30 * dpr;
+        if (gx > side && gx < W - side && gy > H * 0.2 && gy < bottom) {
+          guideArrow(ctx, gx, gy + (rm ? 0 : Math.round(Math.sin(t * 5) * 2) * S), Math.PI / 2, sz);
+        } else {
+          const ox = W / 2, oy = (top + bottom) / 2, dx = gx - ox, dy = gy - oy;
+          const k = Math.min(dx ? (dx > 0 ? W - side - ox : side - ox) / dx : Infinity, dy ? (dy > 0 ? bottom - oy : top - oy) / dy : Infinity);
+          guideArrow(ctx, ox + dx * k, oy + dy * k, Math.atan2(dy, dx), sz * 1.2);
         }
       }
       // floaters

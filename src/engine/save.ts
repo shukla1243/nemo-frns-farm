@@ -54,6 +54,7 @@ export function migrate(raw: GameState): GameState {
   s.voyage = raw.voyage ?? null;
   s.stocks = { ...emptyStocks(), ...raw.stocks };
   s.relics = raw.relics ?? 0;
+  s.season = { ...base.season, ...raw.season, pass: raw.season?.pass ?? 0 };
   s.cooldowns = {};
   if (!Number.isFinite(s.lastActive)) s.lastActive = s.lastTick;
   s.run = null; // never resume a hidden-outcome game from a save

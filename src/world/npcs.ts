@@ -95,6 +95,7 @@ export const giftReady = (s: GameState, id: string, now: number) => s.npcGifts[i
 
 /** Villager sprite (16×24), two idle frames. */
 export function villager(n: Npc, frame = 0): Sprite {
+  frame %= 2;
   return cached(`npc:${n.id}:${frame}`, () => {
     const L = n.look;
     const p = new Painter(16, 25);
@@ -109,6 +110,26 @@ export function villager(n: Npc, frame = 0): Sprite {
     if (L.beard) p.rect(4, 10 + bob, 8, 3, "z").px(5, 13 + bob, "z").px(10, 13 + bob, "z");
     return p.outline().done();
   });
+}
+
+// ---------- Island residents (simulated) ----------
+/** Simulated residents stroll between beach stations so the island never feels empty, even solo. */
+const RESIDENT_STOPS = ["home", "market", "pool", "farm", "board", "shrine", "wheel", "dock"];
+const RESIDENT_LOOKS: Npc["look"][] = [
+  { skin: "y", shirt: "r", pants: "b", hair: "k" },
+  { skin: "Y", shirt: "B", pants: "k", hat: "u" },
+  { skin: "y", shirt: "p", pants: "b", hair: "u" },
+  { skin: "Y", shirt: "u", pants: "k", hat: "r" },
+];
+export const RESIDENTS: Npc[] = RESIDENT_LOOKS.map((look, i) => ({ id: `res${i}`, name: "", role: "Resident", zone: "beach", x: 0, y: 0, look, lines: () => [] }));
+
+/** Where resident i is at time t (seconds): pause at a stop, then walk to the next one. */
+export function residentAt(i: number, t: number, stops: { id: string; x: number; y: number }[]) {
+  const path = RESIDENT_STOPS.map(id => stops.find(st => st.id === id)).filter((p): p is { id: string; x: number; y: number } => !!p);
+  const leg = 16, phase = t / leg + i * 1.7, k = Math.floor(phase), f = phase - k;
+  const a = path[(k * 3 + i * 2) % path.length], b = path[((k + 1) * 3 + i * 2) % path.length];
+  const w = Math.max(0, (f - 0.3) / 0.7);
+  return { x: a.x + (b.x - a.x) * w, y: a.y + 44 + (b.y - a.y) * w, walking: w > 0 && w < 1, left: b.x < a.x };
 }
 
 // ---------- Ambient critters ----------

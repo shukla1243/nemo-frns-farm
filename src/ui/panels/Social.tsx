@@ -1,5 +1,6 @@
+import { PASS, passClaimable } from "../../engine/pass";
 import { useMemo, useState } from "react";
-import { BOSS, HOMES, RAID, SEASON, SINK, seasonNumber, seasonStartOf, titleFor } from "../../engine/config";
+import { BOSS, HOMES, ITEMS, RAID, SEASON, SINK, seasonNumber, seasonStartOf, titleFor, type ItemId } from "../../engine/config";
 import { raidChance } from "../../engine/actions";
 import { bossStatus, seasonBoard, seasonPoolTotal, type SeasonEntry } from "../../engine/systems";
 import { ACHIEVEMENTS, questLabel } from "../../engine/quests";
@@ -91,6 +92,7 @@ function SeasonTab() {
         <span className="muted">ends in {mmss(endsIn)} · top 10 split it</span>
       </div>
       <p className="muted">{SINK.pool * 100}% of every RF spent in the game (upgrades, forging, land, charms, wheel, swap fees, lost RF stakes) flows here. Score = XP earned + {SEASON.rfScore} pts per RF spent. You: <b>{n0(seasonScore(s))}</b> pts · rank <b>#{myRank}</b></p>
+      <SeasonJourney />
       {last && !last.claimed && (
         <div className="callout">
           <p>Season {seasonNumber(last.id)} ended. You placed <b>#{lastRank}</b>{lastRank <= 10 ? ` → ${rf(last.pool * SEASON.payouts[lastRank - 1])} RF!` : " (top 10 get paid)"}</p>
@@ -221,5 +223,31 @@ function MilestonesTab() {
         })}
       </div>
     </>
+  );
+}
+
+/** Free weekly reward track: every player earns tiers from season points, not just the top 10. */
+function SeasonJourney() {
+  const { s, act } = useG();
+  const score = seasonScore(s);
+  const ready = passClaimable(s);
+  const next = PASS.find(t => t.score > score);
+  const prize = (t: (typeof PASS)[number]) => [t.shell ? `${t.shell} SHELL` : "", t.rf ? `${rf(t.rf)} RF` : "", ...Object.entries(t.items ?? {}).map(([id, n]) => `${n} ${ITEMS[id as ItemId].name}`)].filter(Boolean).join(", ");
+  return (
+    <section className="section journey">
+      <h3><Icon id="flag" size={22} /> Season Journey</h3>
+      <p className="muted">Free rewards for everyone. Earn season points to fill the track, and it resets each week.</p>
+      <ol className="journey-track">
+        {PASS.map((t, i) => (
+          <li key={t.score} className={i < s.season.pass ? "got" : score >= t.score ? "ready" : ""} title={`${n0(t.score)} pts: ${prize(t)}`}>
+            <span>{i + 1}</span>
+          </li>
+        ))}
+      </ol>
+      {ready > 0
+        ? <button type="button" className="btn primary big" onClick={() => act({ type: "passClaim" })}>Claim {ready} tier{ready > 1 ? "s" : ""}</button>
+        : next ? <p>Next tier at <b>{n0(next.score)}</b> pts ({n0(next.score - score)} to go): {prize(next)}</p>
+          : <p><b>Journey complete!</b> Every tier claimed this season.</p>}
+    </section>
   );
 }
