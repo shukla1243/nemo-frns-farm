@@ -23,7 +23,7 @@ function FlipOffer() {
 }
 
 // ---------------- Fishing ----------------
-type FishPhase = { k: "idle" } | { k: "wait"; until: number } | { k: "reel"; zoneStart: number; zone: number; speed: number; started: number } | { k: "done"; text: string; fish?: FishId };
+type FishPhase = { k: "idle" } | { k: "wait"; until: number } | { k: "reel"; zoneStart: number; zone: number; speed: number; started: number } | { k: "done"; text: string; fish?: FishId; xp?: number };
 
 export function DockPanel({ onClose }: { onClose: () => void }) {
   const { s, act, reducedMotion } = useG();
@@ -69,7 +69,7 @@ export function DockPanel({ onClose }: { onClose: () => void }) {
     const hit = m >= phase.zoneStart && m <= phase.zoneStart + phase.zone;
     const r = act({ type: "fishReel", hit });
     const fish = r.data?.fish as FishId | undefined;
-    setPhase({ k: "done", text: hit && fish ? `${ITEMS[fish].name}!` : "It slipped off the hook…", fish: hit ? fish : undefined });
+    setPhase({ k: "done", text: hit && fish ? `Caught a ${ITEMS[fish].name}!` : "It slipped off the hook…", fish: hit ? fish : undefined, xp: r.data?.xp as number | undefined });
   };
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === " " || e.key === "Enter") { if (phase.k === "reel") { e.preventDefault(); reel(); } } };
@@ -93,7 +93,15 @@ export function DockPanel({ onClose }: { onClose: () => void }) {
             <button type="button" className="btn hot big" onClick={reel}>REEL!</button>
           </>
         )}
-        {phase.k === "done" && <p className="lead catch">{phase.fish && <Icon id={phase.fish} size={48} />}{phase.text}</p>}
+        {phase.k === "done" && (
+          <div className="lead catch" role="status">
+            {phase.fish && <Icon id={phase.fish} size={56} />}
+            <b>{phase.text}</b>
+            {phase.fish
+              ? <small>+{phase.xp ?? 0} XP · sells for {ITEMS[phase.fish].sell} SHELL · you have {s.inv[phase.fish]}</small>
+              : <small>{s.inv.bait > 0 ? "Cast again, the green zone is waiting." : "Out of bait. Buy more below."}</small>}
+          </div>
+        )}
       </div>
       {(phase.k === "idle" || phase.k === "done") && (
         <div className="btn-row">

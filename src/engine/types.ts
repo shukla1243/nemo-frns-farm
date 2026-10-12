@@ -81,5 +81,6 @@ export type GameState = {
   log: LogEntry[];
 };
 
-export type GameEvent = { tone: Tone; text: string; icon?: string; cue?: SoundCue; fx?: "confetti" | "shake" | "burn" | "levelup" | "jackpot" };
+/** `quiet` events are logged and play their sound but show no toast, because the open panel already shows them. */
+export type GameEvent = { tone: Tone; text: string; icon?: string; cue?: SoundCue; fx?: "confetti" | "shake" | "burn" | "levelup" | "jackpot"; quiet?: boolean };
 export type SoundCue = "select" | "purchase" | "action-start" | "action-ready" | "anticipation" | "impact" | "reveal-common" | "reveal-rare" | "reveal-legendary" | "reward";

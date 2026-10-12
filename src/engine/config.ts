@@ -186,6 +186,8 @@ export const FISH_TABLE: { id: FishId; weight: number; xp: number; difficulty: n
 ];
 export const FISH_ZONE_BASE = 0.26; // fraction of the reel bar that is "catch"
 export const FISH_ZONE_PER_ROD = 0.018;
+/** Until the first fish is landed the catch zone is at least this wide, so a new player's first cast is an easy win. */
+export const FISH_FIRST_CATCH_ZONE = 0.45;
 
 // ---------- Crab Dash (skill arcade, SHELL only, never RF) ----------
 export const CRAB = {
@@ -271,7 +273,7 @@ export const TRAITS: { id: TraitId; family: string; name: string; blurb: string 
 ];
 export const traitFor = (family: number): TraitId => TRAITS[((family % TRAITS.length) + TRAITS.length) % TRAITS.length].id;
 
-export const START = { rf: 20 * RF, shell: 120, items: { kelpSeed: 4, bait: 3, bread: 2 } as Partial<Record<ItemId, number>> };
+export const START = { rf: 20 * RF, shell: 120, items: { kelpSeed: 4, bait: 5, bread: 2 } as Partial<Record<ItemId, number>> };
 export const AUTOSAVE_MS = 10_000;
 
 /** Islanders hand out one small gift per real day each. */

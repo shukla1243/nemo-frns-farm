@@ -1,5 +1,5 @@
 import {
-  ASCEND, BOSS, CRAB, CROPS, DIVE, ENERGY_DRINK, FISH_ENERGY, FISH_TABLE, FISH_ZONE_BASE, FISH_ZONE_PER_ROD, FLIP, FORGE_CHANCE,
+  ASCEND, BOSS, CRAB, CROPS, DIVE, ENERGY_DRINK, FISH_ENERGY, FISH_FIRST_CATCH_ZONE, FISH_TABLE, FISH_ZONE_BASE, FISH_ZONE_PER_ROD, FLIP, FORGE_CHANCE,
   FORGE_PITY_STEP, GATHER, GEAR, GOLDEN_CROP_CHANCE, HOMES, ITEMS, MAX_GEAR, MAX_LEVEL, MAX_PLOTS, MINES, RAID, RECIPES,
   SHOP, WELL_FED_MS, WHEEL, WHEEL_COST, WHEEL_FREE_MS, ZONES, ascendCost, diveMultiplierAt, forgeCost, plotCost,
   titleFor, xpToNext, type CropId, type GearId, type ItemId, type MealId, type ZoneId,
@@ -139,7 +139,10 @@ export const minesMultiplier = (traps: number, safe: number, edge = MINES.edge) 
   for (let i = 0; i < safe; i++) m *= (MINES.size - i) / (MINES.size - traps - i);
   return Math.floor(m * 100) / 100;
 };
-const fishZone = (s: GameState, difficulty: number) => clamp(FISH_ZONE_BASE + s.gear.rod * FISH_ZONE_PER_ROD + (hasTrait(s, "glider") ? 0.05 : 0) - difficulty * 0.3, 0.07, 0.6);
+const fishZone = (s: GameState, difficulty: number) => {
+  const zone = clamp(FISH_ZONE_BASE + s.gear.rod * FISH_ZONE_PER_ROD + (hasTrait(s, "glider") ? 0.05 : 0) - difficulty * 0.3, 0.07, 0.6);
+  return s.stats.fish === 0 ? Math.max(zone, FISH_FIRST_CATCH_ZONE) : zone;
+};
 export const ascendChance = (s: GameState, blessing: boolean) => Math.min(100, Math.max(ASCEND.floor, ASCEND.base - ASCEND.perLevel * s.level) + s.ascendPity * ASCEND.pityStep + (blessing ? ASCEND.blessing : 0) + (s.mood >= 75 ? ASCEND.happy : 0) + (hasTrait(s, "shiny") ? 4 : 0));
 export const forgeChance = (s: GameState, gear: GearId, blessing: boolean) => Math.min(100, FORGE_CHANCE[s.gear[gear]] + s.forgePity[gear] * FORGE_PITY_STEP + (blessing ? 10 : 0) + (hasTrait(s, "shiny") ? 4 : 0));
 export const raidChance = (s: GameState, target: RaidTarget, now: number) => {
@@ -478,14 +481,14 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const golden = eventActive(s, "goldtide", now);
       const fish = weighted(rng, FISH_TABLE.map((f, i) => ({ ...f, weight: f.weight * Math.max(0.2, 1 + boost * i) * (golden && i >= 2 ? 2 : 1) })));
       s.run = { kind: "fish", fish: fish.id, zone: fishZone(s, fish.difficulty), castAt: now };
-      events.push({ tone: "info", text: "Cast! Wait for the bite…", cue: "action-start" });
+      events.push({ tone: "info", text: "Cast! Wait for the bite…", cue: "action-start", quiet: true });
       return { zone: (s.run as { zone: number }).zone, difficulty: fish.difficulty };
     }
     case "fishReel": {
       const run = s.run; if (!run || run.kind !== "fish") fail("Cast first.");
       const r = run as Extract<typeof run, { kind: "fish" }>;
       s.run = null;
-      if (!a.hit) { s.mood -= 2; log(s, events, "It got away…", "bad", { cue: "select" }, now); return { caught: false, fish: r.fish }; }
+      if (!a.hit) { s.mood -= 2; log(s, events, "It got away…", "bad", { cue: "select", quiet: true }, now); return { caught: false, fish: r.fish }; }
       const def = FISH_TABLE.find(f => f.id === r.fish)!;
       s.inv[r.fish]++;
       s.stats.fish++;
@@ -494,8 +497,8 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       progress(s, events, "fish");
       s.mood += 2;
       const rare = r.fish === "angler" || r.fish === "goldnemo";
-      log(s, events, `Caught a ${ITEMS[r.fish].name}!${r.fish === "goldnemo" ? " LEGENDARY!" : ""}`, rare ? "epic" : "good", { cue: r.fish === "goldnemo" ? "reveal-legendary" : rare ? "reveal-rare" : "reveal-common", fx: rare ? "confetti" : undefined, icon: r.fish }, now);
-      return { caught: true, fish: r.fish };
+      log(s, events, `Caught a ${ITEMS[r.fish].name}!${r.fish === "goldnemo" ? " LEGENDARY!" : ""}`, rare ? "epic" : "good", { cue: r.fish === "goldnemo" ? "reveal-legendary" : rare ? "reveal-rare" : "reveal-common", fx: rare ? "confetti" : undefined, icon: r.fish, quiet: true }, now);
+      return { caught: true, fish: r.fish, xp: def.xp };
     }
 
     // ---------------- Crab Dash (skill, SHELL only) ----------------

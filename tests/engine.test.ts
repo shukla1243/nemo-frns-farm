@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  BOSS, DIVE, HOMES, MINES, NEEDS, RF, SLEEP_MS, WHEEL, ZONES, ascendCost, bossStatus, createRng, createState, diveMultiplierAt,
+  BOSS, DIVE, FISH_FIRST_CATCH_ZONE, HOMES, MINES, NEEDS, RF, SLEEP_MS, WHEEL, ZONES, ascendCost, bossStatus, createRng, createState, diveMultiplierAt,
   dayNumber, dispatch, exportSave, forgeCost, importSave, maxEnergy, minesMultiplier, xpToNext, type Action, type GameState,
 } from "../src/engine";
 
@@ -213,12 +213,22 @@ describe("fishing", () => {
     expect(run(s, { type: "fishCast" }).ok).toBe(false);
     const cast = run(fresh(), { type: "fishCast" });
     expect(cast.ok).toBe(true);
-    expect(cast.state.inv.bait).toBe(2);
+    expect(cast.state.inv.bait).toBe(4);
     const reel = run(cast.state, { type: "fishReel", hit: true });
     expect(reel.data!.caught).toBe(true);
     expect(reel.state.stats.fish).toBe(1);
+    // The Dock panel shows the catch inline, so the event stays in the log without a toast behind the panel.
+    expect(reel.events.find(e => /Caught/.test(e.text))?.quiet).toBe(true);
     const miss = run(cast.state, { type: "fishReel", hit: false });
     expect(miss.data!.caught).toBe(false);
+  });
+  it("a new Friend starts with 5 bait and an easier first catch", () => {
+    expect(fresh().inv.bait).toBe(5);
+    const zone = (s: GameState) => (run(s, { type: "fishCast" }).state.run as { zone: number }).zone;
+    const first = zone(fresh());
+    const later = zone(fresh({ stats: { ...fresh().stats, fish: 1 } }));
+    expect(first).toBeGreaterThan(later);
+    expect(first).toBeGreaterThanOrEqual(FISH_FIRST_CATCH_ZONE);
   });
 });
 

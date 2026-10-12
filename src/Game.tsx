@@ -68,7 +68,7 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
 
   const onEvents = useCallback((events: GameEvent[]) => {
     for (const e of events) {
-      pushToast(e.text, e.tone, e.icon);
+      if (!e.quiet) pushToast(e.text, e.tone, e.icon);
       if (e.cue) sound.play(e.cue);
       if (e.fx === "shake") {
         if (!rmRef.current) { setShaking(true); clearTimeout(shakeTimer.current); shakeTimer.current = window.setTimeout(() => setShaking(false), 450); }
