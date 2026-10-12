@@ -13,7 +13,7 @@ import type { Peer } from "../net/peers";
 import { buildTerrain, drawWaterGlints } from "../art/tiles";
 import * as A from "../art/sprites";
 import { icon } from "../art/icons";
-import { guide } from "./guide";
+import { guide, type Guide } from "./guide";
 import { mmss } from "../ui/common";
 import { NPCS, RESIDENTS, crab, giftReady, gull, residentAt, villager } from "./npcs";
 import type { Sprite } from "../art/pixel";
@@ -203,7 +203,8 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
       if (MOVE[k]) {
         ev.preventDefault();
         if (ev.type === "keydown") { keys.add(k); dest = null; pending = null; } else keys.delete(k);
-      } else if ((k === "e" || k === " " || k === "enter") && ev.type === "keydown" && near && !ev.repeat && (target === cv || target === document.body)) {
+      } else if (ev.type === "keydown" && near && !ev.repeat && (k === "e" || ((k === " " || k === "enter") && (target === cv || target === document.body)))) {
+        // E works even while a HUD button has focus (for example right after pressing Go); Space and Enter stay with buttons.
         ev.preventDefault(); live.current.onInteract(near);
       }
     };
@@ -244,22 +245,13 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
 
     /**
      * Story guide. On screen: a bobbing gold arrow over the goal with its name and distance. Off screen: an
-     * arrow on the edge of the HUD-free area pointing at it. On arrival: a "Press E" (or tap) hint instead.
+     * arrow on the edge of the HUD-free area pointing at it. On arrival the goal's tag shows the hint instead.
      */
-    const drawGuide = (s: GameState, you: Rect, bossUp: boolean, cx: number, cy: number, t: number, rm: boolean, nowMs: number) => {
-      const g = guide(s);
-      if (g.kind === "claim") return;
+    const drawGuide = (s: GameState, g: Guide, you: Rect, bossUp: boolean, cx: number, cy: number, t: number, rm: boolean, nowMs: number) => {
+      // Claiming needs no arrow, and on arrival the goal's own tag carries the "Press E" hint instead.
+      if (g.kind === "claim" || near?.id === g.station.id) return;
       const st = g.station;
       const gx = (st.x / UNIT - cx) * S, gy = ((st.y + 8) / UNIT - cy - stationSprite(st, s, 0, bossUp).height - 12) * S;
-      if (near?.id === st.id) {
-        const hint = coarse ? "Tap the button below" : "Press E";
-        const { w, h } = tagBox(hint);
-        const x = Math.min(safe.right - w / 2, Math.max(safe.left + w / 2, gx));
-        let y = Math.max(safe.top + h, gy - h);
-        y += dodge({ x: x - w / 2, y: y - h / 2, w, h }, you);
-        tag(hint, x, y, "near");
-        return;
-      }
       const name = st.id.startsWith("unlock:") ? `Expand: ${ZONES[st.id.slice(7) as ZoneId].name}` : st.label;
       const text = g.kind === "voyage"
         ? (nowMs < g.endsAt ? `${name} · back in ${mmss(g.endsAt - nowMs)}` : `${name} · chest ready`)
@@ -504,6 +496,12 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
       // ---- screen-space labels (crisp pixel font) ----
       const saveCam = { camX, camY }; camX = cx; camY = cy;
       if (fontReady) {
+        // The player's own tag goes on top; other tags and the guide move out of its way.
+        const youText = `${s.voyage ? "Sailing: " : ""}Lv${s.level} ${s.name}${s.rebirths ? ` ★${s.rebirths}` : ""}`;
+        const yx = Math.round((pos.x / UNIT - camX) * S), yy = Math.round((pos.y / UNIT - 50 - camY) * S), yb = tagBox(youText);
+        const you: Rect = { x: yx - yb.w / 2 - yb.b, y: yy - yb.h / 2 - yb.b, w: yb.w + yb.b * 2, h: yb.h + yb.b * 2 };
+        const g = guide(s);
+        const goalId = g.kind === "claim" ? null : g.station.id;
         for (const st of activeStations(s.zones)) {
           const isNear = near?.id === st.id;
           const spr = stationSprite(st, s, 0, bossUp);
@@ -511,16 +509,21 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
           const text = st.id.startsWith("unlock:") ? `Expand: ${ZONES[st.id.slice(7) as ZoneId].name}` : st.label;
           if (lx < camX - 60 || lx > camX + vw + 60 || ly < camY - 20 || ly > camY + vh + 20) continue;
           // Keep the whole tag on screen so signs near the edge (Expand: ...) stay readable.
-          const shown = isNear ? `${text}  [E]` : text, box = tagBox(shown), half = box.w / 2 + box.b + 2;
-          tag(shown, Math.min(cv.width - half, Math.max(half, (lx - camX) * S)), (ly - camY) * S, isNear ? "near" : st.id.startsWith("unlock:") ? "lock" : "station");
+          // Arriving at the story goal turns its tag into the "Press E" (or tap) hint that replaces the arrow.
+          const shown = !isNear ? text : st.id === goalId ? `${text} · ${coarse ? "Tap the button below" : "Press E"}` : `${text}  [E]`;
+          const box = tagBox(shown), half = box.w / 2 + box.b + 2;
+          const sx = Math.min(cv.width - half, Math.max(half, (lx - camX) * S));
+          let sy = (ly - camY) * S;
+          sy += dodge({ x: sx - half, y: sy - box.h / 2 - box.b, w: half * 2, h: box.h + box.b * 2 }, you);
+          tag(shown, sx, sy, isNear ? "near" : st.id.startsWith("unlock:") ? "lock" : "station");
         }
         for (const res of residents) if (Math.hypot(res.x - pos.x, res.y - pos.y) < 260) label(`${res.name} (resident)`, res.x / UNIT, res.y / UNIT - 36, "station");
         for (const peer of peersRef.current.values()) label(`Lv${peer.level} ${peer.name}`, peer.x / UNIT, peer.y / UNIT - 42, "peer");
-        const you = label(`${s.voyage ? "Sailing: " : ""}Lv${s.level} ${s.name}${s.rebirths ? ` ★${s.rebirths}` : ""}`, pos.x / UNIT, pos.y / UNIT - 50, "you");
+        tag(youText, yx, yy, "you");
         for (const peer of peersRef.current.values()) if (peer.emote && Date.now() - peer.emoteAt < 3500) {
           ctx.drawImage(icon(peer.emote), Math.round((peer.x / UNIT - cx - 9) * S), Math.round((peer.y / UNIT - cy - 66) * S), 18 * S, 18 * S);
         }
-        drawGuide(s, you, bossUp, cx, cy, t, rm, nowMs);
+        drawGuide(s, g, you, bossUp, cx, cy, t, rm, nowMs);
       }
       // floaters
       for (let i = floaters.length - 1; i >= 0; i--) {
