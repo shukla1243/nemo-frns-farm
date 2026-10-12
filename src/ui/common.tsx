@@ -16,6 +16,12 @@ export const mmss = (ms: number) => {
   return h ? `${h}h ${m}m` : `${m}:${String(s).padStart(2, "0")}`;
 };
 
+/** The saved in-game reduced motion choice, or the system setting when the player never chose. */
+export function storedReducedMotion() {
+  try { const v = localStorage.getItem("nemo-frns-farm:rm"); if (v !== null) return v === "1"; } catch { /* ignore */ }
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 export type PanelId =
   | "home" | "farm" | "market" | "pool" | "dock" | "crabs" | "shrine" | "wheel" | "board" | "mines" | "forge" | "harbor" | "abyss" | "reef"
   | "bag" | "settings" | "help" | "story" | "map" | "pier" | "play" | "inbox" | "report" | `unlock:${string}` | `npc:${string}`;
@@ -39,7 +45,7 @@ export function CostList({ cost, s }: { cost: Cost; s: GameState }) {
   const parts: ReactNode[] = [];
   if (cost.rf) parts.push(<span key="rf" className={`cost ${s.rf < cost.rf ? "short" : ""}`}><Icon id="rf" size={16} /> {rf(cost.rf)} RF</span>);
   if (cost.shell) parts.push(<span key="sh" className={`cost ${s.shell < cost.shell ? "short" : ""}`}><Icon id="shell" size={16} /> {n0(cost.shell)} SHELL</span>);
-  for (const [id, n] of Object.entries(cost.items ?? {})) if (n) parts.push(<span key={id} className={`cost ${s.inv[id as ItemId] < n ? "short" : ""}`}><Icon id={id} size={16} /> {n}<small> / {s.inv[id as ItemId]}</small></span>);
+  for (const [id, n] of Object.entries(cost.items ?? {})) if (n) parts.push(<span key={id} className={`cost ${s.inv[id as ItemId] < n ? "short" : ""}`} title={`Have ${s.inv[id as ItemId]}, need ${n}`}><Icon id={id} size={16} /> {s.inv[id as ItemId]}<small> / {n}</small></span>);
   return <span className="costs">{parts.length ? parts : <span className="cost">Free</span>}</span>;
 }
 
