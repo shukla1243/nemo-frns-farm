@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   BOSS, DIVE, FISH_FIRST_CATCH_ZONE, HOMES, MINES, NEEDS, RF, SLEEP_MS, WHEEL, ZONES, ascendCost, bossStatus, createRng, createState, diveMultiplierAt,
-  dayNumber, dispatch, exportSave, forgeCost, importSave, maxEnergy, minesMultiplier, xpToNext, type Action, type GameState,
+  dayNumber, dispatch, forgeCost, maxEnergy, minesMultiplier, xpToNext, type Action, type GameState,
 } from "../src/engine";
+import { exportSave, importSave } from "../src/game/save";
 
 const T0 = 1_800_000_000_000;
 // Today's streak is pre-claimed so each test measures only its own mechanic.

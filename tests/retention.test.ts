@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ACT_ONE_LEN, ACT_TWO_LEN, PASS, RF, VOYAGE_CHAPTER, chapterAt, createState, dayNumber, dispatch, importSave, exportSave, passClaimable, seasonIdAt, voyagesOpen, type GameState } from "../src/engine";
+import { ACT_ONE_LEN, ACT_TWO_LEN, PASS, RF, VOYAGE_CHAPTER, chapterAt, createState, dayNumber, dispatch, passClaimable, seasonIdAt, voyagesOpen, type GameState } from "../src/engine";
+import { exportSave, importSave } from "../src/game/save";
 import { guide } from "../src/world/guide";
 import { STATIONS, UNLOCK_SIGNS } from "../src/world/map";
 import { RESIDENTS, residentAt } from "../src/world/npcs";

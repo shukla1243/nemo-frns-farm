@@ -18,11 +18,11 @@ All RF and $SHELL balances, rewards and burns are **SIMULATED** for the vibeatho
 ## Architecture
 
 ```
-src/engine/   pure TypeScript game rules: no DOM, seeded RNG, fully unit-tested
+src/engine/   pure TypeScript game rules: server-safe (no DOM, clock or ambient randomness), seeded RNG, fully unit-tested
 src/identity/ FriendSDK wallet session, owned-Friend discovery, fresh eligibility check
 src/world/    island map, tile grid, NPCs and the pixel canvas renderer
 src/art/      procedural pixel art: palette, sprites, tiles, icons, 9-slice UI frames
-src/game/     Friend sprite drawing, sound (FriendSDK sound kit) and generative music
+src/game/     Friend sprite drawing, local saves, sound (FriendSDK sound kit) and generative music
 src/ui/       React HUD, Play hub, panels and minigames
 ```
 

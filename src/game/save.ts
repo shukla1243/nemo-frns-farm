@@ -1,8 +1,8 @@
-import { ITEM_IDS, ZONE_ORDER, type ItemId } from "./config";
-import { hashSeed } from "./rng";
-import { createState, emptyStats, emptyStocks } from "./state";
-import { STOCKS, STOCK_IDS } from "./voyages";
-import type { GameState } from "./types";
+import { ITEM_IDS, ZONE_ORDER, type ItemId } from "../engine/config";
+import { hashSeed } from "../engine/rng";
+import { createState, emptyStats, emptyStocks } from "../engine/state";
+import { STOCKS, STOCK_IDS } from "../engine/voyages";
+import type { GameState } from "../engine/types";
 
 const PREFIX = "NFF1";
 

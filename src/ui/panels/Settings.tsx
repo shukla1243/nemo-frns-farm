@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { homeIsle } from "../../engine/voyages";
-import { exportSave, importSave, clearLocal } from "../../engine/save";
+import { exportSave, importSave, clearLocal } from "../../game/save";
 import { TRAITS, SINK } from "../../engine/config";
 import { sound } from "../../game/sound";
 import { Panel, SimTag, useG } from "../common";

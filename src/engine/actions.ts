@@ -4,7 +4,7 @@ import {
   SHOP, WELL_FED_MS, WHEEL, WHEEL_COST, WHEEL_FREE_MS, ZONES, ascendCost, diveMultiplierAt, forgeCost, plotCost,
   titleFor, xpToNext, type CropId, type GearId, type ItemId, type MealId, type ZoneId,
 } from "./config";
-import { createRng, weighted, type Rng } from "./rng";
+import { createRng, hashSeed, weighted, type Rng } from "./rng";
 import { applySwap, quote, type SwapDir } from "./amm";
 import {
   addXp, clamp, clampNeeds, discounted, forfeitRf, giveRf, giveShell, hasTrait, log, loseRf, luck, maxEnergy, missing, pay, sink,
@@ -77,8 +77,13 @@ class Reject extends Error {}
 const fail = (message: string): never => { throw new Reject(message); };
 const fmtRf = (c: number) => `${(c / 100).toFixed(2)} RF`;
 
+/** JSON deep copy: game state is plain JSON, and the Nakama runtime has no structuredClone. */
+const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
 export function dispatch(prev: GameState, action: Action, now: number): Result {
-  const s: GameState = structuredClone(prev);
+  const s: GameState = clone(prev);
+  // Mix server time and the action into the seed, so the stored seed alone never predicts the next roll.
+  s.seed = hashSeed(`${s.seed}:${now}:${action.type}`);
   const events: GameEvent[] = [];
   const outbox: Outbox[] = [];
   let data: Record<string, unknown> | undefined;
@@ -89,7 +94,7 @@ export function dispatch(prev: GameState, action: Action, now: number): Result {
   } catch (error) {
     if (error instanceof Reject) {
       // Discard partial mutations: re-derive the state from prev + time only.
-      const base: GameState = structuredClone(prev);
+      const base: GameState = clone(prev);
       tick(base, now, []);
       return { state: base, events: [...events, { tone: "bad", text: error.message, cue: "select" }], outbox: [], ok: false };
     }

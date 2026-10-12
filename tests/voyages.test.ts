@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RF, VOYAGE_CHAPTER, createRng, createState, dayNumber, dispatch, type GameState } from "../src/engine";
 import { STOCK_IDS, STOCK_SELL_FEE, VOYAGES, rollVoyage, stockPrice, voyageBonus, voyageOdds, type StockId } from "../src/engine/voyages";
-import { migrate } from "../src/engine/save";
+import { migrate } from "../src/game/save";
 
 const T0 = Date.UTC(2026, 8, 24, 12);
 const fresh = (): GameState => {

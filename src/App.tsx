@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Gate, type Identity } from "./identity/Gate";
 import { Game } from "./Game";
 import { createState } from "./engine/state";
-import { loadLocal } from "./engine/save";
+import { loadLocal } from "./game/save";
 import { dispatch } from "./engine/actions";
 import type { GameState } from "./engine/types";
 

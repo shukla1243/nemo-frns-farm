@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CRAB, VOYAGE_CHAPTER, createState, dayNumber, dispatch, exportSave, importSave, type GameState } from "../src/engine";
+import { CRAB, VOYAGE_CHAPTER, createState, dayNumber, dispatch, type GameState } from "../src/engine";
+import { exportSave, importSave } from "../src/game/save";
 import { pauseRound, resumeRound, type Round } from "../src/ui/crabRound";
 
 const T0 = 1_800_000_000_000;
