@@ -4,7 +4,6 @@ import type { Action, Result } from "../engine/actions";
 import type { Cost, ItemId } from "../engine/config";
 import { Icon } from "./Icon";
 import { animate } from "animejs";
-import type { NetState } from "../net/useNet";
 import type { Identity } from "../identity/Gate";
 
 export const rf = (c: number) => (c / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -31,12 +30,9 @@ export type Ctx = {
   now: number;
   act: (a: Action) => Result;
   open: (p: PanelId | null) => void;
-  net: NetState;
   identity: Identity;
-  brag: (text: string) => void;
   reducedMotion: boolean;
   setReducedMotion: (v: boolean) => void;
-  cloud: { status: "off" | "on" | "syncing" | "error"; message: string; enable: () => Promise<void>; pull: () => Promise<void> };
 };
 export const GameContext = createContext<Ctx | null>(null);
 export const useG = () => useContext(GameContext)!;

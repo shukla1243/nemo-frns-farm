@@ -14,10 +14,7 @@ import { FriendCard } from "./FriendCard";
 import { home, palm, shrine } from "../art/sprites";
 import { waterPattern } from "../art/tiles";
 
-export type Identity = {
-  friendId: string; name: string; family: number; guest: boolean;
-  account: string | null; provider: { request(args: { method: string; params?: unknown[] | object }): Promise<unknown> } | null;
-};
+export type Identity = { friendId: string; name: string; family: number; guest: boolean };
 
 // Test fixture only: the condition is false in production builds, so the import and its chunk are dropped.
 const SampleFriends = import.meta.env.VITE_SAMPLE_FRIENDS === "1" ? lazy(() => import("./SampleFriends")) : null;
@@ -60,7 +57,7 @@ export function Gate({ onEnter }: { onEnter: (id: Identity) => void }) {
       const check = await readGenerationEligibility(publicClient, f.id, snap.account);
       if (check.eligible !== true) throw new Error(check.hardwired ? "This wallet no longer owns that Friend." : "Only hardwired Friends (generation 1+) can play.");
       const sprites = await loadSprites(f.id.toString());
-      onEnter({ friendId: f.id.toString(), name: f.label || `Friend #${f.id}`, family: sprites.familyId, guest: false, account: snap.account, provider: session.getProvider() });
+      onEnter({ friendId: f.id.toString(), name: f.label || `Friend #${f.id}`, family: sprites.familyId, guest: false });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Verification failed. Try again.");
     } finally { setBusy(false); setStatus(""); }
@@ -73,9 +70,9 @@ export function Gate({ onEnter }: { onEnter: (id: Identity) => void }) {
       <section className="gate-card frame-panel">
         <div className="logo-art" aria-hidden><SpriteImg sprite={palm(0)} name="palm0" height={64} /><SpriteImg sprite={home(0)} name="home0" height={48} /><SpriteImg sprite={shrine()} name="shrine" height={52} /><SpriteImg sprite={palm(1)} name="palm1" height={60} /></div>
         <h1 className="logo">NEMO<span>FRNS FARM</span></h1>
-        <p className="tagline">Raise your Rare Friend, grow a pixel island, and risk it all with players online.</p>
+        <p className="tagline">Raise your Rare Friend, grow a pixel island, and risk it all against rival islands.</p>
         <ul className="gate-pills" aria-label="Features">
-          <li className="frame-paper"><Icon id="home" size={22} />Build & expand</li><li className="frame-paper"><Icon id="rod" size={22} />Fish, mine, dive</li><li className="frame-paper"><Icon id="sword" size={22} />Raid real players</li><li className="frame-paper"><Icon id="angler" size={22} />World boss</li><li className="frame-paper"><Icon id="trophy" size={22} />Weekly prize pool</li>
+          <li className="frame-paper"><Icon id="home" size={22} />Build & expand</li><li className="frame-paper"><Icon id="rod" size={22} />Fish, mine, dive</li><li className="frame-paper"><Icon id="sword" size={22} />Raid rival islands</li><li className="frame-paper"><Icon id="angler" size={22} />World boss</li><li className="frame-paper"><Icon id="trophy" size={22} />Weekly prize pool</li>
         </ul>
 
         {!samples && !snap.account && (

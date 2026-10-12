@@ -16,8 +16,8 @@ const GAMES: Card[] = [
   { station: "mines", blurb: "Minesweeper dig. Every safe tile raises the multiplier, a trap takes it all.", risk: "High" },
   { station: "abyss", blurb: "Crash dive. Cash out before the shark bites. Up to 1000x.", risk: "High" },
   { station: "wheel", blurb: "Prize wheel with a 25 RF jackpot. One free spin every 8 hours.", risk: "Luck" },
-  { station: "harbor", blurb: "Raid real players and rival crews for their SHELL vaults.", risk: "PvP" },
-  { station: "reef", blurb: "World boss every 20 minutes. Everyone online hits it together.", risk: "Co-op" },
+  { station: "harbor", blurb: "Raid simulated rival crews for their SHELL vaults.", risk: "Raid" },
+  { station: "reef", blurb: "World boss every 20 minutes. Hit it alongside simulated hunters.", risk: "Boss" },
   { station: "forge", blurb: "Upgrade gear +1 to +10. Odds fall as the level rises.", risk: "Gamble" },
   { station: "pier", blurb: "Timed voyages of 15 min to 12 h. Relics, RF and stock-token shares.", risk: "Idle" },
 ];
@@ -33,10 +33,10 @@ const LIFE: Card[] = [
 ];
 
 export function PlayHub({ onClose, go }: { onClose: () => void; go: (station: StationId) => void }) {
-  const { s, now, open, net } = useG();
+  const { s, now, open } = useG();
   const [tab, setTab] = useState<"play" | "island">("play");
   const ch = chapterAt(s.story);
-  const boss = bossStatus(now, s.boss.epoch === Math.floor(now / BOSS.periodMs) ? s.boss.damage : 0, net.bossOthers);
+  const boss = bossStatus(now, s.boss.epoch === Math.floor(now / BOSS.periodMs) ? s.boss.damage : 0);
   const render = (c: Card) => {
     const st = STATIONS.find(x => x.id === c.station)!;
     const locked = !s.zones[st.zone];

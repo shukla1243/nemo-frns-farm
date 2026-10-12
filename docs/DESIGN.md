@@ -1,6 +1,6 @@
 # NEMO FRNS FARM: Design Spec
 
-An online, risk-to-earn island life sim starring your Rare Friends Generations NFT.
+A risk-to-earn island life sim starring your Rare Friends Generations NFT.
 Solo-playable offline; multiplayer layers on top (one shared world with live presence, async PvP
 raids, shared Kraken world boss, weekly season leaderboards). Endless by design: an infinite
 story act, infinite milestone tiers, rebirth, daily streaks and timed voyages.
@@ -19,7 +19,6 @@ All RF and $SHELL balances, rewards and burns are **SIMULATED** for the vibeatho
 
 ```
 src/engine/   pure TypeScript game rules: no DOM, seeded RNG, fully unit-tested
-src/net/      online layer: Nostr (profiles, raids, boss damage) + Trystero WebRTC (live presence/emotes)
 src/identity/ FriendSDK wallet session, owned-Friend discovery, fresh eligibility check
 src/world/    island map, tile grid, NPCs and the pixel canvas renderer
 src/art/      procedural pixel art: palette, sprites, tiles, icons, 9-slice UI frames
@@ -29,7 +28,6 @@ src/ui/       React HUD, Play hub, panels and minigames
 
 The engine is a reducer: `dispatch(state, action, now) -> { state, events }`, plus
 `tick(state, now)` for time-based systems. UI renders state and emits actions.
-The net layer never mutates state directly; it produces actions (e.g. `raidReceived`).
 
 ## Core loop
 
@@ -44,7 +42,7 @@ RF is stored as integer centi-RF (1 RF = 100) to avoid float drift.
 
 ## Persistence
 localStorage per Friend (autosave 10 s + on hide), exportable save code (base64 + checksum,
-bound to Friend ID), optional wallet-derived NIP-44 encrypted cloud save. Offline progress: crops
+bound to Friend ID). Offline progress: crops
 grow, voyages finish, needs decay (capped), sleep regen at home.
 
 ## Identity
@@ -53,14 +51,9 @@ play gate via fresh `readGenerationEligibility` (gen ≥ 1, owned). Every playab
 requires the gate. Sample Friends are a test fixture that exists only in the e2e test
 build (`vite build --mode e2e`); production builds contain none of that code.
 
-## Multiplayer
-- Nostr kind 30078 replaceable profile events (`d=nemo-frns-farm:profile`): level, power,
-  defense, vault, spent, season score, friendId. Drives leaderboards and raid targets.
-- Nostr kind 7078 raid events tagged with the victim pubkey; victims apply capped losses.
-- Nostr kind 7079 Kraken damage events tagged with the epoch; boss HP is shared.
-- Trystero (Nostr signalling) WebRTC room `nemo-world`: one shared world, positions, emotes.
-- Simulated rivals fill the world so solo play always has targets.
-Trust model: client-authoritative, simulated economy only. Documented as a known limitation.
+## Rivals
+The island is solo. Simulated rivals, residents and Kraken hunters fill the world so play
+always has targets. Trust model: client-authoritative, simulated economy only.
 
 ## Testing
 - Vitest unit tests per engine module.

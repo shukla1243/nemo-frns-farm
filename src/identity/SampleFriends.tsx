@@ -17,7 +17,7 @@ export default function SampleFriends({ onEnter, onBack }: { onEnter: (id: Ident
     setBusy(true); setError("");
     try {
       const sprites = await loadSprites(id);
-      onEnter({ friendId: id, name: `Guest #${id}`, family: sprites.familyId, guest: true, account: null, provider: null });
+      onEnter({ friendId: id, name: `Guest #${id}`, family: sprites.familyId, guest: true });
     } catch {
       setError("Could not load artwork from Robinhood Chain. Check your connection and retry.");
     } finally { setBusy(false); }

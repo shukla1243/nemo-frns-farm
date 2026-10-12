@@ -32,7 +32,7 @@ async function scenario(name, viewport, mobile) {
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", e => errors.push(`pageerror: ${e.message}`));
-  page.on("console", m => { if (m.type() === "error" && !/WebSocket|wss:|net::|Failed to load resource|ICE|RTCPeer|relay|fonts/i.test(m.text())) errors.push(`console: ${m.text()}`); });
+  page.on("console", m => { if (m.type() === "error" && !/net::|Failed to load resource|fonts/i.test(m.text())) errors.push(`console: ${m.text()}`); });
 
   await page.goto("http://127.0.0.1:4180/");
   await page.getByRole("button", { name: /Sample Friends \(test build\)/ }).click();

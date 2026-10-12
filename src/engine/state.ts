@@ -1,6 +1,6 @@
 import {
   HOMES, ITEM_IDS, NEEDS, PROSPERITY, RIVAL_NAMES, START, START_PLOTS, TRAP_DEFENSE, ZONE_ORDER,
-  traitFor, xpToNext, MAX_LEVEL, titleFor, RIVAL_RAID_INTERVAL, EVENT_INTERVAL, MARKET_TIDE_MS, BOSS, ITEMS, SINK, SEASON, REBIRTH, seasonIdAt,
+  traitFor, xpToNext, MAX_LEVEL, RIVAL_RAID_INTERVAL, EVENT_INTERVAL, MARKET_TIDE_MS, BOSS, ITEMS, SINK, SEASON, REBIRTH, seasonIdAt,
   type Cost, type ItemId, type TraitId, type ZoneId,
 } from "./config";
 import { createRng, type Rng } from "./rng";
@@ -86,8 +86,6 @@ export function yieldMult(s: GameState, now: number) {
 }
 /** Multiplier on SHELL earned from selling and quests: burn-to-earn prosperity. */
 export const shellMult = (s: GameState) => (1 + prosperityPct(s) / 100) * (1 + s.rebirths * REBIRTH.shellBonus);
-export const netWorth = (s: GameState) => s.shell + s.rf * 1.5 + Object.entries(s.inv).reduce((sum, [id, n]) => sum + (ITEMS[id as ItemId].sell ?? 0) * n, 0);
-export const title = (s: GameState) => titleFor(s.level);
 
 // ---------- Mutating helpers (operate on a draft) ----------
 export function log(s: GameState, events: GameEvent[], text: string, tone: Tone, extra: Partial<GameEvent> = {}, now = s.lastTick) {

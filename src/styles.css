@@ -103,7 +103,7 @@ small { font-size: 13px; }
 
 /* ---------------- HUD ---------------- */
 .hud { position: absolute; inset: 0; pointer-events: none; padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 8px) calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 8px); display: flex; flex-direction: column; gap: 6px; }
-.hud button, .hud .emote-pop, .hud nav { pointer-events: auto; }
+.hud button, .hud nav { pointer-events: auto; }
 .hud-top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
 .hud-mid { display: flex; flex-direction: column; gap: 6px; margin-right: auto; min-width: 0; }
 .me { display: flex; align-items: center; gap: 8px; padding: 0 4px 0 0; min-width: 0; max-width: min(62%, 320px); position: relative; text-align: left; }
@@ -131,11 +131,6 @@ small { font-size: 13px; }
 .meter .segs i.on.blue { background: #a7e3f5; box-shadow: inset 0 -3px 0 #3a86c2; }
 .meter.low .segs i.on { background: #ff6f73; box-shadow: inset 0 -3px 0 #c0303a; animation: blink2 .8s steps(2) infinite; }
 @keyframes blink2 { 50% { opacity: .45; } }
-.net-chip { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; font-size: 13px; font-weight: 700; white-space: nowrap; min-height: 30px; }
-.dot { width: 8px; height: 8px; background: #999; display: inline-block; }
-.dot.online { background: #86c95e; box-shadow: 0 0 0 2px #2f6b3a; }
-.dot.offline { background: var(--red); }
-.dot.connecting { background: var(--gold); }
 .banners { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .quest-note { display: flex; gap: 8px; align-items: center; text-align: left; max-width: min(100%, 440px); min-width: 0; padding: 0 6px 0 2px; }
 .quest-note span { display: grid; grid-template-columns: minmax(0, 1fr); line-height: 1.15; min-width: 0; }
@@ -152,9 +147,6 @@ small { font-size: 13px; }
 .toast.epic { border-image-source: var(--f-gold); font-weight: 700; }
 .hud-bottom { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
 .dock-btns { display: flex; gap: 6px; flex-wrap: wrap; }
-.emote-wrap { position: relative; }
-.emote-pop { position: absolute; bottom: 60px; left: 0; padding: 2px; display: grid; grid-template-columns: repeat(4, 46px); gap: 4px; }
-.emote-pop .pbtn.icon-only { width: 46px; height: 46px; min-height: 46px; }
 .action-btn { gap: 8px; padding: 2px 12px 2px 4px; min-height: 60px; max-width: 48%; justify-content: flex-start; }
 .action-art { display: grid; place-items: center; min-width: 44px; }
 .action-text { display: grid; text-align: left; line-height: 1.1; }
@@ -222,7 +214,6 @@ small { font-size: 13px; }
 .lvl { font: 700 38px/1 var(--font); color: var(--orange); text-shadow: 2px 2px 0 var(--ink); }
 .title-chip { background: var(--ink); color: #fff1d6; padding: 1px 8px; font-weight: 700; font-size: 14px; }
 .hot-chip { margin-left: 6px; background: var(--red); color: #fff; padding: 0 5px; font-size: 11px; vertical-align: 2px; }
-.on-chip { margin-left: 6px; background: var(--green); color: #fff; padding: 0 5px; font-size: 11px; vertical-align: 2px; }
 .chance { font-weight: 700;  min-width: 44px; text-align: right; font-size: 17px; }
 .result-pop { text-align: center; font: 700 26px var(--font); color: var(--orange); text-shadow: 2px 2px 0 var(--ink); }
 .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
@@ -356,7 +347,6 @@ button.item:hover:not(:disabled) { filter: brightness(1.05); }
   .me-art img { width: 34px; height: 34px; }
   .coin { font-size: 15px; min-height: 30px; }
   .meter .segs i { width: 4px; height: 10px; }
-  .net-chip { font-size: 12px; }
   .toasts { bottom: calc(env(safe-area-inset-bottom) + 138px); }
   .toast { font-size: 14px; }
   .hud-bottom { flex-direction: column-reverse; align-items: stretch; gap: 8px; }
@@ -407,7 +397,7 @@ small, .fineprint, .hint { font-size: 14px; }
 .muted { color: var(--muted); }
 .cost { font-size: 15px; }
 .toast { font-size: 15px; font-weight: 700; }
-.event-tag, .net-chip { font-size: 14px; font-weight: 800; }
+.event-tag { font-size: 14px; font-weight: 800; }
 .sim-flag, .sim-tag { font-family: var(--font); font-weight: 900; }
 .code { font-size: 12px; }
 @media (max-width: 640px) {
@@ -466,7 +456,6 @@ small, .fineprint, .hint { font-size: 14px; }
   .wallets { gap: 3px; }
   .sim-flag { font-size: 10px; padding: 0 4px; }
   .sv-name { display: none; }
-  .net-chip { min-height: 26px; }
   .quest-note small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
   .quest-note b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .quest-row { width: 100%; }
@@ -475,7 +464,6 @@ small, .fineprint, .hint { font-size: 14px; }
   .wallets { display: grid; grid-template-columns: auto auto; gap: 3px; justify-items: end; align-items: center; }
   .coin { font-size: 16px; min-height: 28px; gap: 3px; padding: 0 4px; }
   .coin .px-icon { width: 16px; height: 16px; }
-  .net-chip { min-height: 22px; font-size: 11px; padding: 0 4px; }
   .banners { flex-direction: row; flex-wrap: wrap; gap: 4px; }
   .banners .event-tag { min-height: 24px; font-size: 12px; padding: 0 4px; }
   .eat-now { min-height: 36px; font-size: 15px; }

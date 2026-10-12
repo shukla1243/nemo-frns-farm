@@ -67,7 +67,7 @@ export type Action =
   | { type: "sellStock"; id: StockId; shares: number };
 
 /** Outgoing network messages produced by an action (published by the net layer). */
-export type Outbox =
+type Outbox =
   | { kind: "raid"; targetId: string; amount: number; won: boolean }
   | { kind: "boss"; epoch: number; damage: number };
 

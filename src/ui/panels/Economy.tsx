@@ -135,7 +135,7 @@ function drawWheel(c: HTMLCanvasElement, angleDeg: number, weights: number[]) {
 }
 
 export function WheelPanel({ onClose }: { onClose: () => void }) {
-  const { s, act, now, reducedMotion, brag } = useG();
+  const { s, act, now, reducedMotion } = useG();
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<{ label: string; idx: number } | null>(null);
   const cv = useRef<HTMLCanvasElement>(null);
@@ -153,7 +153,7 @@ export function WheelPanel({ onClose }: { onClose: () => void }) {
     const mid = ((before + WHEEL[idx].weight / 2) / total) * 360;
     const target = angle.current - (angle.current % 360) + 360 * 5 + (360 - mid);
     setResult(null);
-    const finish = () => { setSpinning(false); setResult({ label: WHEEL[idx].label, idx }); if (WHEEL[idx].jackpot) brag("hit the JACKPOT on the Tide Wheel!"); };
+    const finish = () => { setSpinning(false); setResult({ label: WHEEL[idx].label, idx }); };
     if (reducedMotion) { angle.current = target; if (cv.current) drawWheel(cv.current, target, weights); finish(); return; }
     setSpinning(true);
     const obj = { a: angle.current };

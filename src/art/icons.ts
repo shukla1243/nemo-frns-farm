@@ -67,7 +67,6 @@ const MAPS: Record<string, readonly string[] | { map: readonly string[]; swap: R
   energy: [".....uuu.", "....uuU..", "...uuU...", "..uuuuuu.", ".....uU..", "....uU...", "...uU....", "..uU....."],
   bag: ["...wwww...", "..w....w..", ".WWWWWWWW.", ".WyyyyyyW.", ".WyWWWWyW.", ".WyWuuWyW.", ".WyWWWWyW.", ".WWWWWWWW."],
   board: [".wwwwwwww.", ".wYYYYYYw.", ".wYkkkkYw.", ".wYYYYYYw.", ".wYkkkYYw.", ".wYYYYYYw.", ".wwwwwwww.", "..w....w.."],
-  emote: [".eeeeeeee.", "eeRReRReee", "eeRRRRRRee", "eeeRRRReee", ".eeeRReee.", "..ee......", ".e........"],
   soundOn: ["...X.....", "..XX..c..", "XXXX.c.c.", "XXXX.c.c.", "..XX..c..", "...X....."],
   soundOff: ["...X.....", "..XX.R.R.", "XXXX..R..", "XXXX.R.R.", "..XX.....", "...X....."],
   lock: ["..XXXX..", ".X....X.", ".X....X.", "uuuuuuuu", "uUUUUUUu", "uUUkkUUu", "uUUkkUUu", "uuuuuuuu"],

@@ -95,8 +95,7 @@ cooking meals at Home.
 Every RF you spend is split: 70% to the weekly Season Prize Pool, 25% to the creator, and 5% burned forever. The top 10
 players each week share the pool. The full details are in [TOKENOMICS.md](TOKENOMICS.md). Everything is simulated.
 
-### Playing with others
+### Rivals
 
-Everyone shares one island. You'll see other Friends walking and emoting, and you can raid them (they can raid you
-back), fight the Kraken together and race up the same leaderboard. If nobody else is online, simulated rivals and
-residents keep the island busy.
+Your island is your own. Simulated rival islands, residents and Kraken hunters keep the sea busy: raid them, race them
+up the leaderboard and fight the Kraken beside them.

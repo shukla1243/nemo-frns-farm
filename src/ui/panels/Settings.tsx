@@ -7,7 +7,7 @@ import { Panel, SimTag, useG } from "../common";
 import { music } from "../../game/music";
 
 export function SettingsPanel({ onClose, onReplace }: { onClose: () => void; onReplace: (code: string) => string | null }) {
-  const { s, reducedMotion, setReducedMotion, cloud, identity } = useG();
+  const { s, reducedMotion, setReducedMotion } = useG();
   const [musicOn, setMusicOn] = useState(music.on);
   const [muted, setMuted] = useState(sound.muted);
   const [code, setCode] = useState("");
@@ -23,15 +23,7 @@ export function SettingsPanel({ onClose, onReplace }: { onClose: () => void; onR
         <label className="check"><input type="checkbox" checked={reducedMotion} onChange={e => setReducedMotion(e.target.checked)} /> Reduce motion (no shake, confetti or wave animation)</label>
       </section>
       <section className="section">
-        <h3>Cloud save (cross-device)</h3>
-        {identity.guest ? <p className="muted">Guests save on this device only. Connect a wallet to sync between phone and computer.</p> : <>
-          <p className="muted">Sign one free message (no gas, no transaction) to derive a private key from your wallet. Your save is encrypted to that key and synced through Nostr relays, so the same Friend picks up where you left off on any device.</p>
-          <p>Status: <b>{cloud.status}</b> {cloud.message && <span className="muted">({cloud.message})</span>}</p>
-          <div className="btn-row">
-            {cloud.status === "off" || cloud.status === "error" ? <button type="button" className="btn primary" onClick={() => void cloud.enable()}>Enable cloud save</button>
-              : <button type="button" className="btn" onClick={() => void cloud.pull()}>Pull latest from cloud</button>}
-          </div>
-        </>}
+        <h3>Autosave</h3>
         <p className="fineprint">Local autosave runs every 10 s and when you leave the page. Time away counts: crops keep growing and your Friend rests at home (needs drain at most 50% while offline).</p>
       </section>
       <section className="section">
@@ -86,7 +78,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         <h3>Where RF goes</h3>
         <p>Every RF you spend splits <b>70%</b> into the weekly Season Prize Pool, <b>25%</b> to the creator and <b>5%</b> is burned forever. The top 10 of each week split the pool. All balances are simulated.</p>
         <p><b>Your Friend:</b> {trait.family} family, trait <b>{trait.name}</b>: {trait.blurb} It gets a new hat and title every 10 levels.</p>
-        <p><b>Online:</b> everyone shares one island world. You see other Friends walking live, raid real players, fight the Kraken together and climb the leaderboards. No game server (Nostr and WebRTC). Solo works too.</p>
+        <p><b>Rivals:</b> your island is solo. Rival islands, residents and Kraken hunters are simulated.</p>
       </div>
     </Panel>
   );

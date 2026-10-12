@@ -6,7 +6,7 @@ import { Panel, SimTag, StakePicker, n0, rf, useG } from "../common";
 import { Icon } from "../Icon";
 
 function FlipOffer() {
-  const { s, act, brag } = useG();
+  const { s, act } = useG();
   const w = s.lastWin;
   if (!w || w.amount <= 0) return null;
   const amt = w.currency === "rf" ? `${rf(w.amount)} RF` : `${n0(w.amount)} SHELL`;
@@ -15,7 +15,7 @@ function FlipOffer() {
     <div className="flip">
       <p><b>Double or nothing?</b> Risk your {amt} win · {chance.toFixed(0)}% to double · flip {w.flips + 1}/{FLIP.maxFlips}</p>
       <div className="btn-row">
-        <button type="button" className="btn hot" disabled={w.flips >= FLIP.maxFlips} onClick={() => { const r = act({ type: "flip" }); if (r.ok && r.data?.won && w.flips + 1 >= 3) brag(`flipped ${w.flips + 1}x in a row for ${w.currency === "rf" ? rf(w.amount * 2) + " RF" : n0(w.amount * 2) + " SHELL"} `); }}>FLIP → {w.currency === "rf" ? rf(w.amount * 2) : n0(w.amount * 2)}</button>
+        <button type="button" className="btn hot" disabled={w.flips >= FLIP.maxFlips} onClick={() => act({ type: "flip" })}>FLIP → {w.currency === "rf" ? rf(w.amount * 2) : n0(w.amount * 2)}</button>
         <button type="button" className="btn" onClick={() => act({ type: "keepWin" })}>Bank it</button>
       </div>
     </div>
@@ -120,7 +120,7 @@ export function DockPanel({ onClose }: { onClose: () => void }) {
 
 // ---------------- Tide Mines ----------------
 export function MinesPanel({ onClose }: { onClose: () => void }) {
-  const { s, act, brag } = useG();
+  const { s, act } = useG();
   const [currency, setCurrency] = useState<"shell" | "rf">("shell");
   const [stake, setStake] = useState(50);
   const [traps, setTraps] = useState(3);
@@ -133,11 +133,10 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
   const reveal = (i: number) => {
     const r = act({ type: "minesReveal", index: i });
     if (r.data?.trap) setBoom(r.data.traps as number[]);
-    else if (r.data?.win && (r.data.mult as number) >= 10) brag(`cleared Tide Mines at ${(r.data.mult as number).toFixed(2)}x `);
   };
   const cashout = () => {
     const r = act({ type: "minesCashout" });
-    if (r.ok) { setBoom(r.data!.traps as number[]); if ((r.data!.mult as number) >= 10) brag(`cashed out Tide Mines at ${(r.data!.mult as number).toFixed(2)}x `); }
+    if (r.ok) setBoom(r.data!.traps as number[]);
   };
   const loot = run ? Object.entries(run.loot).filter(([, v]) => v) : [];
   return (
@@ -179,7 +178,7 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
 
 // ---------------- Abyss Dive (crash) ----------------
 export function AbyssPanel({ onClose }: { onClose: () => void }) {
-  const { s, act, reducedMotion, brag } = useG();
+  const { s, act, reducedMotion } = useG();
   const [currency, setCurrency] = useState<"shell" | "rf">("shell");
   const [stake, setStake] = useState(50);
   const [auto, setAuto] = useState(0);
@@ -224,7 +223,6 @@ export function AbyssPanel({ onClose }: { onClose: () => void }) {
     if (r.ok) {
       const m = (r.data?.mult as number) ?? mult;
       setLast({ crashed: !!r.data?.crashed, at: r.data?.crashed ? (r.data.crashAt as number) : m });
-      if (!r.data?.crashed && m >= 10) brag(`dove to ${m.toFixed(2)}x in the Abyss `);
     }
   };
   const depth = Math.min(1, Math.log(mult) / Math.log(20));

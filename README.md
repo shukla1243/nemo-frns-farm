@@ -2,7 +2,7 @@
 
 **Your Rare Friend washes ashore. Keep it alive, grow the island, and gamble on a better life.**
 
-NEMO FRNS FARM is an online, endless, risk-to-earn pixel island life sim. You play as your own verified Rare
+NEMO FRNS FARM is an endless, risk-to-earn pixel island life sim. You play as your own verified Rare
 Friends Generations NFT. You feed it, rest it, farm, fish, mine and dive, and build a home from a clownfish tent to a
 Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up and upgrade is a gamble that spends RF.
 **70% of every RF spent flows into a weekly Season Prize Pool that pays back the top 10 players.**
@@ -30,8 +30,8 @@ Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up
   your best food. Sleep at home to refill energy.
 - **Work.** Chop, quarry, farm (6 crops), fish (timing mini-game), play **Crab Dash** (a
   25-second whack-a-crab arcade with a personal best, no stake), cook, sell at the market, and swap at the Tide Pool.
-- **Risk it.** Abyss Dive (crash game), Tide Mines (minesweeper multiplier), double or nothing, raids on real players and
-  rival crews, the Kraken world boss (co-op), and the Tide Wheel with a 25 RF jackpot.
+- **Risk it.** Abyss Dive (crash game), Tide Mines (minesweeper multiplier), double or nothing, raids on simulated
+  rival crews, the Kraken world boss, and the Tide Wheel with a 25 RF jackpot.
 - **Voyage.** Send your Friend away for 15 minutes, 1, 6 or 12 hours. Long voyages have low odds and big upside: RF
   hoards, Family Relics (+2% XP forever) from your Friend's own family island, and simulated **stock-token shares** (NVDA,
   TSLA, AAPL, AMZN, MSFT, HOOD, COIN) that you can hold or sell at a live simulated price. While your Friend is away, it
@@ -42,9 +42,8 @@ Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up
   automatically, and the story goes on forever: 15 chapters in Act I, 12 in Act II, and an Act III that never ends.
 - **Season Journey.** A free 10-tier reward track every week, so every player gets paid for playing, not just the
   top 10.
-- **Play together.** Everyone spawns into **one shared island world**. You see other Friends walk and emote live, raid
-  real players' vaults, hit the same Kraken, and climb the same weekly leaderboard. Solo play works fully offline with
-  simulated rivals, traders and residents who stroll the beach (clearly labelled as residents).
+- **Rivals.** Your island is solo. Simulated rivals, traders and residents who stroll the beach (clearly labelled as
+  residents) fill the sea, the leaderboard and the Kraken fight.
 
 Everything is one tap away. A gold arrow on the map points at your next story goal and labels it with its name and
 distance. The **Go** button beside the goal takes you there, turns into a gold **Claim** button when the goal is met,
@@ -98,22 +97,18 @@ stays fast and rewarding.
 
 The full guide, the lore and every islander are in **[docs/LORE.md](docs/LORE.md)**.
 
-## Multiplayer and saves (no game server)
+## Solo island and saves
 
-- **One shared world.** All players join the same WebRTC room (Trystero, signalled over Nostr) for live positions and
-  emotes.
-- **Global layer on Nostr relays.** Player profiles (leaderboards, raid targets, season scores), raid notifications,
-  Kraken damage per boss epoch, and a live brag feed.
+- **Solo island.** Rival islands, residents and Kraken hunters are simulated. The FriendSDK v0.2 sandbox blocks the
+  former Nostr and WebRTC layer, so this port removed it.
 - **Saves.** localStorage autosave every 10 s and when the page is hidden, with timestamps for offline progress (crops
-  grow, voyages finish, needs drain at most 50%). Checksummed **save codes** for manual backup. **Cloud save:** sign
-  one free message (no gas) to derive a private key from your wallet. Your save is NIP-44 encrypted to that key and synced
-  through relays, so the same Friend continues on phone and desktop.
-- **Trust model.** The client is authoritative and the economy is simulated. Profiles and raids are signed Nostr
-  events, but no server validates them. Real value would need on-chain settlement first (see the roadmap below).
+  grow, voyages finish, needs drain at most 50%). Checksummed **save codes** for manual backup.
+- **Trust model.** The client is authoritative and the economy is simulated. Real value would need on-chain
+  settlement first (see the roadmap below).
 
 ## Rare Friends integration
 
-- FriendSDK v0.1.2 (`@rarefriends/friendsdk`):
+- FriendSDK v0.2.3 (`@rarefriends/friendsdk`, vendored archive in `vendor/`):
   - `createFriendWalletSession` for EIP-6963 and injected wallets.
   - `readOwnedFriends` for owned-Friend discovery.
   - `readGenerationEligibility` for a fresh gen ≥ 1 ownership check before play.
@@ -125,7 +120,7 @@ The full guide, the lore and every islander are in **[docs/LORE.md](docs/LORE.md
 - The Friend is drawn exactly as minted, with a thin outline so it reads on sand and grass. Hats, dust puffs, titles
   and rebirth stars are added around it, never painted over it.
 - The FriendSDK sandbox is optional for vibeathon entries. This build runs as a standalone host, so it can keep real
-  saves and reach Nostr relays and WebRTC peers. The wallet and ownership gate stay intact.
+  local saves. The wallet and ownership gate stay intact.
 
 ## Roadmap to on-chain
 
@@ -169,8 +164,7 @@ Requires Node.js 22+. The FriendSDK v0.1.2 package archive is vendored in `vendo
 - `npm run test:e2e`: every check passing on desktop (1280×800) and phone (390×844). Covers entry, story, fast
   travel, chop plus autosave, every HUD panel fitting the screen (including Play, Settings and the notification inbox),
   farm, swap, wheel, fishing, NPC gifts and map travel, with zero page errors.
-- **Known limitations:** multiplayer and prize pools are client-authoritative and simulated. Public Nostr relays and
-  WebRTC can be unreachable on some networks. The game then continues solo with simulated rivals. The wallet flow uses
+- **Known limitations:** prize pools are client-authoritative and simulated. Rivals are simulated. The wallet flow uses
   the SDK functions directly. Automated tests enter through sample Friends that exist only in the e2e test build
   (`vite build --mode e2e`, output `dist-e2e/`); `npm run build` contains none of that code. A real-wallet playthrough
   needs a Gen 1+ holder.
@@ -181,4 +175,4 @@ Requires Node.js 22+. The FriendSDK v0.1.2 package archive is vendored in `vendo
   "Tide Garden" music is generated live with Web Audio in `src/game/music.ts`.
 - **Fonts:** [Jersey 15](https://fonts.google.com/specimen/Jersey+15) and [Nunito](https://fonts.google.com/specimen/Nunito) (SIL OFL).
 - **FriendSDK** (Apache-2.0) by Rare Friends: wallet, identity, canonical Friend sprites and the sound kit.
-- **Libraries:** React, Vite, anime.js, nostr-tools and Trystero.
+- **Libraries:** React, Vite and anime.js.

@@ -7,7 +7,7 @@ import { CostList, Panel, SimTag, rf, useG } from "../common";
 import { Icon } from "../Icon";
 
 export function ForgePanel({ onClose }: { onClose: () => void }) {
-  const { s, act, brag } = useG();
+  const { s, act } = useG();
   const [gear, setGear] = useState<GearId>("blade");
   const [blessing, setBlessing] = useState(false);
   const [charm, setCharm] = useState(false);
@@ -20,7 +20,6 @@ export function ForgePanel({ onClose }: { onClose: () => void }) {
     if (!r.ok) return;
     setFlash(r.data?.success ? "ok" : "fail");
     setTimeout(() => setFlash(null), 900);
-    if (r.data?.success && lvl + 1 >= 7) brag(`forged ${GEAR[gear].name} to +${lvl + 1} `);
   };
   return (
     <Panel title="Volcano Forge" icon="fire" onClose={onClose}>

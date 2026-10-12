@@ -142,7 +142,7 @@ export const ZONES: Record<ZoneId, { name: string; blurb: string; cost: Cost }> 
   harbor: { name: "Rival Harbor", blurb: "Raid other Friends. Defend your vault.", cost: { shell: 400, rf: 200, items: { wood: 30, stone: 20 } } },
   abyss: { name: "Abyss Gate", blurb: "Crash dive: cash out before the abyss bites.", cost: { shell: 500, rf: 200, items: { stone: 40 } } },
   forge: { name: "Volcano Forge", blurb: "Upgrade gear. Every hammer strike is a gamble.", cost: { shell: 800, rf: 300, items: { stone: 60, ore: 20 } } },
-  reef: { name: "Kraken Reef", blurb: "World boss. Everyone fights, top hitters split the pool.", cost: { shell: 1200, rf: 500, items: { coral: 30 } } },
+  reef: { name: "Kraken Reef", blurb: "World boss. You and simulated hunters fight, top hitters split the pool.", cost: { shell: 1200, rf: 500, items: { coral: 30 } } },
 };
 export const ZONE_ORDER: ZoneId[] = ["beach", "grove", "cove", "mines", "harbor", "abyss", "forge", "reef"];
 

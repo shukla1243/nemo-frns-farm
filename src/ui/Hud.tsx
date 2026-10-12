@@ -4,7 +4,6 @@ import { BOSS, EVENTS, GATHER, HOMES, ITEMS, titleFor, xpToNext } from "../engin
 import { bossStatus } from "../engine/systems";
 import { bestFood, maxEnergy } from "../engine/state";
 import { chapterAt } from "../engine/story";
-import { EMOTES } from "../net/peers";
 import type { Station } from "../world/map";
 import type { Guide } from "../world/guide";
 import { stationSprite } from "../world/World";
@@ -59,19 +58,18 @@ function guideButton(g: Guide, now: number) {
   return { text: "Go", tone: "hot", aria: `Go to ${g.station.id.startsWith("unlock:") ? "the Expand sign" : g.station.label}` };
 }
 
-export function Hud({ portraitUrl, near, onAction, toasts, onEmote, unread, guide, onGuide }: {
-  portraitUrl: string | null; near: Station | null; onAction: () => void; toasts: Toast[]; onEmote: (e: string) => void; unread: number; guide: Guide; onGuide: () => void;
+export function Hud({ portraitUrl, near, onAction, toasts, unread, guide, onGuide }: {
+  portraitUrl: string | null; near: Station | null; onAction: () => void; toasts: Toast[]; unread: number; guide: Guide; onGuide: () => void;
 }) {
-  const { s, now, act, open, net, identity, reducedMotion } = useG();
+  const { s, now, act, open, identity, reducedMotion } = useG();
   const [muted, setMuted] = useState(sound.muted);
-  const [emotes, setEmotes] = useState(false);
   const toastBox = useRef<HTMLDivElement>(null);
   const need = xpToNext(s.level);
   const ch = chapterAt(s.story);
   const chDone = ch.done(s);
   const gb = guideButton(guide, now);
   const ev = s.event;
-  const boss = s.zones.reef ? bossStatus(now, s.boss.epoch === Math.floor(now / BOSS.periodMs) ? s.boss.damage : 0, net.bossOthers) : null;
+  const boss = s.zones.reef ? bossStatus(now, s.boss.epoch === Math.floor(now / BOSS.periodMs) ? s.boss.damage : 0) : null;
 
   useEffect(() => {
     const el = toastBox.current?.lastElementChild as HTMLElement | null;
@@ -119,7 +117,6 @@ export function Hud({ portraitUrl, near, onAction, toasts, onEmote, unread, guid
           <span className="coin frame-dark" title="Simulated $RAREFRIENDS"><Icon id="rf" size={22} /><Ticker value={s.rf} format={rf} /><small>RF</small></span>
           <span className="coin frame-dark" title="$SHELL, the island token"><Icon id="shell" size={22} /><Ticker value={s.shell} format={n0} /></span>
           <span className="sim-flag">SIMULATED</span>
-          <span className="net-chip frame-dark" title={`Network: ${net.status}`}><i className={`dot ${net.status}`} />{net.peers + 1} online</span>
         </div>
       </div>
       {s.hunger < 40 && !s.sleeping && (
@@ -136,10 +133,6 @@ export function Hud({ portraitUrl, near, onAction, toasts, onEmote, unread, guid
           <button type="button" className="pbtn icon-only" onClick={() => open("bag")} aria-label="Backpack"><Icon id="bag" size={26} /></button>
           <button type="button" className="pbtn icon-only" onClick={() => open("map")} aria-label="Island map and fast travel"><Icon id="map" size={26} /></button>
           <button type="button" className="pbtn icon-only bell" onClick={() => open("inbox")} aria-label={`Notifications, ${unread} unread`}><Icon id="board" size={26} />{unread > 0 && <span className="badge">{unread > 99 ? "99+" : unread}</span>}</button>
-          <div className="emote-wrap">
-            <button type="button" className="pbtn icon-only" onClick={() => setEmotes(v => !v)} aria-label="Emotes" aria-expanded={emotes}><Icon id="emote" size={26} /></button>
-            {emotes && <div className="emote-pop frame-panel">{EMOTES.map(e => <button key={e} type="button" className="pbtn icon-only" aria-label={`Emote ${e}`} onClick={() => { onEmote(e); setEmotes(false); }}><Icon id={e} size={24} /></button>)}</div>}
-          </div>
           <button type="button" className="pbtn icon-only" onClick={() => { const v = !muted; sound.setMuted(v); music.setOn(!v); setMuted(v); if (!v) sound.play("select"); }} aria-label={muted ? "Turn sound and music on" : "Mute sound and music"}><Icon id={muted ? "soundOff" : "soundOn"} size={26} /></button>
           <button type="button" className="pbtn icon-only" onClick={() => open("settings")} aria-label="Settings"><Icon id="settings" size={26} /></button>
         </nav>

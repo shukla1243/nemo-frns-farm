@@ -2,7 +2,7 @@ import { PASS, passClaimable } from "../../engine/pass";
 import { useMemo, useState } from "react";
 import { BOSS, HOMES, ITEMS, RAID, SEASON, SINK, seasonNumber, seasonStartOf, titleFor, type ItemId } from "../../engine/config";
 import { raidChance } from "../../engine/actions";
-import { bossStatus, seasonBoard, seasonPoolTotal, type SeasonEntry } from "../../engine/systems";
+import { bossStatus, seasonBoard, seasonPoolTotal } from "../../engine/systems";
 import { ACHIEVEMENTS, questLabel } from "../../engine/quests";
 import { TRACKS, milestoneReward, rankName, trackProgress } from "../../engine/milestones";
 import { defense, power, seasonScore } from "../../engine/state";
@@ -12,10 +12,7 @@ import { Icon, SpriteImg } from "../Icon";
 import { kraken } from "../../art/sprites";
 
 export function HarborPanel({ onClose }: { onClose: () => void }) {
-  const { s, act, net, now, identity, brag } = useG();
-  const online: RaidTarget[] = net.profiles
-    .filter(p => !(p.pubkey === net.pubkey && p.friendId === s.friendId) && p.friendId !== s.friendId)
-    .map(p => ({ id: `${p.pubkey}:${p.friendId}`, name: p.name, level: p.level, power: p.power, defense: p.defense, vault: p.vault, bot: false, friendId: p.friendId }));
+  const { s, act, now } = useG();
   const bots: RaidTarget[] = s.rivals.map(r => ({ id: r.id, name: r.name, level: r.level, power: r.power, defense: r.defense, vault: Math.floor(r.vault), bot: true }));
   const cd = Math.max(0, (s.cooldowns.raid ?? 0) - now);
   const Row = ({ t }: { t: RaidTarget }) => {
@@ -23,10 +20,10 @@ export function HarborPanel({ onClose }: { onClose: () => void }) {
     const revenge = s.revenge?.rivalId === t.id && s.revenge.until > now;
     return (
       <div className="list-row">
-        <span className="big-icon"><Icon id={t.bot ? "skull" : "person"} size={30} /></span>
-        <span className="grow"><b>{t.name}{revenge && <span className="hot-chip">REVENGE +15%</span>}</b><small>Lv{t.level} · defense {t.defense} · vault {n0(t.vault)} SHELL{t.bot ? " · sim" : " · ONLINE"}</small></span>
+        <span className="big-icon"><Icon id="skull" size={30} /></span>
+        <span className="grow"><b>{t.name}{revenge && <span className="hot-chip">REVENGE +15%</span>}</b><small>Lv{t.level} · defense {t.defense} · vault {n0(t.vault)} SHELL · sim</small></span>
         <span className={`chance ${chance > 0.6 ? "good" : chance < 0.35 ? "bad" : ""}`}>{Math.round(chance * 100)}%</span>
-        <button type="button" className="btn hot" disabled={cd > 0 || s.energy < RAID.energy} onClick={() => { const r = act({ type: "raid", target: t }); if (r.ok && r.data?.won && !t.bot) brag(`raided ${t.name} for ${n0(r.data.stolen as number)} SHELL `); }}>Raid</button>
+        <button type="button" className="btn hot" disabled={cd > 0 || s.energy < RAID.energy} onClick={() => act({ type: "raid", target: t })}>Raid</button>
       </div>
     );
   };
@@ -39,21 +36,17 @@ export function HarborPanel({ onClose }: { onClose: () => void }) {
         <div className="mini-card"><b>Shield</b><span>{s.shieldUntil > now ? mmss(s.shieldUntil - now) : "none"}</span></div>
       </div>
       <p className="muted">Raids cost {RAID.energy} energy. Win: steal 10 to 22% of their exposed vault (+ 15% chance of bonus RF). Lose: {RAID.hospitalFraction * 100}% clinic fee and −{RAID.moodLoss} mood. {cd > 0 ? `Cooldown ${mmss(cd)}.` : ""}</p>
-      {!identity.guest && <h3>Online Friends ({online.length})</h3>}
-      {identity.guest && <p className="warn">Guests can raid simulated rivals only. Connect a wallet to raid real players.</p>}
-      {!identity.guest && online.length === 0 && <p className="muted">{net.status === "offline" ? "Relays unreachable. Showing simulated rivals." : "No other online islands yet. Invite a friend!"}</p>}
-      <div className="list">{!identity.guest && online.slice(0, 15).map(t => <Row key={t.id} t={t} />)}</div>
       <h3>Simulated rivals</h3>
       <div className="list">{bots.map(t => <Row key={t.id} t={t} />)}</div>
-      <p className="fineprint"><SimTag /> Online raids are applied by the victim's client, capped at 10% of their exposed vault, with an 8-minute shield afterwards.</p>
+      <p className="fineprint"><SimTag /> Every rival is simulated.</p>
     </Panel>
   );
 }
 
 export function ReefPanel({ onClose }: { onClose: () => void }) {
-  const { s, act, net, now, brag } = useG();
+  const { s, act, now } = useG();
   const own = s.boss.epoch === Math.floor(now / BOSS.periodMs) ? s.boss.damage : 0;
-  const b = bossStatus(now, own, net.bossOthers);
+  const b = bossStatus(now, own);
   const claimed = s.boss.epoch === b.epoch && s.boss.claimed;
   const cd = Math.max(0, (s.cooldowns.boss ?? 0) - now);
   return (
@@ -62,23 +55,21 @@ export function ReefPanel({ onClose }: { onClose: () => void }) {
         <span className="boss-icon">{!b.active ? <Icon id="zz" size={64} /> : b.defeated ? <Icon id="skull" size={72} /> : <SpriteImg sprite={kraken(0)} name="kraken0" height={96} />}</span>
         <Bar value={b.remaining} max={b.hp} color="#ff4d6d" label="Kraken HP" />
         <p>{b.active ? (b.defeated ? "DEFEATED! Claim your share." : `${n0(b.remaining)} / ${n0(b.hp)} HP · ${mmss(b.endsIn)} left`) : `Rises again in ${mmss(b.nextIn)}`}</p>
-        <p className="muted">Your damage: <b>{n0(own)}</b> · Online hitters: {net.bossHitters} · Share of pool: {((own / b.hp) * 100).toFixed(2)}%</p>
+        <p className="muted">Your damage: <b>{n0(own)}</b> · Share of pool: {((own / b.hp) * 100).toFixed(2)}%</p>
       </div>
       <div className="btn-row">
-        <button type="button" className="btn hot big" disabled={!b.active || b.defeated || cd > 0 || s.energy < BOSS.energy} onClick={() => act({ type: "bossAttack", others: net.bossOthers })}>Attack ({BOSS.energy} energy){cd > 0 ? ` ${Math.ceil(cd / 1000)}s` : ""}</button>
-        <button type="button" className="btn primary big" disabled={!b.defeated || claimed || own <= 0} onClick={() => { const r = act({ type: "bossClaim", others: net.bossOthers }); if (r.ok) brag(`helped slay the Kraken and took ${rf(r.data!.rf as number)} RF `); }}>{claimed ? "Claimed ✓" : "Claim share"}</button>
+        <button type="button" className="btn hot big" disabled={!b.active || b.defeated || cd > 0 || s.energy < BOSS.energy} onClick={() => act({ type: "bossAttack" })}>Attack ({BOSS.energy} energy){cd > 0 ? ` ${Math.ceil(cd / 1000)}s` : ""}</button>
+        <button type="button" className="btn primary big" disabled={!b.defeated || claimed || own <= 0} onClick={() => act({ type: "bossClaim" })}>{claimed ? "Claimed ✓" : "Claim share"}</button>
       </div>
-      <p className="fineprint"><SimTag /> Every {BOSS.periodMs / 60000} min the Kraken rises for {BOSS.activeMs / 60000} min with {n0(BOSS.hp)} HP shared by every player online plus simulated rivals. Hitters split a {rf(BOSS.poolRf)} RF pool by damage share. 15% chance of a tentacle slam (−10 energy). Damage = power × 3 ± 20%, 15% crit x2.</p>
+      <p className="fineprint"><SimTag /> Every {BOSS.periodMs / 60000} min the Kraken rises for {BOSS.activeMs / 60000} min with {n0(BOSS.hp)} HP shared with simulated rivals. Hitters split a {rf(BOSS.poolRf)} RF pool by damage share. 15% chance of a tentacle slam (−10 energy). Damage = power × 3 ± 20%, 15% crit x2.</p>
     </Panel>
   );
 }
 
 function SeasonTab() {
-  const { s, act, net, now, identity } = useG();
-  const online: SeasonEntry[] = identity.guest ? [] : net.profiles.filter(p => p.season === s.season.id && p.friendId !== s.friendId).map(p => ({ id: p.friendId, name: p.name, score: p.seasonScore, online: true }));
-  const onlineSunk = net.profiles.filter(p => p.season === s.season.id && p.friendId !== s.friendId).reduce((n, p) => n + p.seasonSunk, 0);
-  const pool = seasonPoolTotal(s, now, s.season.id, identity.guest ? 0 : onlineSunk);
-  const board = seasonBoard(s, now, online);
+  const { s, act, now } = useG();
+  const pool = seasonPoolTotal(s, now);
+  const board = seasonBoard(s, now);
   const myRank = board.findIndex(e => e.you) + 1;
   const endsIn = seasonStartOf(s.season.id) + SEASON.ms - now;
   const last = s.lastSeason;
@@ -103,7 +94,7 @@ function SeasonTab() {
         {board.slice(0, 15).map((e, i) => (
           <li key={e.id} className={e.you ? "you" : ""}>
             <span className="rank">{i < 3 ? <><Icon id={["crown", "trophy", "star"][i]} size={20} />{i + 1}</> : `#${i + 1}`}</span>
-            <span className="grow">{e.name}{e.online && <span className="on-chip">online</span>}</span>
+            <span className="grow">{e.name}</span>
             <span>{n0(e.score)}</span>
             <span className="muted">{i < 10 ? `${rf(pool * SEASON.payouts[i])} RF` : ""}</span>
           </li>
@@ -116,11 +107,10 @@ function SeasonTab() {
 }
 
 function LeaderTab() {
-  const { s, net, identity } = useG();
+  const { s, identity } = useG();
   const [sort, setSort] = useState<"level" | "burned" | "netWorth" | "bestDive">("burned");
   const me = { friendId: s.friendId, name: s.name, level: s.level, burned: s.stats.burned, netWorth: 0, bestDive: s.stats.bestDive, title: titleFor(s.level), you: true };
   const rows = [
-    ...net.profiles.filter(p => p.friendId !== s.friendId).map(p => ({ ...p, you: false })),
     ...(identity.guest ? [] : [me]),
     ...s.rivals.map(r => ({ friendId: r.id, name: `${r.name} (sim)`, level: r.level, burned: r.burned * 100, netWorth: 0, bestDive: 0, title: titleFor(r.level), you: false })),
   ].sort((a, b) => (b[sort] as number) - (a[sort] as number));
@@ -138,7 +128,7 @@ function LeaderTab() {
           </li>
         ))}
       </ol>
-      <p className="fineprint">{net.profiles.length} online islands found on Nostr relays ({net.status}). {identity.guest ? "Guests are not listed." : ""}</p>
+      <p className="fineprint"><SimTag /> Every other island here is a simulated rival.{identity.guest ? " Guests are not listed." : ""}</p>
     </>
   );
 }
@@ -159,7 +149,7 @@ function StatsTab() {
 }
 
 export function BoardPanel({ onClose }: { onClose: () => void }) {
-  const { s, act, net } = useG();
+  const { s, act } = useG();
   const [tab, setTab] = useState<"quests" | "season" | "milestones" | "leaders" | "trophies" | "feed" | "stats">("quests");
   return (
     <Panel title="Bounty Board" icon="board" onClose={onClose} wide>
@@ -187,9 +177,6 @@ export function BoardPanel({ onClose }: { onClose: () => void }) {
       )}
       {tab === "feed" && (
         <div className="feed">
-          <h3>Island feed (live)</h3>
-          {net.brags.length === 0 && <p className="muted">Nothing yet. Big wins, level-ups and jackpots show up here for everyone.</p>}
-          {net.brags.map(b => <p key={b.id}><b>{b.name}</b> {b.text} <small className="muted">{new Date(b.ts * 1000).toLocaleTimeString()}</small></p>)}
           <h3>Your log</h3>
           {s.log.slice(0, 25).map((l, i) => <p key={i} className={`log ${l.tone}`}>{l.text} <small className="muted">{new Date(l.t).toLocaleTimeString()}</small></p>)}
         </div>

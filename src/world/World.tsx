@@ -8,8 +8,7 @@ import { useEffect, useRef } from "react";
 import type { GameState } from "../engine/types";
 import { RIVAL_NAMES, ZONES, type ZoneId } from "../engine/config";
 import { bossStatus } from "../engine/systems";
-import { drawFriend, loadSprites, type GenerationSprites, type SpriteFacing } from "../game/sprites";
-import type { Peer } from "../net/peers";
+import { drawFriend, type GenerationSprites, type SpriteFacing } from "../game/sprites";
 import { buildTerrain, drawWaterGlints } from "../art/tiles";
 import * as A from "../art/sprites";
 import { icon } from "../art/icons";
@@ -28,13 +27,11 @@ export type WorldApi = { floaters: Floater[]; pos: Pt; teleport(p: Pt): void };
 type Props = {
   stateRef: React.MutableRefObject<GameState>;
   spritesRef: React.MutableRefObject<GenerationSprites | null>;
-  peersRef: React.MutableRefObject<Map<string, Peer>>;
   blocked: boolean;
   reducedMotion: boolean;
   apiRef: React.MutableRefObject<WorldApi | null>;
   onNear(station: Station | null): void;
   onInteract(station: Station): void;
-  onMove(p: Pt, facing: SpriteFacing): void;
 };
 
 const FONT = '"Jersey 15", "Nunito", sans-serif';
@@ -121,11 +118,11 @@ function decorations(zones: Record<ZoneId, boolean>): Decor[] {
   return out;
 }
 
-export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, apiRef, onNear, onInteract, onMove }: Props) {
+export function World({ stateRef, spritesRef, blocked, reducedMotion, apiRef, onNear, onInteract }: Props) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const live = useRef({ blocked, reducedMotion, onNear, onInteract, onMove });
-  live.current = { blocked, reducedMotion, onNear, onInteract, onMove };
+  const live = useRef({ blocked, reducedMotion, onNear, onInteract });
+  live.current = { blocked, reducedMotion, onNear, onInteract };
 
   useEffect(() => {
     const cv = canvas.current!, host = wrap.current!;
@@ -140,7 +137,6 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
     let camX = 0, camY = 0; // art px (float, rounded when drawing)
     let terrain: HTMLCanvasElement | null = null, terrainKey = "";
     let near: Station | null = null, raf = 0, last = 0;
-    const peerSprites = new Map<string, GenerationSprites | null>();
     const floaters: Floater[] = [];
     const dust: { x: number; y: number; born: number }[] = [];
     let fontReady = false;
@@ -213,7 +209,7 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
     window.addEventListener("keydown", onKey); window.addEventListener("keyup", onKey);
     window.addEventListener("blur", stop);
 
-    type TagStyle = "station" | "near" | "lock" | "you" | "peer" | "guide";
+    type TagStyle = "station" | "near" | "lock" | "you" | "guide";
     /** Size of a name tag in device px, border excluded. */
     const tagBox = (text: string) => {
       const size = Math.round(Math.max(13 * dpr, S * 3.4));
@@ -224,7 +220,7 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
     const tag = (text: string, x: number, y: number, style: TagStyle): Rect => {
       x = Math.round(x); y = Math.round(y);
       const { b, w, h } = tagBox(text);
-      const bg = style === "near" ? "#f5c542" : style === "lock" ? "#ee6f22" : style === "you" ? "#ee6f22" : style === "peer" ? "#2f6b3a" : style === "guide" ? "#2b1d1a" : "#4a3226";
+      const bg = style === "near" ? "#f5c542" : style === "lock" ? "#ee6f22" : style === "you" ? "#ee6f22" : style === "guide" ? "#2b1d1a" : "#4a3226";
       const fg = style === "near" ? "#2b1d1a" : style === "guide" ? "#ffd23f" : "#fff1d6";
       ctx.fillStyle = "#2b1d1a"; ctx.fillRect(x - w / 2 - b, y - h / 2, w + b * 2, h);
       ctx.fillRect(x - w / 2, y - h / 2 - b, w, h + b * 2);
@@ -326,7 +322,6 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
           }
           facing = Math.abs(dx) >= Math.abs(dy) ? (dx < 0 ? "left" : "right") : dy < 0 ? "up" : "down";
           if (facing === "left" || facing === "right") side = facing;
-          if (walking) live.current.onMove(pos, facing);
         }
       }
       if (s.sleeping) { const h = STATIONS.find(st => st.id === "home")!; pos.x = h.x + 34; pos.y = h.y + 30; }
@@ -395,20 +390,6 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
       const residents = RESIDENTS.map((r, i) => ({ r, name: names[i]?.name ?? "Resident", ...residentAt(i, nowMs / 1000, STATIONS) }));
       for (const res of residents) {
         ds.push({ y: res.y, draw: () => { shadow(res.x, res.y, 9); put(villager(res.r, res.walking && !rm ? anim % 2 : 0), res.x, res.y + 6); } });
-      }
-      // peers
-      for (const peer of peersRef.current.values()) {
-        if (!peerSprites.has(peer.friendId) && /^\d+$/.test(peer.friendId)) {
-          peerSprites.set(peer.friendId, null);
-          loadSprites(peer.friendId).then(sp => peerSprites.set(peer.friendId, sp)).catch(() => {});
-        }
-        ds.push({ y: peer.y, draw: () => {
-          shadow(peer.x, peer.y, 10);
-          const sp = peerSprites.get(peer.friendId);
-          const ax = peer.x / UNIT - cx, ay = peer.y / UNIT - cy;
-          if (sp) drawFriend(lctx, sp, ax, ay, 2, (["down", "up", "left", "right"].includes(peer.facing) ? peer.facing : "down") as SpriteFacing, false, 0);
-          else lctx.drawImage(icon("clownfish"), Math.round(ax - 9), Math.round(ay - 16));
-        } });
       }
       // player
       ds.push({ y: pos.y, draw: () => {
@@ -518,11 +499,7 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
           tag(shown, sx, sy, isNear ? "near" : st.id.startsWith("unlock:") ? "lock" : "station");
         }
         for (const res of residents) if (Math.hypot(res.x - pos.x, res.y - pos.y) < 260) label(`${res.name} (resident)`, res.x / UNIT, res.y / UNIT - 36, "station");
-        for (const peer of peersRef.current.values()) label(`Lv${peer.level} ${peer.name}`, peer.x / UNIT, peer.y / UNIT - 42, "peer");
         tag(youText, yx, yy, "you");
-        for (const peer of peersRef.current.values()) if (peer.emote && Date.now() - peer.emoteAt < 3500) {
-          ctx.drawImage(icon(peer.emote), Math.round((peer.x / UNIT - cx - 9) * S), Math.round((peer.y / UNIT - cy - 66) * S), 18 * S, 18 * S);
-        }
         drawGuide(s, g, you, bossUp, cx, cy, t, rm, nowMs);
       }
       // floaters
@@ -551,7 +528,7 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
       window.removeEventListener("blur", stop);
       apiRef.current = null;
     };
-  }, [stateRef, peersRef, apiRef, spritesRef]);
+  }, [stateRef, apiRef, spritesRef]);
 
   return (
     <div ref={wrap} className="world">

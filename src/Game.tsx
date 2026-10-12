@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dispatch, type Action, type Result } from "./engine/actions";
 import type { GameEvent, GameState } from "./engine/types";
 import { AUTOSAVE_MS, type ItemId, type ZoneId } from "./engine/config";
-import { exportSave, importSave, migrate, saveLocal } from "./engine/save";
+import { importSave, migrate, saveLocal } from "./engine/save";
 import { World, type WorldApi } from "./world/World";
 import type { Station } from "./world/map";
 import { Hud, type Toast } from "./ui/Hud";
@@ -22,9 +22,6 @@ import { ReportPanel } from "./ui/panels/Report";
 import { music } from "./game/music";
 import { STATIONS, UNLOCK_SIGNS, activeStations, type StationId } from "./world/map";
 import { guide as guideFor } from "./world/guide";
-import { useNet } from "./net/useNet";
-import { cachedCloudKey, deriveCloudKey } from "./net/cloudkey";
-import type { CloudSave } from "./net/cloudsave";
 import { loadSprites, portrait, type GenerationSprites } from "./game/sprites";
 import { sound } from "./game/sound";
 import type { Identity } from "./identity/Gate";
@@ -45,8 +42,6 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
   const [reducedMotion, setReducedMotionState] = useState(storedReducedMotion);
   const setReducedMotion = (v: boolean) => { setReducedMotionState(v); try { localStorage.setItem("nemo-frns-farm:rm", v ? "1" : "0"); } catch { /* ignore */ } };
   const worldApi = useRef<WorldApi | null>(null);
-  const outboxRef = useRef<(o: Result["outbox"]) => void>(() => {});
-  const bragRef = useRef<(t: string) => void>(() => {});
   const rmRef = useRef(reducedMotion); rmRef.current = reducedMotion;
   useEffect(() => { document.documentElement.dataset.rm = reducedMotion ? "1" : "0"; }, [reducedMotion]);
   const [shaking, setShaking] = useState(false);
@@ -74,7 +69,6 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
       if (e.fx === "shake") {
         if (!rmRef.current) { setShaking(true); clearTimeout(shakeTimer.current); shakeTimer.current = window.setTimeout(() => setShaking(false), 450); }
       } else if (e.fx && !rmRef.current) setFx({ kind: e.fx, id: ++toastSeq });
-      if (e.fx === "levelup" || e.fx === "jackpot") bragRef.current(e.text.replace(/^[^\w]+/, "").slice(0, 110));
     }
   }, [pushToast]);
 
@@ -83,7 +77,6 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
     stateRef.current = r.state;
     setS(r.state);
     onEvents(r.events);
-    if (r.outbox.length) outboxRef.current(r.outbox);
     if (r.ok && a.type === "gather" && worldApi.current) {
       const found = r.data?.found as Partial<Record<ItemId, number>>;
       const p = worldApi.current.pos;
@@ -91,10 +84,6 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
     }
     return r;
   }, [onEvents]);
-
-  const { net, peersRef, handleOutbox, brag, sendPos, emote, publishProfile } = useNet(identity, stateRef, act);
-  outboxRef.current = handleOutbox;
-  bragRef.current = brag;
 
   // Dev-only QA hook (stripped from production builds): open panels and grant resources for screenshots.
   useEffect(() => {
@@ -135,9 +124,6 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
   }, [welcome, pushToast]);
 
   // ---------- Saves ----------
-  const cloudRef = useRef<CloudSave | null>(null);
-  const [cloud, setCloud] = useState<Ctx["cloud"]["status"]>("off");
-  const [cloudMsg, setCloudMsg] = useState("");
   const replaceState = useCallback((code: string): string | null => {
     try {
       const next = migrate(importSave(code, stateRef.current.friendId));
@@ -148,57 +134,18 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
     } catch (e) { return e instanceof Error ? e.message : "Could not restore."; }
   }, [identity.guest]);
 
-  const cloudPush = useCallback(async () => {
-    const c = cloudRef.current; if (!c) return;
-    const snap = { ...stateRef.current, log: stateRef.current.log.slice(0, 10) };
-    const ok = await c.push(snap.friendId, exportSave(snap), snap.lastActive);
-    setCloud(ok ? "on" : "error"); setCloudMsg(ok ? `synced ${new Date().toLocaleTimeString()}` : "relays unreachable");
-  }, []);
-  const cloudPull = useCallback(async () => {
-    const c = cloudRef.current; if (!c) return;
-    setCloud("syncing");
-    try {
-      const got = await c.pull(stateRef.current.friendId);
-      if (got && got.lastTick > stateRef.current.lastActive + 5000) {
-        const err = replaceState(got.code);
-        setCloudMsg(err ?? "loaded newer cloud save"); if (!err) pushToast("Loaded your newer cloud save.", "good");
-      } else setCloudMsg("this device is up to date");
-      setCloud("on");
-    } catch { setCloud("error"); setCloudMsg("could not reach relays"); }
-  }, [pushToast, replaceState]);
-  const enableCloud = useCallback(async (silent = false) => {
-    if (identity.guest || !identity.account) return;
-    try {
-      let key = cachedCloudKey(identity.account);
-      if (!key) {
-        if (silent || !identity.provider) return;
-        setCloud("syncing"); setCloudMsg("sign the message in your wallet…");
-        key = await deriveCloudKey(identity.provider, identity.account);
-      }
-      const { CloudSave } = await import("./net/cloudsave");
-      cloudRef.current?.close();
-      cloudRef.current = new CloudSave(key);
-      await cloudPull();
-      await cloudPush();
-    } catch (e) {
-      setCloud("error"); setCloudMsg(e instanceof Error ? e.message.slice(0, 80) : "signature declined");
-    }
-  }, [identity, cloudPull, cloudPush]);
-
-  useEffect(() => { void enableCloud(true); return () => cloudRef.current?.close(); }, [enableCloud]);
   useEffect(() => {
     const save = () => { saveLocal(stateRef.current); };
     const t = setInterval(save, AUTOSAVE_MS);
-    const t2 = setInterval(() => { void cloudPush(); }, 60_000);
     const hide = () => {
       const hidden = document.visibilityState === "hidden";
       music.setHidden(hidden);
-      if (hidden) { save(); void cloudPush(); publishProfile(); }
+      if (hidden) save();
     };
     window.addEventListener("pagehide", save);
     document.addEventListener("visibilitychange", hide);
-    return () => { clearInterval(t); clearInterval(t2); window.removeEventListener("pagehide", save); document.removeEventListener("visibilitychange", hide); save(); };
-  }, [cloudPush, publishProfile]);
+    return () => { clearInterval(t); window.removeEventListener("pagehide", save); document.removeEventListener("visibilitychange", hide); save(); };
+  }, []);
 
   // ---------- Interaction ----------
   const openStation = useCallback((st: Station) => {
@@ -209,9 +156,8 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
   }, [act]);
 
   const ctx: Ctx = useMemo(() => ({
-    s, now, act, open: setPanel, net, identity, brag, reducedMotion, setReducedMotion,
-    cloud: { status: cloud, message: cloudMsg, enable: () => enableCloud(false), pull: cloudPull },
-  }), [s, now, act, net, identity, brag, reducedMotion, cloud, cloudMsg, enableCloud, cloudPull]);
+    s, now, act, open: setPanel, identity, reducedMotion, setReducedMotion,
+  }), [s, now, act, identity, reducedMotion]);
 
   const close = useCallback(() => setPanel(null), []);
   const goTo = useCallback((id: StationId) => {
@@ -272,10 +218,9 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
   return (
     <GameContext.Provider value={ctx}>
       <main className={`game ${shaking ? "shake" : ""}`}>
-        <World stateRef={stateRef} spritesRef={spritesRef} peersRef={peersRef} blocked={!!panel} reducedMotion={reducedMotion} apiRef={worldApi}
-          onNear={setNear} onInteract={openStation} onMove={(p, f) => sendPos(p.x, p.y, f)} />
-        <Hud portraitUrl={portraitUrl} near={near} onAction={() => near && openStation(near)} toasts={toasts} unread={unread} guide={guide} onGuide={onGuide}
-          onEmote={e => { emote(e); const p = worldApi.current?.pos; if (p) worldApi.current!.floaters.push({ x: p.x, y: p.y - 95, text: e, color: "#fff", born: Date.now() }); }} />
+        <World stateRef={stateRef} spritesRef={spritesRef} blocked={!!panel} reducedMotion={reducedMotion} apiRef={worldApi}
+          onNear={setNear} onInteract={openStation} />
+        <Hud portraitUrl={portraitUrl} near={near} onAction={() => near && openStation(near)} toasts={toasts} unread={unread} guide={guide} onGuide={onGuide} />
         {renderPanel()}
         {fx && !reducedMotion && <Fx kind={fx.kind} key={fx.id} onDone={() => setFx(null)} />}
       </main>

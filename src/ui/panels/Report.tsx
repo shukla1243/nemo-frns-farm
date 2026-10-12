@@ -11,7 +11,7 @@ import { welcomeBack } from "../report";
 type Ready = { id: string; icon: string; text: string; station: StationId };
 
 /** Everything waiting for the player right now, each with a place to go. */
-function readyNow(s: GameState, now: number, bossOthers: number): Ready[] {
+function readyNow(s: GameState, now: number): Ready[] {
   const out: Ready[] = [];
   const ripe = s.plots.filter(p => p.crop && !p.withered && p.readyAt <= now).length;
   if (ripe) out.push({ id: "crops", icon: "carrot", text: `${ripe} crop${ripe > 1 ? "s" : ""} ready to harvest`, station: "farm" });
@@ -24,7 +24,7 @@ function readyNow(s: GameState, now: number, bossOthers: number): Ready[] {
   const last = s.lastSeason;
   if (last && !last.claimed && last.score > 0 && seasonBoard(s, now, [], last.id, last.score).findIndex(e => e.you) < 10) out.push({ id: "season", icon: "trophy", text: "You placed top 10 last season. Claim your prize", station: "board" });
   if (s.wheelFreeAt <= now) out.push({ id: "wheel", icon: "coin", text: "Free Tide Wheel spin", station: "wheel" });
-  const boss = bossStatus(now, s.boss.epoch === Math.floor(now / BOSS.periodMs) ? s.boss.damage : 0, bossOthers);
+  const boss = bossStatus(now, s.boss.epoch === Math.floor(now / BOSS.periodMs) ? s.boss.damage : 0);
   if (s.zones.reef && boss.active && !boss.defeated) out.push({ id: "kraken", icon: "angler", text: "The Kraken is up. Hit it for a share of 30 RF", station: "reef" });
   const gift = NPCS.find(n => s.zones[n.zone] && giftReady(s, n.id, now));
   if (gift) {
@@ -35,8 +35,8 @@ function readyNow(s: GameState, now: number, bossOthers: number): Ready[] {
 }
 
 export function ReadyList({ go, limit }: { go: (station: StationId) => void; limit?: number }) {
-  const { s, now, net } = useG();
-  const items = readyNow(s, now, net.bossOthers).slice(0, limit);
+  const { s, now } = useG();
+  const items = readyNow(s, now).slice(0, limit);
   if (!items.length) return null;
   return (
     <ul className="ready-list">
@@ -85,7 +85,7 @@ export function ReportPanel({ onClose, go, since }: { onClose: () => void; go: (
       <section className="section">
         <h3>Ready now</h3>
         <ReadyList go={go} />
-        {readyNow(s, now, 0).length === 0 && <p className="muted">Nothing is waiting. Follow the story goal or open Play to pick a game.</p>}
+        {readyNow(s, now).length === 0 && <p className="muted">Nothing is waiting. Follow the story goal or open Play to pick a game.</p>}
       </section>
       <button type="button" className="btn big primary" onClick={onClose}>Back to the island</button>
     </Panel>
