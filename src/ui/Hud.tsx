@@ -4,7 +4,7 @@ import { BOSS, EVENTS, GATHER, HOMES, ITEMS, titleFor, xpToNext } from "../engin
 import { bossStatus } from "../engine/systems";
 import { bestFood, maxEnergy } from "../engine/state";
 import { chapterAt } from "../engine/story";
-import { EMOTES } from "../net/presence";
+import { EMOTES } from "../net/peers";
 import type { Station } from "../world/map";
 import type { Guide } from "../world/guide";
 import { stationSprite } from "../world/World";

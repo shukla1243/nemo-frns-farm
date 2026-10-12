@@ -9,7 +9,7 @@ import type { GameState } from "../engine/types";
 import { RIVAL_NAMES, ZONES, type ZoneId } from "../engine/config";
 import { bossStatus } from "../engine/systems";
 import { drawFriend, loadSprites, type GenerationSprites, type SpriteFacing } from "../game/sprites";
-import type { Peer } from "../net/presence";
+import type { Peer } from "../net/peers";
 import { buildTerrain, drawWaterGlints } from "../art/tiles";
 import * as A from "../art/sprites";
 import { icon } from "../art/icons";

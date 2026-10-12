@@ -23,7 +23,8 @@ import { music } from "./game/music";
 import { STATIONS, UNLOCK_SIGNS, activeStations, type StationId } from "./world/map";
 import { guide as guideFor } from "./world/guide";
 import { useNet } from "./net/useNet";
-import { CloudSave, cachedCloudKey, deriveCloudKey } from "./net/cloudsave";
+import { cachedCloudKey, deriveCloudKey } from "./net/cloudkey";
+import type { CloudSave } from "./net/cloudsave";
 import { loadSprites, portrait, type GenerationSprites } from "./game/sprites";
 import { sound } from "./game/sound";
 import type { Identity } from "./identity/Gate";
@@ -174,6 +175,7 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
         setCloud("syncing"); setCloudMsg("sign the message in your wallet…");
         key = await deriveCloudKey(identity.provider, identity.account);
       }
+      const { CloudSave } = await import("./net/cloudsave");
       cloudRef.current?.close();
       cloudRef.current = new CloudSave(key);
       await cloudPull();

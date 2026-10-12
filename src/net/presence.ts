@@ -2,20 +2,18 @@
  * Live presence: see other Friends walking in the one shared island world in real time (WebRTC via Trystero,
  * signalled over public Nostr relays, no game server). Positions and emotes only.
  */
-import { joinRoom, selfId, type Room } from "trystero";
+import { joinRoom, type Room } from "trystero";
+import { EMOTES, type Peer } from "./peers";
 
-export type Peer = { id: string; friendId: string; name: string; level: number; title: string; x: number; y: number; facing: string; emote: string; emoteAt: number; seen: number };
-type PosMsg = { f: string; n: string; l: number; t: string; x: number; y: number; d: string };
-
-export const EMOTES = ["heart", "star", "fire", "trophy", "skull", "clownfish", "sword", "moodHappy"] as const;
+export type PosMsg = { f: string; n: string; l: number; t: string; x: number; y: number; d: string };
 
 export class Presence {
   private room: Room | null = null;
   private sendPos: ((m: PosMsg) => void) | null = null;
   private sendEmote: ((e: string) => void) | null = null;
-  readonly peers = new Map<string, Peer>();
-  readonly selfId = selfId;
   onChange: () => void = () => {};
+  /** `peers` is owned by the caller so the world can render it before this module has loaded. */
+  constructor(readonly peers: Map<string, Peer>) {}
 
   join(room: string) {
     try {
