@@ -1,15 +1,16 @@
 /**
  * Entry gate. Uses FriendSDK for wallet discovery/connection, owned-Friend discovery and the
  * fresh on-chain eligibility check (generation >= 1 hardwired Generations NFT on Robinhood 4663).
- * Guest demo mode is clearly labelled and never publishes to leaderboards.
+ * Every playable build requires that check. Sample Friends exist only in the e2e test build
+ * (vite --mode e2e), and the production bundle contains none of that code.
  */
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { createFriendPublicClient, createFriendWalletSession, type FriendWalletSnapshot } from "@rarefriends/friendsdk/wallet";
 import { readOwnedFriends, type OwnedFriend } from "@rarefriends/friendsdk/owned";
 import { readGenerationEligibility } from "@rarefriends/friendsdk/identity";
-import { loadSprites, portrait } from "../game/sprites";
-import { TRAITS } from "../engine/config";
+import { loadSprites } from "../game/sprites";
 import { Icon, SpriteImg } from "../ui/Icon";
+import { FriendCard } from "./FriendCard";
 import { home, palm, shrine } from "../art/sprites";
 import { waterPattern } from "../art/tiles";
 
@@ -18,29 +19,9 @@ export type Identity = {
   account: string | null; provider: { request(args: { method: string; params?: unknown[] | object }): Promise<unknown> } | null;
 };
 
-const GUEST_FRIENDS = ["1", "2", "100", "1000", "5000"];
+// Test fixture only: the condition is false in production builds, so the import and its chunk are dropped.
+const SampleFriends = import.meta.env.VITE_SAMPLE_FRIENDS === "1" ? lazy(() => import("./SampleFriends")) : null;
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-
-function FriendCard({ id, label, sub, onPick, busy }: { id: string; label: string; sub: string; onPick: () => void; busy: boolean }) {
-  const [img, setImg] = useState<string | null>(null);
-  const [family, setFamily] = useState<number | null>(null);
-  useEffect(() => {
-    let live = true;
-    loadSprites(id).then(s => { if (live) { setImg(portrait(s, 72)); setFamily(s.familyId); } }).catch(() => {});
-    return () => { live = false; };
-  }, [id]);
-  const trait = family === null ? null : TRAITS[family % TRAITS.length];
-  return (
-    <button type="button" className="friend-card pbtn" onClick={onPick} disabled={busy}>
-      <span className="friend-card-art frame-slot">{img ? <img src={img} alt="" /> : <span className="spinner" aria-hidden />}</span>
-      <span className="friend-card-text">
-        <strong>{label}</strong>
-        <small>{sub}</small>
-        {trait && <small className="trait-chip">{trait.family} · {trait.name}</small>}
-      </span>
-    </button>
-  );
-}
 
 export function Gate({ onEnter }: { onEnter: (id: Identity) => void }) {
   const session = useMemo(() => createFriendWalletSession(), []);
@@ -51,7 +32,7 @@ export function Gate({ onEnter }: { onEnter: (id: Identity) => void }) {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [guestMode, setGuestMode] = useState(false);
+  const [samples, setSamples] = useState(false);
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
@@ -85,16 +66,6 @@ export function Gate({ onEnter }: { onEnter: (id: Identity) => void }) {
     } finally { setBusy(false); setStatus(""); }
   }
 
-  async function pickGuest(id: string) {
-    setBusy(true); setError(""); setStatus("Loading guest Friend artwork…");
-    try {
-      const sprites = await loadSprites(id);
-      onEnter({ friendId: id, name: `Guest #${id}`, family: sprites.familyId, guest: true, account: null, provider: null });
-    } catch {
-      setError("Could not load artwork from Robinhood Chain. Check your connection and retry.");
-    } finally { setBusy(false); setStatus(""); }
-  }
-
   const connecting = snap.status === "connecting" || snap.status === "switching-network";
   return (
     <main className="gate">
@@ -107,7 +78,7 @@ export function Gate({ onEnter }: { onEnter: (id: Identity) => void }) {
           <li className="frame-paper"><Icon id="home" size={22} />Build & expand</li><li className="frame-paper"><Icon id="rod" size={22} />Fish, mine, dive</li><li className="frame-paper"><Icon id="sword" size={22} />Raid real players</li><li className="frame-paper"><Icon id="angler" size={22} />World boss</li><li className="frame-paper"><Icon id="trophy" size={22} />Weekly prize pool</li>
         </ul>
 
-        {!guestMode && !snap.account && (
+        {!samples && !snap.account && (
           <div className="gate-actions">
             {snap.wallets.length > 1 ? snap.wallets.map(w => (
               <button key={w.id} type="button" className="btn primary" disabled={connecting} onClick={() => void session.connect(w.id)}>Connect {w.name}</button>
@@ -116,14 +87,14 @@ export function Gate({ onEnter }: { onEnter: (id: Identity) => void }) {
                 {connecting ? "Check your wallet…" : "Connect wallet"}
               </button>
             )}
-            <button type="button" className="btn ghost" onClick={() => setGuestMode(true)}>Try as guest (demo)</button>
+            {SampleFriends && <button type="button" className="btn ghost" onClick={() => setSamples(true)}>Sample Friends (test build)</button>}
             {snap.status === "unavailable" && <p className="hint">No wallet found. On phones, open this page inside your wallet app's browser (MetaMask, Rabby, Coinbase Wallet…).</p>}
           </div>
         )}
 
         {snap.error && <p className="error" role="alert">{snap.error}</p>}
 
-        {!guestMode && snap.account && (
+        {!samples && snap.account && (
           <div className="gate-friends">
             <p className="hint">Connected {short(snap.account)} {snap.status === "wrong-network" && <>· <button type="button" className="link" onClick={() => void session.switchNetwork()}>Switch to Robinhood</button></>} · <button type="button" className="link" onClick={() => session.disconnect()}>Disconnect</button></p>
             {friends === null && !error && <p className="status"><span className="spinner" /> {status || "Loading…"}</p>}
@@ -137,14 +108,7 @@ export function Gate({ onEnter }: { onEnter: (id: Identity) => void }) {
           </div>
         )}
 
-        {guestMode && (
-          <div className="gate-friends">
-            <h2>Guest demo</h2>
-            <p className="hint">Play with a sample Friend. Guest progress saves on this device only and never appears on online leaderboards. Connect a wallet holding a generation 1+ Rare Friend for the real thing.</p>
-            <div className="friend-grid">{GUEST_FRIENDS.map(id => <FriendCard key={id} id={id} label={`Sample Friend #${id}`} sub="Guest · unverified" busy={busy} onPick={() => void pickGuest(id)} />)}</div>
-            <button type="button" className="btn ghost" onClick={() => setGuestMode(false)}>← Back</button>
-          </div>
-        )}
+        {samples && SampleFriends && <Suspense fallback={<p className="status"><span className="spinner" /> Loading…</p>}><SampleFriends onEnter={onEnter} onBack={() => setSamples(false)} /></Suspense>}
 
         {status && friends !== null && <p className="status"><span className="spinner" /> {status}</p>}
         {error && <p className="error" role="alert">{error}</p>}

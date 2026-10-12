@@ -1,15 +1,16 @@
 /**
- * End-to-end browser check (Playwright). Serves the production build and plays the guest flow on
- * desktop and phone viewports: title → Friend → story → walk → chop → panels → farm → swap →
- * wheel → fishing → NPC dialogue → map fast travel. Fails on page errors and layout overflow.
- *   npm run build && npm run test:e2e
+ * End-to-end browser check (Playwright). Serves the e2e test build (dist-e2e, built with --mode e2e,
+ * the only build that contains the sample Friends fixture) and plays a sample Friend on desktop and
+ * phone viewports: title → Friend → story → walk → chop → panels → farm → swap → wheel → fishing →
+ * NPC dialogue → map fast travel. Fails on page errors and layout overflow.
+ *   npm run test:e2e
  */
 import { chromium } from "playwright";
 import { createServer } from "node:http";
 import { readFile, mkdir } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 
-const root = resolve("dist");
+const root = resolve("dist-e2e");
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".json": "application/json" };
 const server = createServer(async (req, res) => {
   try {
@@ -34,7 +35,7 @@ async function scenario(name, viewport, mobile) {
   page.on("console", m => { if (m.type() === "error" && !/WebSocket|wss:|net::|Failed to load resource|ICE|RTCPeer|relay|fonts/i.test(m.text())) errors.push(`console: ${m.text()}`); });
 
   await page.goto("http://127.0.0.1:4180/");
-  await page.getByRole("button", { name: /Try as guest/ }).click();
+  await page.getByRole("button", { name: /Sample Friends \(test build\)/ }).click();
   await page.getByRole("button", { name: /Sample Friend #1\b/ }).click();
   await page.waitForSelector(".world canvas", { timeout: 20000 });
   await page.getByRole("dialog", { name: "Story Mode" }).waitFor({ timeout: 8000 });

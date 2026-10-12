@@ -1,4 +1,4 @@
-/** Dev-server QA: screenshot every panel (uses the dev-only window.__nff hook). */
+/** Dev-server QA: screenshot every panel (uses the dev-only window.__nff hook). Needs `npm run dev:e2e`. */
 import { chromium } from "playwright";
 const url = process.argv[2] ?? "http://localhost:5173/";
 const which = process.argv[3] ?? "both";
@@ -10,7 +10,7 @@ for (const [name, vp, mobile] of [["desk", { width: 1280, height: 800 }, false],
   const errs = [];
   p.on("pageerror", e => errs.push(e.message));
   await p.goto(url);
-  await p.getByRole("button", { name: /Try as guest/ }).click();
+  await p.getByRole("button", { name: /Sample Friends \(test build\)/ }).click();
   await p.getByRole("button", { name: /Sample Friend #2\b/ }).click();
   await p.waitForSelector(".world canvas", { timeout: 20000 });
   await p.getByRole("button", { name: "Close" }).click();

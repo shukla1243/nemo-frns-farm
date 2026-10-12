@@ -1,4 +1,4 @@
-/** Visual tour: screenshots of the title, world and main panels for design review. */
+/** Visual tour: screenshots of the title, world and main panels for design review. Needs `npm run dev:e2e`. */
 import { chromium } from "playwright";
 const url = process.argv[2] ?? "http://localhost:5173/";
 const b = await chromium.launch();
@@ -9,7 +9,7 @@ for (const [name, vp, mobile] of [["desk", { width: 1280, height: 800 }, false],
   await p.goto(url);
   await p.waitForTimeout(1200);
   await p.screenshot({ path: `artifacts/tour-${name}-0-title.png` });
-  await p.getByRole("button", { name: /Try as guest/ }).click();
+  await p.getByRole("button", { name: /Sample Friends \(test build\)/ }).click();
   await p.waitForTimeout(1500);
   await p.screenshot({ path: `artifacts/tour-${name}-1-guest.png` });
   await p.getByRole("button", { name: /Sample Friend #1\b/ }).click();

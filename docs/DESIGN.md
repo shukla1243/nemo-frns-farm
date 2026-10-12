@@ -20,7 +20,7 @@ All RF and $SHELL balances, rewards and burns are **SIMULATED** for the vibeatho
 ```
 src/engine/   pure TypeScript game rules: no DOM, seeded RNG, fully unit-tested
 src/net/      online layer: Nostr (profiles, raids, boss damage) + Trystero WebRTC (live presence/emotes)
-src/identity/ FriendSDK wallet session, owned-Friend discovery, fresh eligibility check, guest demo
+src/identity/ FriendSDK wallet session, owned-Friend discovery, fresh eligibility check
 src/world/    island map, tile grid, NPCs and the pixel canvas renderer
 src/art/      procedural pixel art: palette, sprites, tiles, icons, 9-slice UI frames
 src/game/     Friend sprite drawing, sound (FriendSDK sound kit) and generative music
@@ -49,9 +49,9 @@ grow, voyages finish, needs decay (capped), sleep regen at home.
 
 ## Identity
 Wallet via FriendSDK `createFriendWalletSession`, discovery via `readOwnedFriends`,
-play gate via fresh `readGenerationEligibility` (gen ≥ 1, owned). Guest demo mode is
-clearly labelled, uses a sample Friend's public artwork, and never publishes to
-leaderboards.
+play gate via fresh `readGenerationEligibility` (gen ≥ 1, owned). Every playable build
+requires the gate. Sample Friends are a test fixture that exists only in the e2e test
+build (`vite build --mode e2e`); production builds contain none of that code.
 
 ## Multiplayer
 - Nostr kind 30078 replaceable profile events (`d=nemo-frns-farm:profile`): level, power,
@@ -66,4 +66,4 @@ Trust model: client-authoritative, simulated economy only. Documented as a known
 - Vitest unit tests per engine module.
 - Economy simulation: RTP of every chance game, bot playthroughs (no NaN, no negatives,
   progression reachable, RF net-burn positive).
-- Playwright e2e: guest flow on desktop + phone viewports, panels, minigames, screenshots.
+- Playwright e2e (test build with sample Friends): desktop + phone viewports, panels, minigames, screenshots.

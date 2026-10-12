@@ -10,7 +10,8 @@ Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up
 > **Simulated economy.** Every RF and $SHELL balance, reward, prize pool, stock token and trade in this build is
 > simulated for the Rare Friends Vibeathon. No transactions, no real funds, no real securities.
 
-- **Play:** https://shukla1243.github.io/nemo-frns-farm/ (desktop and phone, guest mode for judges)
+- **Play:** https://shukla1243.github.io/nemo-frns-farm/ (desktop and phone; needs a browser wallet holding a Rare
+  Friends Generations NFT, generation 1 or higher, on Robinhood Chain 4663)
 - **Builder:** [@mutantonchain](https://x.com/mutantonchain)
 - **Category:** Economy Potential (also built to compete in Token Activity and Character Spotlight)
 - **Docs:** [Tokenomics](docs/TOKENOMICS.md) · [Lore and how to play](docs/LORE.md) · [Design](docs/DESIGN.md)
@@ -86,8 +87,7 @@ stays fast and rewarding.
 
 1. **Enter.** Connect a browser wallet holding a Rare Friends Generations NFT (generation 1 or higher) on Robinhood
    Chain (4663) and pick your Friend. FriendSDK checks ownership on-chain before play. On phones, open the link in your
-   wallet app's browser. No wallet? Pick **Try as guest** and play a sample Friend. Guest progress stays on the device
-   and never appears on leaderboards.
+   wallet app's browser. Every playable build requires this check; there is no guest mode.
 2. **Move.** Tap or click the ground or a building, or use WASD and the arrow keys. Press **E** or the orange action
    button near a station.
 3. **Follow the story.** The note under your needs shows the current chapter goal. Tap it to claim the reward.
@@ -145,7 +145,7 @@ npm run dev        # http://localhost:5173 (also on your LAN for phone testing)
 npm run build      # static site in dist/ (GitHub Pages ready, relative base)
 npm test           # engine, economy, voyage, world and AMM tests (+ Monte Carlo)
 npm run sim        # economy simulation tables
-npm run build && npm run test:e2e   # Playwright: full desktop and phone playthrough
+npm run test:e2e   # Playwright: builds the e2e test build (dist-e2e) and plays it on desktop and phone
 ```
 
 Requires Node.js 22+. The FriendSDK v0.1.2 package archive is vendored in `vendor/`.
@@ -160,12 +160,14 @@ Requires Node.js 22+. The FriendSDK v0.1.2 package archive is vendored in `vendo
   - milestones, rebirth and the daily streak
   - voyages: costs, fixed outcomes, recall, odds, a net RF-negative EV at max bonus, and stock sales
   - save codes, map reachability for every station, and economy bots
-- `npm run test:e2e`: every check passing on desktop (1280×800) and phone (390×844). Covers guest entry, story, fast
+- `npm run test:e2e`: every check passing on desktop (1280×800) and phone (390×844). Covers entry, story, fast
   travel, chop plus autosave, every HUD panel fitting the screen (including Play, Settings and the notification inbox),
   farm, swap, wheel, fishing, NPC gifts and map travel, with zero page errors.
 - **Known limitations:** multiplayer and prize pools are client-authoritative and simulated. Public Nostr relays and
   WebRTC can be unreachable on some networks. The game then continues solo with simulated rivals. The wallet flow uses
-  the SDK functions directly and was tested through the guest path. A real-wallet playthrough needs a Gen 1+ holder.
+  the SDK functions directly. Automated tests enter through sample Friends that exist only in the e2e test build
+  (`vite build --mode e2e`, output `dist-e2e/`); `npm run build` contains none of that code. A real-wallet playthrough
+  needs a Gen 1+ holder.
 
 ## Credits
 

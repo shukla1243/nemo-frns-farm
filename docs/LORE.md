@@ -53,7 +53,7 @@ Your Friend is drawn exactly as minted. It never gets recolored, and it earns a 
 
 ## How to play in two minutes
 
-1. **Enter** with your wallet, or pick **Try as guest**.
+1. **Enter** with a wallet that holds a generation 1+ Rare Friend.
 2. **Move** by tapping or clicking anywhere, or with WASD and the arrow keys. Press **E** or the big orange button when you
    stand near something.
 3. **Press Play.** The orange Play button lists every game and every place, and **Go** takes you there.
