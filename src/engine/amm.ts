@@ -36,6 +36,9 @@ function seedHistory() {
   return out;
 }
 
+/** The 3% fee in centi-RF, rounded up with a 1 base unit floor so small swaps can't dodge it. */
+const swapFee = (rfAmount: number) => Math.max(1, Math.ceil(rfAmount * POOL.feeBps / 10_000));
+
 /** SHELL per 1 RF. */
 export const poolPrice = (p: Pool) => p.shell / (p.rf / 100);
 
@@ -45,14 +48,14 @@ export function quote(p: Pool, dir: SwapDir, amountIn: number): Quote | null {
   if (dir === "shellToRf") {
     if (amountIn > p.shell * POOL.maxShareOfReserve) return null;
     const gross = Math.floor(p.rf * amountIn / (p.shell + amountIn));
-    const fee = Math.floor(gross * POOL.feeBps / 10_000);
+    const fee = swapFee(gross);
     const out = gross - fee;
     if (out <= 0) return null;
     const after = (p.shell + amountIn) / ((p.rf - gross) / 100);
     return { out, fee, impact: Math.abs(after - before) / before, price: amountIn / (out / 100) };
   }
   if (amountIn > p.rf * POOL.maxShareOfReserve) return null;
-  const fee = Math.floor(amountIn * POOL.feeBps / 10_000);
+  const fee = swapFee(amountIn);
   const net = amountIn - fee;
   const out = Math.floor(p.shell * net / (p.rf + net));
   if (out <= 0) return null;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  POOL, RF, SEASON, SINK, applySwap, chapterAt, createPool, createState, dispatch, poolPrice, quote, seasonBoard, seasonIdAt, seasonPoolTotal,
-  seasonStartOf, dayNumber, rebirthCost, threshold, rankName, TRACKS, REBIRTH, type GameState,
+  POOL, RF, SEASON, SINK, applySwap, botTrades, chapterAt, createPool, createRng, createState, dispatch, poolPrice, quote, seasonBoard, seasonIdAt, seasonPoolTotal,
+  seasonStartOf, dayNumber, rebirthCost, threshold, rankName, TRACKS, REBIRTH, type GameState, type SwapDir,
 } from "../src/engine";
 
 const T0 = Date.UTC(2026, 8, 24, 12);
@@ -40,6 +40,40 @@ describe("Tide Pool AMM", () => {
     const price = poolPrice(s.pool);
     expect(price).toBeGreaterThan(POOL.anchor * 0.6);
     expect(price).toBeLessThan(POOL.anchor * 1.6);
+  });
+  it("charges at least 1 base unit of fee on every swap, rounding up", () => {
+    const p = createPool(T0);
+    for (const amount of [1, 2, 5, 20, 33, 50, 99]) {
+      const a = quote(p, "rfToShell", amount);
+      if (a) expect(a.fee, `rfToShell ${amount}`).toBe(Math.max(1, Math.ceil(amount * POOL.feeBps / 10_000)));
+      const b = quote(p, "shellToRf", amount);
+      if (b) expect(b.fee, `shellToRf ${amount}`).toBeGreaterThanOrEqual(1);
+    }
+    expect(quote(p, "rfToShell", 50)!.fee).toBe(2);
+  });
+  it("repeated tiny swaps cannot farm the bots' mean reversion", () => {
+    // A farmer trades against every bot-driven deviation in the smallest possible chunks, for a week.
+    const p = createPool(T0), rng = createRng(4242);
+    const bag = { shell: 20_000, rf: 100 * RF };
+    const value = () => bag.shell + (bag.rf / 100) * POOL.anchor;
+    const start = value();
+    let trades = 0, fees = 0;
+    for (let t = 1; t <= 7 * 24 * 120; t++) {
+      botTrades(p, T0 + t * 30_000, rng);
+      for (let i = 0; i < 20; i++) {
+        const dir: SwapDir = poolPrice(p) > POOL.anchor ? "rfToShell" : "shellToRf";
+        let amount = 1;
+        while (!quote(p, dir, amount)) amount++; // the smallest swap the pool accepts
+        const q = quote(p, dir, amount)!;
+        if ((dir === "rfToShell" ? bag.rf : bag.shell) < amount) break;
+        applySwap(p, dir, amount, q);
+        if (dir === "rfToShell") { bag.rf -= amount; bag.shell += q.out; } else { bag.shell -= amount; bag.rf += q.out; }
+        trades++; fees += q.fee;
+      }
+    }
+    expect(trades).toBeGreaterThan(10_000);
+    expect(fees).toBeGreaterThanOrEqual(trades);
+    expect(value()).toBeLessThan(start);
   });
 });
 
