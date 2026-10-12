@@ -1,11 +1,12 @@
-import { BOSS, MAX_LEVEL, xpToNext } from "../../engine/config";
+import { BOSS, ITEMS, MAX_LEVEL, xpToNext } from "../../engine/config";
 import { bossStatus, seasonBoard } from "../../engine/systems";
 import { passClaimable } from "../../engine/pass";
 import type { GameState } from "../../engine/types";
 import type { StationId } from "../../world/map";
 import { NPCS, giftReady } from "../../world/npcs";
 import { Icon } from "../Icon";
-import { Panel, useG } from "../common";
+import { Panel, mmss, useG } from "../common";
+import { welcomeBack } from "../report";
 
 type Ready = { id: string; icon: string; text: string; station: StationId };
 
@@ -54,13 +55,21 @@ const TONE_ICON = { good: "check", bad: "skull", epic: "star", info: "spark" } a
 
 /** Shown when a player returns: what happened while they were gone and what is ready now. */
 export function ReportPanel({ onClose, go, since }: { onClose: () => void; go: (station: StationId) => void; since: number }) {
-  const { s } = useG();
-  const away = Date.now() - since;
+  const { s, now } = useG();
+  const away = now - since;
   const h = Math.floor(away / 3_600_000), m = Math.floor((away % 3_600_000) / 60_000);
   const happened = s.log.filter(l => l.t > since).slice(0, 12);
+  const wb = welcomeBack(s, now);
+  const where = wb.friend.kind === "voyage" ? <>Your Friend is still on its voyage, back in <b>{mmss(wb.friend.endsAt - now)}</b>.</>
+    : wb.friend.kind === "back" ? <>Your Friend is back from its voyage with a chest to open.</>
+    : s.sleeping ? <>Your Friend is asleep at home.</> : <>Your Friend rested at home.</>;
   return (
     <Panel title="Welcome back" icon="home" onClose={onClose}>
-      <p>You were away <b>{h ? `${h} h ` : ""}{m} min</b>. Your crops kept growing and your Friend rested at home.</p>
+      <p>You were away <b>{h ? `${h} h ` : ""}{m} min</b>. {where}</p>
+      {wb.ripe.length > 0 && (
+        <p className="loot"><b>Ripe now:</b>{wb.ripe.map(r => <span key={r.crop}><Icon id={r.crop} size={22} />{r.count} {ITEMS[r.crop].name}</span>)}</p>
+      )}
+      {wb.growing > 0 && wb.nextReadyAt !== null && <p className="muted">{wb.growing} crop{wb.growing > 1 ? "s" : ""} still growing, the next is ready in {mmss(wb.nextReadyAt - now)}.</p>}
       {happened.length > 0 && (
         <section className="section">
           <h3>While you were away</h3>
@@ -76,7 +85,7 @@ export function ReportPanel({ onClose, go, since }: { onClose: () => void; go: (
       <section className="section">
         <h3>Ready now</h3>
         <ReadyList go={go} />
-        {readyNow(s, Date.now(), 0).length === 0 && <p className="muted">Nothing is waiting. Follow the story goal or open Play to pick a game.</p>}
+        {readyNow(s, now, 0).length === 0 && <p className="muted">Nothing is waiting. Follow the story goal or open Play to pick a game.</p>}
       </section>
       <button type="button" className="btn big primary" onClick={onClose}>Back to the island</button>
     </Panel>

@@ -3,6 +3,7 @@ import { ACT_ONE_LEN, ACT_TWO_LEN, PASS, RF, VOYAGE_CHAPTER, chapterAt, createSt
 import { guide } from "../src/world/guide";
 import { STATIONS, UNLOCK_SIGNS } from "../src/world/map";
 import { RESIDENTS, residentAt } from "../src/world/npcs";
+import { welcomeBack } from "../src/ui/report";
 
 const T0 = Date.UTC(2026, 8, 24, 12);
 const fresh = (): GameState => ({ ...createState({ friendId: "7", name: "Friend #7", family: 2, guest: false, now: T0, seed: 99 }), streak: { day: dayNumber(T0), count: 1 } });
@@ -119,5 +120,29 @@ describe("island residents", () => {
       const p = residentAt(i, t, STATIONS);
       expect(Number.isFinite(p.x) && Number.isFinite(p.y)).toBe(true);
     }
+  });
+});
+
+describe("welcome back report", () => {
+  it("says where the Friend is: on a voyage, back from one, or at home", () => {
+    const s = fresh();
+    expect(welcomeBack(s, T0).friend).toEqual({ kind: "home" });
+    s.voyage = { id: "scout", startedAt: T0 - 1000, endsAt: T0 + 60_000, result: { outcome: "empty", label: "", shell: 0, rf: 0, items: {}, stock: null, relic: false, lost: false }, announced: false };
+    expect(welcomeBack(s, T0).friend).toEqual({ kind: "voyage", endsAt: T0 + 60_000 });
+    expect(welcomeBack(s, T0 + 60_000).friend).toEqual({ kind: "back" });
+  });
+  it("lists ripe crops by kind and counts the ones still growing", () => {
+    const s = fresh();
+    s.plots = [
+      { crop: "kelp", plantedAt: T0 - 50_000, readyAt: T0 - 10_000, withered: false },
+      { crop: "kelp", plantedAt: T0 - 50_000, readyAt: T0 - 5_000, withered: false },
+      { crop: "carrot", plantedAt: T0 - 10_000, readyAt: T0 + 70_000, withered: false },
+      { crop: "berry", plantedAt: T0 - 200_000, readyAt: T0 - 60_000, withered: true },
+      { crop: null, plantedAt: 0, readyAt: 0, withered: false },
+    ];
+    const r = welcomeBack(s, T0);
+    expect(r.ripe).toEqual([{ crop: "kelp", count: 2 }]);
+    expect(r.growing).toBe(1);
+    expect(r.nextReadyAt).toBe(T0 + 70_000);
   });
 });
