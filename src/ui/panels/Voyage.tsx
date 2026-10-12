@@ -12,7 +12,7 @@ export function VoyagePanel({ onClose }: { onClose: () => void }) {
   const def = v ? VOYAGES.find(x => x.id === v.id)! : null;
   return (
     <Panel title="Voyage Pier" icon="anchor" onClose={onClose} wide>
-      <Tabs tabs={[["sail", "Voyages"], ["stocks", "Stock tokens"]]} value={tab} onChange={setTab} />
+      <Tabs tabs={[["sail", "Voyages"], ["stocks", "Island shares"]]} value={tab} onChange={setTab} />
       {tab === "sail" && (v && def ? (
         <div className="voyage-live frame-sea">
           {now < v.endsAt ? (
@@ -66,7 +66,7 @@ export function VoyagePanel({ onClose }: { onClose: () => void }) {
       ))}
       {tab === "stocks" && (
         <>
-          <p className="muted">Stock-token shares come back from the Robinhood Reef Run. Prices update every hour and are the same for every player.</p>
+          <p className="muted">Island company shares come back from the Shipwreck Salvage Run. Prices update every hour and are the same for every player.</p>
           <div className="list">
             {STOCK_IDS.map(id => {
               const price = stockPrice(id, now);
@@ -81,7 +81,7 @@ export function VoyagePanel({ onClose }: { onClose: () => void }) {
               );
             })}
           </div>
-          <p className="fineprint"><SimTag /> Stock tokens here are simulated game collectibles themed on tokenized stocks trending on Robinhood Chain. They are not securities and have no real value. Selling pays SHELL minus a {STOCK_SELL_FEE * 100}% fee.</p>
+          <p className="fineprint"><SimTag /> Island company shares here are simulated game collectibles from fictional NEMO sea companies. They are not securities and have no real value. Selling pays SHELL minus a {STOCK_SELL_FEE * 100}% fee.</p>
         </>
       )}
       {tab === "sail" && <p className="fineprint"><SimTag /> Family Relics give +2% XP each, forever. You have {s.relics}.</p>}

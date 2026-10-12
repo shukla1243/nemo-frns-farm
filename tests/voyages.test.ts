@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RF, VOYAGE_CHAPTER, createRng, createState, dayNumber, dispatch, type GameState } from "../src/engine";
-import { STOCK_SELL_FEE, VOYAGES, rollVoyage, stockPrice, voyageBonus, voyageOdds } from "../src/engine/voyages";
+import { STOCK_IDS, STOCK_SELL_FEE, VOYAGES, rollVoyage, stockPrice, voyageBonus, voyageOdds, type StockId } from "../src/engine/voyages";
+import { migrate } from "../src/engine/save";
 
 const T0 = Date.UTC(2026, 8, 24, 12);
 const fresh = (): GameState => {
@@ -71,12 +72,31 @@ describe("voyages", () => {
     }
   });
   it("stock prices are deterministic per hour and selling charges the fee", () => {
-    expect(stockPrice("NVDA", T0)).toBe(stockPrice("NVDA", T0 + 60_000));
-    const s = fresh(); s.stocks.NVDA = 1.5;
-    const r = dispatch(s, { type: "sellStock", id: "NVDA", shares: 1 }, T0);
+    expect(stockPrice("FINX", T0)).toBe(stockPrice("FINX", T0 + 60_000));
+    const s = fresh(); s.stocks.FINX = 1.5;
+    const r = dispatch(s, { type: "sellStock", id: "FINX", shares: 1 }, T0);
     expect(r.ok).toBe(true);
-    expect(r.state.stocks.NVDA).toBe(0.5);
-    expect(r.state.shell - s.shell).toBeLessThanOrEqual(Math.ceil(stockPrice("NVDA", T0) * (1 - STOCK_SELL_FEE) * 1.5));
-    expect(dispatch(s, { type: "sellStock", id: "TSLA", shares: 1 }, T0).ok).toBe(false);
+    expect(r.state.stocks.FINX).toBe(0.5);
+    expect(r.state.shell - s.shell).toBeLessThanOrEqual(Math.ceil(stockPrice("FINX", T0) * (1 - STOCK_SELL_FEE) * 1.5));
+    expect(dispatch(s, { type: "sellStock", id: "URCH", shares: 1 }, T0).ok).toBe(false);
+  });
+  it("lists only fictional NEMO island companies", () => {
+    expect(STOCK_IDS).toEqual(["FINX", "URCH", "CLAM", "KRLL", "KELP", "GULL", "DUBL"]);
+    expect(VOYAGES.find(v => v.id === "reef")!.name).toBe("Shipwreck Salvage Run");
+  });
+  it("the full-share outcome always pays one FINX share", () => {
+    const reef = VOYAGES.find(v => v.id === "reef")!;
+    const only = { ...reef, outcomes: reef.outcomes.filter(o => o.id === "fullshare") };
+    expect(only.outcomes).toHaveLength(1);
+    expect(rollVoyage(fresh(), only, createRng(5)).stock).toEqual({ id: "FINX", shares: 1 });
+  });
+  it("a save drops unknown stock tickers, including a pending voyage prize", () => {
+    const s = fresh() as GameState & { stocks: Record<string, number> };
+    s.stocks.OLD1 = 2; s.stocks.KELP = 1;
+    s.voyage = { id: "reef", startedAt: T0, endsAt: T0 + 1, result: { outcome: "bag", label: "", shell: 0, rf: 0, items: {}, stock: { id: "OLD1" as StockId, shares: 1 }, relic: false, lost: false }, announced: false };
+    const back = migrate(JSON.parse(JSON.stringify(s)));
+    expect(Object.keys(back.stocks).sort()).toEqual([...STOCK_IDS].sort());
+    expect(back.stocks.KELP).toBe(1);
+    expect(back.voyage!.result.stock).toBeNull();
   });
 });

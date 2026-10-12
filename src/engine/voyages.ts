@@ -1,9 +1,9 @@
 /**
  * Voyages: timed expeditions. Your Friend leaves the island for minutes or hours and comes back with
- * treasure, simulated stock-token shares, a family relic, or nothing at all. Odds are shown up front
+ * treasure, simulated island company shares, a family relic, or nothing at all. Odds are shown up front
  * and the outcome is rolled at departure, so reloading can't change it.
  *
- * Stock tokens are SIMULATED game collectibles themed on tokenized stocks trending on Robinhood Chain.
+ * Island company shares are SIMULATED game collectibles from fictional NEMO sea companies.
  * They are not securities, carry no real value, and their prices come from a deterministic formula.
  */
 import type { ItemId } from "./config";
@@ -16,15 +16,15 @@ export const VOYAGE_CHAPTER = 5;
 export const voyagesOpen = (s: GameState) => s.story >= VOYAGE_CHAPTER || s.rebirths > 0;
 export const voyageGateText = () => `The Voyage Pier opens after the chapter "${chapterAt(VOYAGE_CHAPTER - 1).title}".`;
 
-export type StockId = "NVDA" | "TSLA" | "AAPL" | "AMZN" | "MSFT" | "HOOD" | "COIN";
+export type StockId = "FINX" | "URCH" | "CLAM" | "KRLL" | "KELP" | "GULL" | "DUBL";
 export const STOCKS: Record<StockId, { name: string; base: number; swing: number; period: number }> = {
-  NVDA: { name: "Nvidia", base: 900, swing: 0.28, period: 31 },
-  TSLA: { name: "Tesla", base: 520, swing: 0.34, period: 23 },
-  AAPL: { name: "Apple", base: 480, swing: 0.14, period: 41 },
-  AMZN: { name: "Amazon", base: 460, swing: 0.18, period: 37 },
-  MSFT: { name: "Microsoft", base: 700, swing: 0.12, period: 47 },
-  HOOD: { name: "Robinhood", base: 260, swing: 0.4, period: 19 },
-  COIN: { name: "Coinbase", base: 380, swing: 0.36, period: 29 },
+  FINX: { name: "Finlight Lanterns", base: 900, swing: 0.28, period: 31 },
+  URCH: { name: "Urchin Motorworks", base: 520, swing: 0.34, period: 23 },
+  CLAM: { name: "Clamshell Devices", base: 480, swing: 0.14, period: 41 },
+  KRLL: { name: "Krill Freight Co.", base: 460, swing: 0.18, period: 37 },
+  KELP: { name: "Kelpsoft Systems", base: 700, swing: 0.12, period: 47 },
+  GULL: { name: "Gullwing Traders", base: 260, swing: 0.4, period: 19 },
+  DUBL: { name: "Doubloon Bay Mint", base: 380, swing: 0.36, period: 29 },
 };
 export const STOCK_IDS = Object.keys(STOCKS) as StockId[];
 
@@ -66,11 +66,11 @@ export const VOYAGES: Voyage[] = [
     ],
   },
   {
-    id: "reef", name: "Robinhood Reef Run", blurb: "Dive the trading wrecks off Robinhood Reef for stock-token shares. Low odds, big upside.", minutes: 360, costRf: 200, costShell: 300, food: 3, minLevel: 6,
+    id: "reef", name: "Shipwreck Salvage Run", blurb: "Dive the merchant wrecks off Barnacle Shoals for island company shares. Low odds, big upside.", minutes: 360, costRf: 200, costShell: 300, food: 3, minLevel: 6,
     outcomes: [
-      { id: "shares", label: "Stock-token shares", weight: 22, stock: [0.1, 0.6] },
-      { id: "bag", label: "A bag of stock-token shares", weight: 6, stock: [0.8, 2] },
-      { id: "nvda", label: "A full NVDA share!", weight: 2, stock: [1, 1] },
+      { id: "shares", label: "Island company shares", weight: 22, stock: [0.1, 0.6] },
+      { id: "bag", label: "A bag of island company shares", weight: 6, stock: [0.8, 2] },
+      { id: "fullshare", label: "A full FINX share!", weight: 2, stock: [1, 1] },
       { id: "salvage", label: "Salvage: ore and glass", weight: 15, items: { ore: 12, glass: 6 } },
       { id: "wreck", label: "Only broken hulls. Nothing found", weight: 55 },
     ],
@@ -112,7 +112,7 @@ export function rollVoyage(s: GameState, v: Voyage, rng: Rng): VoyageResult {
   const span = (r?: [number, number]) => (r ? Math.round(r[0] + rng.next() * (r[1] - r[0])) : 0);
   let stock: VoyageResult["stock"] = null;
   if (o.stock) {
-    const id: StockId = o.id === "nvda" ? "NVDA" : weighted(rng, STOCK_IDS.map(k => ({ k, weight: k === "NVDA" || k === "HOOD" ? 3 : 2 }))).k;
+    const id: StockId = o.id === "fullshare" ? "FINX" : weighted(rng, STOCK_IDS.map(k => ({ k, weight: k === "FINX" || k === "GULL" ? 3 : 2 }))).k;
     stock = { id, shares: Math.round((o.stock[0] + rng.next() * (o.stock[1] - o.stock[0])) * 1000) / 1000 };
   }
   return { outcome: o.id, label: o.label, shell: span(o.shell), rf: span(o.rf), items: o.items ?? {}, stock, relic: !!o.relic, lost: !!o.lost };

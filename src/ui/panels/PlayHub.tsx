@@ -19,7 +19,7 @@ const GAMES: Card[] = [
   { station: "harbor", blurb: "Raid simulated rival crews for their SHELL vaults.", risk: "Raid" },
   { station: "reef", blurb: "World boss every 20 minutes. Hit it alongside simulated hunters.", risk: "Boss" },
   { station: "forge", blurb: "Upgrade gear +1 to +10. Odds fall as the level rises.", risk: "Gamble" },
-  { station: "pier", blurb: "Timed voyages of 15 min to 12 h. Relics, RF and stock-token shares.", risk: "Idle" },
+  { station: "pier", blurb: "Timed voyages of 15 min to 12 h. Relics, RF and island company shares.", risk: "Idle" },
 ];
 const LIFE: Card[] = [
   { station: "home", blurb: "Sleep to refill energy, cook meals, and upgrade from Tent to Sea Castle." },

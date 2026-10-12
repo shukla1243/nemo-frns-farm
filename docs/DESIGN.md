@@ -13,7 +13,7 @@ All RF and $SHELL balances, rewards and burns are **SIMULATED** for the vibeatho
 |---|---|
 | Character Spotlight | The verified Friend *is* the hero: canonical on-chain sprite rendered in-world and never recolored, family-specific trait (9 families → 9 play styles), a Homeland Voyage to its own family island, hats and titles every 10 levels, rebirth stars, other players see your Friend live. |
 | Token Activity | RF is spent by every progression step: Ascension, Forge, land, homes, charms, scrolls, voyages, rebirth, the Tide Wheel and swap fees. Every spend splits 70% Season Pool / 25% creator / 5% burn, and prosperity buffs scale with RF spent. |
-| Economy Potential | Two-token design: RF (premium) + $SHELL (soft) paired in a constant-product Tide Pool, weekly seasons that pay back the top 10, simulated stock-token shares from voyages. Documented faucets and sinks ([TOKENOMICS.md](TOKENOMICS.md)), RTP < 100% on every chance game, Monte Carlo economy simulation in the test suite. |
+| Economy Potential | Two-token design: RF (premium) + $SHELL (soft) paired in a constant-product Tide Pool, weekly seasons that pay back the top 10, simulated island company shares from voyages. Documented faucets and sinks ([TOKENOMICS.md](TOKENOMICS.md)), RTP < 100% on every chance game, Monte Carlo economy simulation in the test suite. |
 
 ## Architecture
 

@@ -77,7 +77,7 @@ cooking meals at Home.
 - **Risky money:** the Abyss Dive, Tide Mines, double or nothing, raids, the Kraken and the Tide Wheel. Every game shows
   its odds before you play.
 - **Voyages:** send your Friend away for 15 minutes, 1, 6 or 12 hours. Short trips are safe. The long ones usually come
-  back empty but can return a hoard of RF, a Family Relic or simulated stock-token shares such as NVDA. While it's away,
+  back empty but can return a hoard of RF, a Family Relic or simulated island company shares such as FINX. While it's away,
   your Friend can't work.
 
 ### Getting stronger forever

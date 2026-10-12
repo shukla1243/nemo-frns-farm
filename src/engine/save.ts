@@ -1,6 +1,7 @@
 import { ITEM_IDS, ZONE_ORDER, type ItemId } from "./config";
 import { hashSeed } from "./rng";
 import { createState, emptyStats, emptyStocks } from "./state";
+import { STOCKS, STOCK_IDS } from "./voyages";
 import type { GameState } from "./types";
 
 const PREFIX = "NFF1";
@@ -52,7 +53,10 @@ export function migrate(raw: GameState): GameState {
   s.milestones = raw.milestones ?? {};
   s.streak = raw.streak ?? { day: 0, count: 0 };
   s.voyage = raw.voyage ?? null;
-  s.stocks = { ...emptyStocks(), ...raw.stocks };
+  // Tickers outside the current list (renamed companies) are dropped, including a pending voyage prize.
+  if (s.voyage?.result.stock && !(s.voyage.result.stock.id in STOCKS)) s.voyage.result.stock = null;
+  s.stocks = emptyStocks();
+  for (const id of STOCK_IDS) if (Number.isFinite(raw.stocks?.[id])) s.stocks[id] = raw.stocks[id];
   s.relics = raw.relics ?? 0;
   s.season = { ...base.season, ...raw.season, pass: raw.season?.pass ?? 0 };
   s.cooldowns = {};

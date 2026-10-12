@@ -72,7 +72,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         <h3>Earn and risk</h3>
         <p><b>Earn:</b> chop, quarry, farm, fish, fill bounties, sell at the Market, and swap SHELL and RF at the Tide Pool.</p>
         <p><b>Risk:</b> Abyss Dive (cash out before the shark), Tide Mines (dig safe tiles), double or nothing, raids, the Kraken world boss and the Tide Wheel. Every game shows its odds before you play.</p>
-        <p><b>Voyages:</b> at the Voyage Pier, send your Friend away for 15 minutes to 12 hours. Long voyages have low odds but can bring back RF, Family Relics or simulated stock-token shares (NVDA, TSLA, HOOD and more) that you can sell for SHELL. While your Friend is away it can't work.</p>
+        <p><b>Voyages:</b> at the Voyage Pier, send your Friend away for 15 minutes to 12 hours. Long voyages have low odds but can bring back RF, Family Relics or simulated island company shares (FINX, URCH, GULL and more) that you can sell for SHELL. While your Friend is away it can't work.</p>
         <h3>Grow forever</h3>
         <p>Level up by <b>Ascending</b> at the Coral Shrine (a chance roll that spends RF, never loses a level). Forge gear +1 to +10. Build from a Tent to a Sea Castle. Unlock 7 regions. At level 30 you can <b>Rebirth</b> for permanent XP and SHELL bonuses. Milestones and daily streak rewards arrive on their own.</p>
         <h3>Where RF goes</h3>

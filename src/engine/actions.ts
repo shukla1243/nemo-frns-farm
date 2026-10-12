@@ -768,7 +768,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const won = !!(r.shell || r.rf || Object.keys(r.items).length || r.stock || r.relic);
       if (won) s.stats.voyageWins++;
       addXp(s, events, won ? 40 : 15);
-      const parts = [r.shell ? `${r.shell} SHELL` : "", r.rf ? `${fmtRf(r.rf)}` : "", itemsText(r.items), r.stock ? `${r.stock.shares} ${r.stock.id} stock-token shares` : "", r.relic ? "a Family Relic (+2% XP forever)" : ""].filter(Boolean);
+      const parts = [r.shell ? `${r.shell} SHELL` : "", r.rf ? `${fmtRf(r.rf)}` : "", itemsText(r.items), r.stock ? `${r.stock.shares} ${r.stock.id} island company shares` : "", r.relic ? "a Family Relic (+2% XP forever)" : ""].filter(Boolean);
       log(s, events, won ? `Voyage success: ${r.label}! +${parts.join(", ")}` : `Voyage: ${r.label}.`, won ? "epic" : "bad", { cue: won ? "reveal-rare" : "impact", fx: won ? "confetti" : "shake", icon: won ? "chest" : "skull" }, now);
       return { result: r, won };
     }

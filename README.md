@@ -7,7 +7,7 @@ Friends Generations NFT. You feed it, rest it, farm, fish, mine and dive, and bu
 Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up and upgrade is a gamble that spends RF.
 **70% of every RF spent flows into a weekly Season Prize Pool that pays back the top 10 players.**
 
-> **Simulated economy.** Every RF and $SHELL balance, reward, prize pool, stock token and trade in this build is
+> **Simulated economy.** Every RF and $SHELL balance, reward, prize pool, island company share and trade in this build is
 > simulated for the Rare Friends Vibeathon. No transactions, no real funds, no real securities.
 
 - **Play:** https://shukla1243.github.io/nemo-frns-farm/ (desktop and phone; needs a browser wallet holding a Rare
@@ -33,8 +33,8 @@ Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up
 - **Risk it.** Abyss Dive (crash game), Tide Mines (minesweeper multiplier), double or nothing, raids on simulated
   rival crews, the Kraken world boss, and the Tide Wheel with a 25 RF jackpot.
 - **Voyage.** Send your Friend away for 15 minutes, 1, 6 or 12 hours. Long voyages have low odds and big upside: RF
-  hoards, Family Relics (+2% XP forever) from your Friend's own family island, and simulated **stock-token shares** (NVDA,
-  TSLA, AAPL, AMZN, MSFT, HOOD, COIN) that you can hold or sell at a live simulated price. While your Friend is away, it
+  hoards, Family Relics (+2% XP forever) from your Friend's own family island, and simulated **island company shares** in
+  fictional NEMO sea companies (FINX, URCH, CLAM, KRLL, KELP, GULL, DUBL) that you can hold or sell at a live simulated price. While your Friend is away, it
   can't work, so every voyage is a real trade-off. The Voyage Pier opens once the story chapter "A Roof Over Fins" is
   done.
 - **Grow forever.** Ascend with odds that fall as you level up. Forge gear from +1 to +10, build 5 homes and unlock 7

@@ -28,7 +28,7 @@ comes from shown randomness, and the creator earns fees as assets trade.
 | Islander gifts | Small items once a day | 8 NPCs. |
 | Chance games | SHELL, RF, loot | Every game pays back less than 100% (see below). |
 | Kraken world boss | 30 RF shared by damage | Every 20 minutes, split among all hitters (players and rivals). |
-| Voyages | SHELL, RF, relics, stock-token shares | Low odds on the long voyages (see below). |
+| Voyages | SHELL, RF, relics, island company shares | Low odds on the long voyages (see below). |
 | Season prizes | RF from the Season Pool | Top 10 each week. |
 | Season Journey | SHELL and items on 10 tiers, 3 RF in total | Free for every player, resets weekly. |
 
@@ -49,7 +49,7 @@ Every RF sink goes through the same split: **70% Season Pool / 25% creator / 5% 
 | Lost RF stakes | Whatever you staked in a dive or dig that went wrong |
 | Tide Pool swaps | 3% fee on every swap, rounded up, never less than 0.01 RF |
 
-SHELL has its own sinks: building costs, bait, seeds, market purchases, the 2% stock-token sell fee and raid losses.
+SHELL has its own sinks: building costs, bait, seeds, market purchases, the 2% island share sell fee and raid losses.
 **Prosperity** rewards spending: every 5 RF you've spent adds +1% to SHELL earnings, up to +30%.
 
 ## Seasons
@@ -117,13 +117,14 @@ a good mood add up to +10 percentage points to the good outcomes. Recalling earl
 |---|---|---|---|
 | Tide Scout | 15 min | 30 SHELL, 1 food | 50% wood and stone, 30% 60 to 140 SHELL, 10% coral and glass, 10% nothing |
 | Homeland Voyage | 1 h | 0.5 RF, 120 SHELL, 2 food, level 3 | 30% pearls, 15% Luck Scrolls, **10% Family Relic**, 5% 1.5 to 4 RF, 40% storm (nothing) |
-| Robinhood Reef Run | 6 h | 2 RF, 300 SHELL, 3 food, level 6 | 22% 0.1 to 0.6 shares, 6% 0.8 to 2 shares, **2% a full NVDA share**, 15% salvage, 55% nothing |
+| Shipwreck Salvage Run | 6 h | 2 RF, 300 SHELL, 3 food, level 6 | 22% 0.1 to 0.6 shares, 6% 0.8 to 2 shares, **2% a full FINX share**, 15% salvage, 55% nothing |
 | Abyssal Trench | 12 h | 4 RF, 500 SHELL, 4 food, level 12 | **14% hoard of 8 to 24 RF**, 4% relic, 74% nothing, 8% lost at sea (lose 10% SHELL) |
 
 - **Family Relic:** +2% XP forever, and relics stack. The Homeland Voyage sails to your Friend's own family island
   (Skeleton Isle, Mask Atoll, Cellular Reef and so on).
-- **Stock tokens:** simulated shares themed on tokenized stocks trending on Robinhood Chain (NVDA, TSLA, AAPL, AMZN, MSFT,
-  HOOD, COIN). The price is a deterministic formula that changes every hour and is the same for every player. Sell any
+- **Island company shares:** simulated shares in fictional NEMO sea companies: Finlight Lanterns (FINX), Urchin
+  Motorworks (URCH), Clamshell Devices (CLAM), Krill Freight Co. (KRLL), Kelpsoft Systems (KELP), Gullwing Traders (GULL)
+  and Doubloon Bay Mint (DUBL). The price is a deterministic formula that changes every hour and is the same for every player. Sell any
   time for SHELL with a 2% fee. They are game collectibles, not securities.
 - **Tested:** a test rolls 20,000 voyages at the maximum bonus and checks that the RF voyages still return less RF than
   they cost. Voyages are a sink with a lottery upside, not a faucet.
