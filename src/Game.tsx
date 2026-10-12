@@ -188,7 +188,11 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
     const save = () => { saveLocal(stateRef.current); };
     const t = setInterval(save, AUTOSAVE_MS);
     const t2 = setInterval(() => { void cloudPush(); }, 60_000);
-    const hide = () => { if (document.visibilityState === "hidden") { save(); void cloudPush(); publishProfile(); } };
+    const hide = () => {
+      const hidden = document.visibilityState === "hidden";
+      music.setHidden(hidden);
+      if (hidden) { save(); void cloudPush(); publishProfile(); }
+    };
     window.addEventListener("pagehide", save);
     document.addEventListener("visibilitychange", hide);
     return () => { clearInterval(t); clearInterval(t2); window.removeEventListener("pagehide", save); document.removeEventListener("visibilitychange", hide); save(); };

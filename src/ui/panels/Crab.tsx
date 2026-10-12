@@ -4,6 +4,7 @@ import { icon } from "../../art/icons";
 import { Painter, cached, col, prng, type Sprite } from "../../art/pixel";
 import { sound } from "../../game/sound";
 import { Bar, Panel, SimTag, n0, useG } from "../common";
+import { pauseRound, resumeRound, type Kind, type Round } from "../crabRound";
 import { Icon } from "../Icon";
 
 // ---------------- Crab Dash (skill arcade) ----------------
@@ -14,15 +15,8 @@ const GOLD_CHANCE = 0.08, TRAP_CHANCE = 0.14;
 const MAX_MULT = 3, HITS_PER_STEP = 5;
 const KEYS = ["1", "2", "3", "4", "q", "w", "e", "r", "a", "s", "d", "f"];
 
-type Kind = "crab" | "gold" | "trap";
-type Hole = { kind: Kind; born: number; until: number } | null;
-type Floater = { x: number; y: number; text: string; color: string; born: number };
-type Round = {
-  endAt: number; nextPop: number; holes: Hole[]; score: number; mult: number; streak: number;
-  floaters: Floater[]; shakeUntil: number; over: boolean;
-};
 type Phase = { k: "idle" } | { k: "play" } | { k: "done"; score: number; shell: number; best: boolean; text: string };
-type Hud = { left: number; score: number; mult: number; streak: number };
+type Hud = { left: number; score: number; mult: number; streak: number; paused: boolean };
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const spriteOf = (k: Kind) => icon(k === "gold" ? "crabGold" : k === "trap" ? "clamTrap" : "crab");
@@ -84,7 +78,7 @@ function draw(ctx: CanvasRenderingContext2D, g: Round | null, t: number, rm: boo
 export function CrabPanel({ onClose }: { onClose: () => void }) {
   const { s, act, reducedMotion } = useG();
   const [phase, setPhase] = useState<Phase>({ k: "idle" });
-  const [hud, setHud] = useState<Hud>({ left: CRAB.roundMs, score: 0, mult: 1, streak: 0 });
+  const [hud, setHud] = useState<Hud>({ left: CRAB.roundMs, score: 0, mult: 1, streak: 0, paused: false });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const roundRef = useRef<Round | null>(null);
   // Latest callbacks and flags live in refs so the mount-only effects never re-run.
@@ -102,7 +96,7 @@ export function CrabPanel({ onClose }: { onClose: () => void }) {
 
   const tap = (i: number) => {
     const g = roundRef.current;
-    if (!g || g.over || i < 0 || i >= COLS * ROWS) return;
+    if (!g || g.over || g.pausedAt || i < 0 || i >= COLS * ROWS) return;
     const t = performance.now();
     const h = g.holes[i];
     const { x, y } = holePos(i);
@@ -131,11 +125,12 @@ export function CrabPanel({ onClose }: { onClose: () => void }) {
       const t = performance.now(), now = Date.now();
       const g = roundRef.current;
       if (g && !g.over) {
-        if (now >= g.endAt) finishRef.current(g);
-        else step(g, t, now);
-        const next: Hud = { left: Math.max(0, g.endAt - now), score: g.score, mult: g.mult, streak: g.streak };
+        const paused = !!g.pausedAt;
+        if (!paused && now >= g.endAt) finishRef.current(g);
+        else if (!paused) step(g, t, now);
+        const next: Hud = { left: Math.max(0, g.endAt - (paused ? g.pausedAt!.wall : now)), score: g.score, mult: g.mult, streak: g.streak, paused };
         const cur = hudRef.current;
-        if (Math.ceil(next.left / 1000) !== Math.ceil(cur.left / 1000) || next.score !== cur.score || next.mult !== cur.mult || next.streak !== cur.streak) {
+        if (Math.ceil(next.left / 1000) !== Math.ceil(cur.left / 1000) || next.score !== cur.score || next.mult !== cur.mult || next.streak !== cur.streak || next.paused !== cur.paused) {
           hudRef.current = next; setHud(next);
         }
       }
@@ -148,9 +143,18 @@ export function CrabPanel({ onClose }: { onClose: () => void }) {
       if (i >= 0 && roundRef.current && !roundRef.current.over) { e.preventDefault(); tapRef.current(i); }
     };
     window.addEventListener("keydown", key);
+    // A hidden tab pauses the round; it picks up where it left off when the tab comes back.
+    const vis = () => {
+      const g = roundRef.current;
+      if (!g || g.over) return;
+      if (document.visibilityState === "hidden") pauseRound(g, Date.now(), performance.now());
+      else resumeRound(g, Date.now(), performance.now());
+    };
+    document.addEventListener("visibilitychange", vis);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("keydown", key);
+      document.removeEventListener("visibilitychange", vis);
       // Leaving mid-round forfeits it so no other game stays blocked.
       if (roundRef.current && !roundRef.current.over) { roundRef.current.over = true; actRef.current({ type: "crabQuit" }); }
     };
@@ -164,7 +168,7 @@ export function CrabPanel({ onClose }: { onClose: () => void }) {
       endAt: startedAt + CRAB.roundMs, nextPop: performance.now() + 400, holes: Array.from({ length: COLS * ROWS }, () => null),
       score: 0, mult: 1, streak: 0, floaters: [], shakeUntil: 0, over: false,
     };
-    const fresh: Hud = { left: CRAB.roundMs, score: 0, mult: 1, streak: 0 };
+    const fresh: Hud = { left: CRAB.roundMs, score: 0, mult: 1, streak: 0, paused: false };
     hudRef.current = fresh; setHud(fresh);
     setPhase({ k: "play" });
   };
@@ -181,7 +185,7 @@ export function CrabPanel({ onClose }: { onClose: () => void }) {
       <div className="crab-hud frame-paper" aria-live="off">
         <span>Score <b>{n0(hud.score)}</b></span>
         <span>Combo <b>x{hud.mult}</b>{hud.mult < MAX_MULT && <small> {hud.streak}/{HITS_PER_STEP}</small>}</span>
-        <span>Time <b>{Math.ceil(hud.left / 1000)}s</b></span>
+        <span>Time <b>{Math.ceil(hud.left / 1000)}s</b>{hud.paused && <small> paused</small>}</span>
       </div>
       <Bar value={hud.left} max={CRAB.roundMs} color="#f5c542" label="Time left" />
       <canvas ref={canvasRef} className={`crab-field ${playing ? "live" : ""}`} width={W} height={H} onPointerDown={onPointer}

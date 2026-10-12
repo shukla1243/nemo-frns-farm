@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CRAB, VOYAGE_CHAPTER, createState, dayNumber, dispatch, exportSave, importSave, type GameState } from "../src/engine";
+import { pauseRound, resumeRound, type Round } from "../src/ui/crabRound";
 
 const T0 = 1_800_000_000_000;
 const fresh = (over: Partial<GameState> = {}): GameState => ({ ...createState({ friendId: "42", name: "Friend #42", family: 0, guest: false, now: T0, seed: 7 }), streak: { day: dayNumber(T0), count: 1 }, ...over });
@@ -90,5 +91,26 @@ describe("crab dash", () => {
     expect(loaded.stats.crabRuns).toBe(0);
     expect(loaded.stats.crabBest).toBe(0);
     expect(loaded.run).toBeNull();
+  });
+});
+
+describe("crab dash pause", () => {
+  it("a hidden tab freezes the round: every timer moves on by the time spent away", () => {
+    const g: Round = { endAt: 10_000, nextPop: 500, holes: [{ kind: "crab", born: 100, until: 900 }, null], score: 3, mult: 2, streak: 1, floaters: [{ x: 0, y: 0, text: "+1", color: "#fff", born: 200 }], shakeUntil: 300, over: false };
+    pauseRound(g, 4_000, 400);
+    expect(g.pausedAt).toEqual({ wall: 4_000, perf: 400 });
+    resumeRound(g, 64_000, 60_400);
+    expect(g.pausedAt).toBeNull();
+    expect(g.endAt).toBe(70_000);
+    expect(g.nextPop).toBe(60_500);
+    expect(g.holes[0]).toEqual({ kind: "crab", born: 60_100, until: 60_900 });
+    expect(g.floaters[0].born).toBe(60_200);
+    expect(g.shakeUntil).toBe(60_300);
+    expect(g.score).toBe(3);
+  });
+  it("resuming a round that was never paused changes nothing", () => {
+    const g: Round = { endAt: 10_000, nextPop: 500, holes: [], score: 0, mult: 1, streak: 0, floaters: [], shakeUntil: 0, over: false };
+    resumeRound(g, 64_000, 60_400);
+    expect(g.endAt).toBe(10_000);
   });
 });

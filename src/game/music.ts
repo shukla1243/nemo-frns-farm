@@ -83,6 +83,12 @@ export const music = {
     clearInterval(timer); timer = 0;
     master?.disconnect();
   },
+  /** Silence the soundtrack while the tab is hidden and bring it back when the tab returns. */
+  setHidden(hidden: boolean) {
+    if (!ctx) return;
+    if (hidden) void ctx.suspend();
+    else if (on && timer) { void ctx.resume(); nextTime = Math.max(nextTime, ctx.currentTime + 0.1); }
+  },
   setOn(v: boolean) {
     on = v;
     try { localStorage.setItem("nemo-frns-farm:music", v ? "1" : "0"); } catch { /* ignore */ }
