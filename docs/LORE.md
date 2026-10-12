@@ -58,7 +58,7 @@ Your Friend is drawn exactly as minted. It never gets recolored, and it earns a 
    stand near something.
 3. **Press Play.** The orange Play button lists every game and every place, and **Go** takes you there.
 4. **Follow the note** under your needs bars. That's your current chapter. The gold arrow on the map points to where it
-   happens, and **Go** takes you there. Tap the note to claim the reward.
+   happens, and **Go** takes you there. When the goal is met, Go turns into a gold **Claim** button.
 
 ### Staying alive
 

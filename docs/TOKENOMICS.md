@@ -47,7 +47,7 @@ Every RF sink goes through the same split: **70% Season Pool / 25% creator / 5% 
 | Rebirth | `10 + 10 × rebirths` RF |
 | Paid Tide Wheel spin | 1 RF |
 | Lost RF stakes | Whatever you staked in a dive or dig that went wrong |
-| Tide Pool swaps | 3% fee on every swap |
+| Tide Pool swaps | 3% fee on every swap, rounded up, never less than 0.01 RF |
 
 SHELL has its own sinks: building costs, bait, seeds, market purchases, the 2% stock-token sell fee and raid losses.
 **Prosperity** rewards spending: every 5 RF you've spent adds +1% to SHELL earnings, up to +30%.
@@ -109,7 +109,8 @@ most 10% and get an 8-minute shield.
 
 ## Voyages
 
-Send your Friend away. The outcome is rolled when you set sail, so reloading can't change it. Level, gear, rebirths and
+Send your Friend away. The Voyage Pier opens once the story chapter "A Roof Over Fins" is done. The outcome is rolled
+when you set sail, so reloading can't change it. Level, gear, rebirths and
 a good mood add up to +10 percentage points to the good outcomes. Recalling early returns nothing and costs mood.
 
 | Voyage | Time | Cost | Base odds |
