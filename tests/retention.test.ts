@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ACT_ONE_LEN, ACT_TWO_LEN, PASS, RF, createState, dayNumber, dispatch, importSave, exportSave, passClaimable, seasonIdAt, type GameState } from "../src/engine";
-import { guideTarget } from "../src/world/guide";
+import { ACT_ONE_LEN, ACT_TWO_LEN, PASS, RF, VOYAGE_CHAPTER, chapterAt, createState, dayNumber, dispatch, importSave, exportSave, passClaimable, seasonIdAt, voyagesOpen, type GameState } from "../src/engine";
+import { guide } from "../src/world/guide";
 import { STATIONS, UNLOCK_SIGNS } from "../src/world/map";
 import { RESIDENTS, residentAt } from "../src/world/npcs";
 
@@ -12,17 +12,61 @@ describe("story guide", () => {
     const ids = new Set([...STATIONS, ...UNLOCK_SIGNS].map(s => s.id));
     for (let i = 0; i < ACT_ONE_LEN + ACT_TWO_LEN + 16; i++) {
       const s = fresh(); s.story = i;
-      const t = guideTarget(s);
-      if (t) expect(ids.has(t.id)).toBe(true);
+      const g = guide(s);
+      if (g.kind === "goal") expect(ids.has(g.station.id)).toBe(true);
+      else expect(g.kind).toBe("claim");
     }
   });
-  it("starts at the Palm Grove, points at the unlock sign for locked regions and hides once the goal is met", () => {
+  it("starts at the Palm Grove, points at the unlock sign for locked regions and asks for a claim once the goal is met", () => {
     const s = fresh();
-    expect(guideTarget(s)?.id).toBe("chop");
+    expect(guide(s)).toMatchObject({ kind: "goal", station: { id: "chop" } });
     s.story = 7; // Dig Deep: Tide Mines are locked at the start
-    expect(guideTarget(s)?.id).toBe("unlock:mines");
+    expect(guide(s)).toMatchObject({ kind: "goal", station: { id: "unlock:mines" } });
     s.story = 0; s.stats.gathered = 3;
-    expect(guideTarget(s)).toBeNull();
+    expect(guide(s)).toEqual({ kind: "claim" });
+  });
+  it("A Roof Over Fins points at the chop, then the quarry, and at Home once 30 wood and 10 stone are in the bag", () => {
+    const s = fresh(); s.story = 4; s.zones.cove = true; s.inv.wood = 0; s.inv.stone = 0;
+    expect(guide(s)).toMatchObject({ kind: "goal", station: { id: "chop" } });
+    s.inv.wood = 29;
+    expect(guide(s)).toMatchObject({ kind: "goal", station: { id: "chop" } });
+    s.inv.wood = 30;
+    expect(guide(s)).toMatchObject({ kind: "goal", station: { id: "quarry" } });
+    s.inv.stone = 10;
+    expect(guide(s)).toMatchObject({ kind: "goal", station: { id: "home" } });
+    s.zones.cove = false; s.inv.stone = 0;
+    expect(guide(s)).toMatchObject({ kind: "goal", station: { id: "unlock:cove" } });
+  });
+  it("never goes blank while the Friend is on a voyage", () => {
+    const s = fresh(); s.story = VOYAGE_CHAPTER; s.level = 5; s.inv.bread = 5; s.shell = 500; s.hunger = 100;
+    const r = dispatch(s, { type: "voyageStart", id: "scout" }, T0);
+    expect(r.ok).toBe(true);
+    const g = guide(r.state);
+    expect(g).toMatchObject({ kind: "voyage", station: { id: "pier" }, endsAt: T0 + 15 * 60_000 });
+    // A finished chapter is still claimable while away.
+    r.state.stats.swaps = 1;
+    expect(guide(r.state)).toEqual({ kind: "claim" });
+  });
+});
+
+describe("voyage gate", () => {
+  it("the Voyage Pier opens only after the chapter that introduces it", () => {
+    const s = fresh(); s.inv.bread = 5; s.shell = 500; s.hunger = 100;
+    for (let i = 0; i < VOYAGE_CHAPTER; i++) {
+      s.story = i;
+      expect(voyagesOpen(s), `chapter ${i}`).toBe(false);
+      expect(dispatch(s, { type: "voyageStart", id: "scout" }, T0).ok, `chapter ${i}`).toBe(false);
+    }
+    s.story = VOYAGE_CHAPTER;
+    expect(voyagesOpen(s)).toBe(true);
+    expect(dispatch(s, { type: "voyageStart", id: "scout" }, T0).ok).toBe(true);
+    expect(chapterAt(VOYAGE_CHAPTER - 1).title).toBe("A Roof Over Fins");
+  });
+  it("announces the pier when that chapter is claimed", () => {
+    const s = fresh(); s.story = VOYAGE_CHAPTER - 1; s.home = 1;
+    const r = dispatch(s, { type: "storyClaim" }, T0);
+    expect(r.ok).toBe(true);
+    expect(r.events.some(e => /Voyage Pier/.test(e.text))).toBe(true);
   });
 });
 

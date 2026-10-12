@@ -15,7 +15,7 @@ import { NPC_GIFTS, REBIRTH, SEASON, dayNumber, rebirthCost, seasonNumber } from
 import { chapterAt } from "./story";
 import { checkMilestones } from "./milestones";
 import { claimPass, passClaimable } from "./pass";
-import { STOCKS, STOCK_SELL_FEE, VOYAGES, foodCount, homeIsle, rollVoyage, stockPrice, type StockId, type VoyageId } from "./voyages";
+import { STOCKS, STOCK_SELL_FEE, VOYAGES, VOYAGE_CHAPTER, foodCount, homeIsle, rollVoyage, stockPrice, voyageGateText, voyagesOpen, type StockId, type VoyageId } from "./voyages";
 import { checkAchievements, newQuest, progress } from "./quests";
 import type { Currency, GameEvent, GameState, RaidTarget } from "./types";
 
@@ -724,6 +724,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     // ---------------- Voyages ----------------
     case "voyageStart": {
       requireAwake(s); requireNoRun(s); requirePresent(s);
+      if (!voyagesOpen(s)) fail(voyageGateText());
       const v = VOYAGES.find(x => x.id === a.id);
       if (!v) fail("Unknown voyage.");
       if (s.level < v!.minLevel && s.rebirths === 0) fail(`${v!.name} needs level ${v!.minLevel}.`);
@@ -806,6 +807,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       s.story++;
       const next = chapterAt(s.story);
       log(s, events, `Chapter complete: ${ch.title}! Next: ${next.title}`, "epic", { cue: "reveal-rare", fx: "confetti" }, now);
+      if (s.story === VOYAGE_CHAPTER && !s.rebirths) log(s, events, "The Voyage Pier is open! Send your Friend on a 15-minute Tide Scout while you play.", "info", { cue: "action-ready", icon: "anchor" }, now);
       return;
     }
 

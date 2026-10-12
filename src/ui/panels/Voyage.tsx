@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { STOCKS, STOCK_IDS, STOCK_SELL_FEE, VOYAGES, foodCount, homeIsle, stockPrice, voyageBonus, voyageOdds } from "../../engine/voyages";
+import { STOCKS, STOCK_IDS, STOCK_SELL_FEE, VOYAGES, foodCount, homeIsle, stockPrice, voyageBonus, voyageGateText, voyageOdds, voyagesOpen } from "../../engine/voyages";
 import { Icon } from "../Icon";
 import { Bar, Panel, SimTag, Tabs, mmss, n0, rf, useG } from "../common";
 
@@ -32,11 +32,13 @@ export function VoyagePanel({ onClose }: { onClose: () => void }) {
         </div>
       ) : (
         <>
+          {!voyagesOpen(s) && <p className="callout">{voyageGateText()} Follow the story note to get there.</p>}
           <p className="muted">Send your Friend away for a while. Every voyage costs supplies and has clear odds. Bonus from level, gear, rebirths and mood: <b>+{voyageBonus(s).toFixed(1)}%</b> to good outcomes. Food packed: {foodCount(s)} items.</p>
           <div className="voyage-list">
             {VOYAGES.map(vy => {
               const odds = voyageOdds(s, vy);
               const total = odds.reduce((n, o) => n + o.weight, 0);
+              const closed = !voyagesOpen(s);
               const locked = s.level < vy.minLevel && s.rebirths === 0;
               return (
                 <div key={vy.id} className="voyage-card frame-paper">
@@ -53,8 +55,8 @@ export function VoyagePanel({ onClose }: { onClose: () => void }) {
                   <table className="odds-table compact"><tbody>
                     {odds.map(o => <tr key={o.id}><td>{o.label}</td><td>{((o.weight / total) * 100).toFixed(1)}%</td></tr>)}
                   </tbody></table>
-                  <button type="button" className="btn primary" disabled={locked || s.hunger < 40} onClick={() => act({ type: "voyageStart", id: vy.id })}>
-                    {locked ? `Needs level ${vy.minLevel}` : s.hunger < 40 ? "Eat before sailing" : `Set sail (${duration(vy.minutes)})`}
+                  <button type="button" className="btn primary" disabled={closed || locked || s.hunger < 40} onClick={() => act({ type: "voyageStart", id: vy.id })}>
+                    {closed ? "Opens later in the story" : locked ? `Needs level ${vy.minLevel}` : s.hunger < 40 ? "Eat before sailing" : `Set sail (${duration(vy.minutes)})`}
                   </button>
                 </div>
               );

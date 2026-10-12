@@ -21,7 +21,7 @@ import { InboxPanel } from "./ui/panels/Inbox";
 import { ReportPanel } from "./ui/panels/Report";
 import { music } from "./game/music";
 import { STATIONS, UNLOCK_SIGNS, activeStations, type StationId } from "./world/map";
-import { guideTarget } from "./world/guide";
+import { guide as guideFor } from "./world/guide";
 import { useNet } from "./net/useNet";
 import { CloudSave, cachedCloudKey, deriveCloudKey } from "./net/cloudsave";
 import { loadSprites, portrait, type GenerationSprites } from "./game/sprites";
@@ -215,9 +215,11 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
     const st = [...STATIONS, ...UNLOCK_SIGNS, ...activeStations(stateRef.current.zones)].find(x => x.id === id);
     if (!st) return;
     worldApi.current?.teleport({ x: st.x, y: st.y + 40 });
-    openStation(st);
+    // Gathering spots only teleport: the player chops or quarries with the action button, never into the cooldown.
+    if (st.id === "chop" || st.id === "quarry") setPanel(null); else openStation(st);
   }, [openStation]);
-  const guide = s.voyage ? null : guideTarget(s);
+  const guide = guideFor(s);
+  const onGuide = guide.kind === "claim" ? () => { act({ type: "storyClaim" }); } : () => goTo(guide.station.id);
   const [seenAt, setSeenAt] = useState(() => { try { return Number(localStorage.getItem("nemo-frns-farm:inbox-seen")) || 0; } catch { return 0; } });
   const unread = s.log.filter(l => l.t > seenAt).length;
   useEffect(() => {
@@ -269,7 +271,7 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
       <main className={`game ${shaking ? "shake" : ""}`}>
         <World stateRef={stateRef} spritesRef={spritesRef} peersRef={peersRef} blocked={!!panel} reducedMotion={reducedMotion} apiRef={worldApi}
           onNear={setNear} onInteract={openStation} onMove={(p, f) => sendPos(p.x, p.y, f)} />
-        <Hud portraitUrl={portraitUrl} near={near} onAction={() => near && openStation(near)} toasts={toasts} unread={unread} onGuide={guide ? () => goTo(guide.id) : null}
+        <Hud portraitUrl={portraitUrl} near={near} onAction={() => near && openStation(near)} toasts={toasts} unread={unread} guide={guide} onGuide={onGuide}
           onEmote={e => { emote(e); const p = worldApi.current?.pos; if (p) worldApi.current!.floaters.push({ x: p.x, y: p.y - 95, text: e, color: "#fff", born: Date.now() }); }} />
         {renderPanel()}
         {fx && !reducedMotion && <Fx kind={fx.kind} key={fx.id} onDone={() => setFx(null)} />}

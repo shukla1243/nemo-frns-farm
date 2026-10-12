@@ -105,6 +105,7 @@ small { font-size: 13px; }
 .hud { position: absolute; inset: 0; pointer-events: none; padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 8px) calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 8px); display: flex; flex-direction: column; gap: 6px; }
 .hud button, .hud .emote-pop, .hud nav { pointer-events: auto; }
 .hud-top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.hud-mid { display: flex; flex-direction: column; gap: 6px; margin-right: auto; min-width: 0; }
 .me { display: flex; align-items: center; gap: 8px; padding: 0 4px 0 0; min-width: 0; max-width: min(62%, 320px); position: relative; text-align: left; }
 .me-art { width: 52px; height: 52px; flex: none; display: grid; place-items: center; background: #ffe3c4; overflow: hidden; }
 .me-art img { width: 40px; height: 40px; image-rendering: pixelated; }
@@ -136,8 +137,8 @@ small { font-size: 13px; }
 .dot.offline { background: var(--red); }
 .dot.connecting { background: var(--gold); }
 .banners { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-.quest-note { display: flex; gap: 8px; align-items: center; text-align: left; max-width: min(100%, 440px); padding: 0 6px 0 2px; }
-.quest-note span { display: grid; line-height: 1.15; }
+.quest-note { display: flex; gap: 8px; align-items: center; text-align: left; max-width: min(100%, 440px); min-width: 0; padding: 0 6px 0 2px; }
+.quest-note span { display: grid; grid-template-columns: minmax(0, 1fr); line-height: 1.15; min-width: 0; }
 .quest-note b { font-size: 15px; }
 .quest-note small { color: var(--muted); font-size: 13px; }
 .quest-note.done { border-image-source: var(--f-gold); animation: bob 1.2s steps(2) infinite; }
@@ -362,7 +363,11 @@ button.item:hover:not(:disabled) { filter: brightness(1.05); }
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
 @media (min-width: 641px) {
-  .toasts { top: calc(env(safe-area-inset-top) + 10px); bottom: auto; width: min(40vw, 440px); }
+  .toasts { top: calc(env(safe-area-inset-top) + 180px); bottom: auto; left: auto; right: calc(env(safe-area-inset-right) + 8px); transform: none; align-items: flex-end; width: min(36vw, 420px); }
+}
+@media (max-width: 900px) {
+  .hud-top { flex-wrap: wrap; row-gap: 4px; }
+  .hud-mid { order: 3; flex: 1 1 100%; margin: 0; gap: 4px; }
 }
 .reward-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
 
@@ -452,8 +457,18 @@ small, .fineprint, .hint { font-size: 14px; }
   .sim-flag { font-size: 10px; padding: 0 4px; }
   .sv-name { display: none; }
   .net-chip { min-height: 26px; }
-  .quest-note small { display: none; }
-  .quest-note b { font-size: 16px; }
+  .quest-note small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+  .quest-note b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .quest-row { width: 100%; }
+  .quest-note { flex: 1 1 auto; }
+  .quest-go { font-size: 16px; min-width: 52px; padding: 0 6px; }
+  .wallets { display: grid; grid-template-columns: auto auto; gap: 3px; justify-items: end; align-items: center; }
+  .coin { font-size: 16px; min-height: 28px; gap: 3px; padding: 0 4px; }
+  .coin .px-icon { width: 16px; height: 16px; }
+  .net-chip { min-height: 22px; font-size: 11px; padding: 0 4px; }
+  .banners { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .banners .event-tag { min-height: 24px; font-size: 12px; padding: 0 4px; }
+  .eat-now { min-height: 36px; font-size: 15px; }
   .meter { min-height: 26px; }
   .me-text small { font-size: 12px; }
 }
@@ -523,7 +538,9 @@ button.meter:hover { filter: brightness(1.15); }
 .hub-links > .btn { flex: 1 1 200px; }
 .help h3 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 16px 0 4px; }
 .quest-row { display: flex; gap: 6px; align-items: stretch; max-width: min(100%, 500px); }
-.quest-go { flex: none; min-width: 58px; font-size: 18px; }
+.quest-go { flex: none; min-width: 58px; font-size: 18px; white-space: nowrap; }
+.pbtn.gold { border-image-source: var(--f-btnGold); color: var(--ink); text-shadow: 0 2px 0 #fff1a8; }
+.pbtn.sea { border-image-source: var(--f-sea); color: #fff; text-shadow: 0 2px 0 #163653; }
 .ready-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
 .ready-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: #fff3c4; border: 3px solid #2b1d1a; font-weight: 700; }
 .ready-row .btn { flex: none; min-width: 64px; }

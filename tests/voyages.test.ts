@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RF, createRng, createState, dayNumber, dispatch, type GameState } from "../src/engine";
+import { RF, VOYAGE_CHAPTER, createRng, createState, dayNumber, dispatch, type GameState } from "../src/engine";
 import { STOCK_SELL_FEE, VOYAGES, rollVoyage, stockPrice, voyageBonus, voyageOdds } from "../src/engine/voyages";
 
 const T0 = Date.UTC(2026, 8, 24, 12);
@@ -7,7 +7,7 @@ const fresh = (): GameState => {
   const s = createState({ friendId: "7", name: "Friend #7", family: 2, guest: false, now: T0, seed: 99 });
   s.streak = { day: dayNumber(T0), count: 1 };
   s.level = 15; s.rf = 50 * RF; s.shell = 5000; s.hunger = 100; s.energy = 100;
-  s.inv.bread = 20;
+  s.inv.bread = 20; s.story = VOYAGE_CHAPTER;
   return s;
 };
 

@@ -1,5 +1,5 @@
 import { ACT_ONE_LEN, ACT_TWO_LEN, chapterAt } from "../engine/story";
-import type { ZoneId } from "../engine/config";
+import { HOMES, type ZoneId } from "../engine/config";
 import type { GameState } from "../engine/types";
 import { STATIONS, UNLOCK_SIGNS, type Station, type StationId } from "./map";
 
@@ -14,11 +14,36 @@ function chapterStation(i: number): StationId {
   return ETERNAL_AT[(i - ACT_ONE_LEN - ACT_TWO_LEN) % ETERNAL_AT.length];
 }
 
-/** The station the current chapter needs, or its region's unlock sign while that region is locked. Null once the goal is met. */
-export function guideTarget(s: GameState): Station | null {
-  if (chapterAt(s.story).done(s)) return null;
-  const st = STATIONS.find(x => x.id === chapterStation(s.story));
-  if (!st) return UNLOCK_SIGNS.find(x => x.id === chapterStation(s.story) && !s.zones[x.id.slice(7) as ZoneId]) ?? null;
+/** A home chapter sends the player to gather the wood and stone the next home still needs, then to Home. */
+function buildStep(s: GameState, id: StationId): StationId {
+  const next = HOMES[s.home + 1];
+  if (id !== "home" || !next) return id;
+  const items = next.cost.items ?? {};
+  if (s.inv.wood < (items.wood ?? 0)) return "chop";
+  if (s.inv.stone < (items.stone ?? 0)) return "quarry";
+  return id;
+}
+
+/** A station, or its region's unlock sign while that region is locked. */
+function reachable(s: GameState, id: StationId): Station | null {
+  const st = STATIONS.find(x => x.id === id);
+  if (!st) return UNLOCK_SIGNS.find(x => x.id === id && !s.zones[x.id.slice(7) as ZoneId]) ?? null;
   if (s.zones[st.zone]) return st;
   return UNLOCK_SIGNS.find(x => x.id === `unlock:${st.zone}`) ?? null;
+}
+
+export type Guide =
+  | { kind: "goal"; station: Station }
+  | { kind: "claim" }
+  | { kind: "voyage"; station: Station; endsAt: number };
+
+/**
+ * What the guide shows right now: claim a finished chapter, wait for (or collect) a voyage, or walk to
+ * the next goal. It never goes blank, so a new player always has a next step.
+ */
+export function guide(s: GameState): Guide {
+  if (chapterAt(s.story).done(s)) return { kind: "claim" };
+  if (s.voyage) return { kind: "voyage", station: STATIONS.find(x => x.id === "pier")!, endsAt: s.voyage.endsAt };
+  const st = reachable(s, buildStep(s, chapterStation(s.story)));
+  return { kind: "goal", station: st ?? STATIONS[0] }; // STATIONS[0] is Home
 }

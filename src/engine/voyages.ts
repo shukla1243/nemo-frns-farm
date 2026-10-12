@@ -8,7 +8,13 @@
  */
 import type { ItemId } from "./config";
 import { createRng, hashSeed, weighted, type Rng } from "./rng";
+import { chapterAt } from "./story";
 import type { GameState } from "./types";
+
+/** Voyages open once this story chapter starts, right after "A Roof Over Fins" gives the Friend a home to come back to. */
+export const VOYAGE_CHAPTER = 5;
+export const voyagesOpen = (s: GameState) => s.story >= VOYAGE_CHAPTER || s.rebirths > 0;
+export const voyageGateText = () => `The Voyage Pier opens after the chapter "${chapterAt(VOYAGE_CHAPTER - 1).title}".`;
 
 export type StockId = "NVDA" | "TSLA" | "AAPL" | "AMZN" | "MSFT" | "HOOD" | "COIN";
 export const STOCKS: Record<StockId, { name: string; base: number; swing: number; period: number }> = {

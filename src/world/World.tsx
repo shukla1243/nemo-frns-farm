@@ -13,7 +13,8 @@ import type { Peer } from "../net/presence";
 import { buildTerrain, drawWaterGlints } from "../art/tiles";
 import * as A from "../art/sprites";
 import { icon } from "../art/icons";
-import { guideTarget } from "./guide";
+import { guide } from "./guide";
+import { mmss } from "../ui/common";
 import { NPCS, RESIDENTS, crab, giftReady, gull, residentAt, villager } from "./npcs";
 import type { Sprite } from "../art/pixel";
 import {
@@ -39,7 +40,9 @@ type Props = {
 const FONT = '"Jersey 15", "Nunito", sans-serif';
 const AURA = ["", "#6cc6e6", "#86c95e", "#f5c542", "#b48ae0", "#ff6f73"];
 
-/** Which sprite represents a station (depends on state for home tier / boss / animation frame). */
+type Rect = { x: number; y: number; w: number; h: number };
+const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
 /** Gold pixel arrow pointing along `ang` (radians), tip at (x, y). */
 function guideArrow(ctx: CanvasRenderingContext2D, x: number, y: number, ang: number, sz: number) {
   ctx.save();
@@ -52,6 +55,7 @@ function guideArrow(ctx: CanvasRenderingContext2D, x: number, y: number, ang: nu
   ctx.restore();
 }
 
+/** Which sprite represents a station (depends on state for home tier / boss / animation frame). */
 export function stationSprite(st: Station, s: GameState, frame: number, bossUp: boolean): Sprite {
   if (st.id.startsWith("npc:")) { const n = NPCS.find(x => `npc:${x.id}` === st.id); if (n) return villager(n, Math.floor(frame / 3)); }
   switch (st.id) {
@@ -142,6 +146,24 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
     let fontReady = false;
     void document.fonts?.load(`16px ${FONT}`).then(() => { fontReady = true; }).catch(() => { fontReady = true; });
 
+    // The part of the screen the HUD leaves free (device px), re-measured a few times a second.
+    // HUD blocks mark themselves with data-hud="top" or data-hud="bottom".
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const safe = { top: 0, bottom: 0, left: 0, right: 0 };
+    let safeAt = -1e9;
+    const measureSafe = (t: number) => {
+      if (t - safeAt < 250) return;
+      safeAt = t;
+      let top = 0, bottom = ch;
+      for (const el of document.querySelectorAll<HTMLElement>("[data-hud]")) {
+        const r = el.getBoundingClientRect();
+        if (!r.height) continue;
+        if (el.dataset.hud === "top") top = Math.max(top, r.bottom); else bottom = Math.min(bottom, r.top);
+      }
+      if (bottom - top < ch * 0.3) { top = ch * 0.25; bottom = ch * 0.85; }
+      safe.top = (top + 6) * dpr; safe.bottom = (bottom - 6) * dpr; safe.left = 10 * dpr; safe.right = (cw - 10) * dpr;
+    };
+
     let snap = true;
     apiRef.current = { floaters, pos, teleport(p) { pos.x = p.x; pos.y = p.y; dest = null; pending = null; keys.clear(); snap = true; } };
 
@@ -156,7 +178,7 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
       lctx.imageSmoothingEnabled = false;
     };
     resize();
-    const ro = new ResizeObserver(resize); ro.observe(host);
+    const ro = new ResizeObserver(() => { resize(); safeAt = -1e9; }); ro.observe(host);
 
     const toWorld = (clientX: number, clientY: number): Pt => {
       const r = cv.getBoundingClientRect();
@@ -190,20 +212,87 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
     window.addEventListener("keydown", onKey); window.addEventListener("keyup", onKey);
     window.addEventListener("blur", stop);
 
-    const label = (text: string, ax: number, ay: number, style: "station" | "near" | "lock" | "you" | "peer") => {
-      const x = Math.round((ax - camX) * S), y = Math.round((ay - camY) * S);
+    type TagStyle = "station" | "near" | "lock" | "you" | "peer" | "guide";
+    /** Size of a name tag in device px, border excluded. */
+    const tagBox = (text: string) => {
       const size = Math.round(Math.max(13 * dpr, S * 3.4));
       ctx.font = `${size}px ${FONT}`;
-      const w = Math.ceil(ctx.measureText(text).width) + Math.round(size * 0.9), h = Math.round(size * 1.45);
-      const bg = style === "near" ? "#f5c542" : style === "lock" ? "#ee6f22" : style === "you" ? "#ee6f22" : style === "peer" ? "#2f6b3a" : "#4a3226";
-      const fg = style === "near" ? "#2b1d1a" : "#fff1d6";
-      const b = Math.max(2, Math.round(S / 1.5));
+      return { b: Math.max(2, Math.round(S / 1.5)), w: Math.ceil(ctx.measureText(text).width) + Math.round(size * 0.9), h: Math.round(size * 1.45) };
+    };
+    /** Pixel name tag centred on screen point (x, y). Returns the area it covers. */
+    const tag = (text: string, x: number, y: number, style: TagStyle): Rect => {
+      x = Math.round(x); y = Math.round(y);
+      const { b, w, h } = tagBox(text);
+      const bg = style === "near" ? "#f5c542" : style === "lock" ? "#ee6f22" : style === "you" ? "#ee6f22" : style === "peer" ? "#2f6b3a" : style === "guide" ? "#2b1d1a" : "#4a3226";
+      const fg = style === "near" ? "#2b1d1a" : style === "guide" ? "#ffd23f" : "#fff1d6";
       ctx.fillStyle = "#2b1d1a"; ctx.fillRect(x - w / 2 - b, y - h / 2, w + b * 2, h);
       ctx.fillRect(x - w / 2, y - h / 2 - b, w, h + b * 2);
       ctx.fillStyle = bg; ctx.fillRect(x - w / 2, y - h / 2, w, h);
       ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.fillRect(x - w / 2, y - h / 2, w, b);
       ctx.fillStyle = fg; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(text, x, y + 1);
+      return { x: x - w / 2 - b, y: y - h / 2 - b, w: w + b * 2, h: h + b * 2 };
+    };
+    const label = (text: string, ax: number, ay: number, style: TagStyle) => tag(text, (ax - camX) * S, (ay - camY) * S, style);
+
+    /** How far to move `r` up or down (whichever stays in the free area) so it clears the player's tag. */
+    const dodge = (r: Rect, you: Rect) => {
+      if (!overlaps(r, you)) return 0;
+      const up = you.y - 4 - (r.y + r.h), down = you.y + you.h + 4 - r.y;
+      return r.y + up >= safe.top || r.y + r.h + down > safe.bottom ? up : down;
+    };
+
+    /**
+     * Story guide. On screen: a bobbing gold arrow over the goal with its name and distance. Off screen: an
+     * arrow on the edge of the HUD-free area pointing at it. On arrival: a "Press E" (or tap) hint instead.
+     */
+    const drawGuide = (s: GameState, you: Rect, bossUp: boolean, cx: number, cy: number, t: number, rm: boolean, nowMs: number) => {
+      const g = guide(s);
+      if (g.kind === "claim") return;
+      const st = g.station;
+      const gx = (st.x / UNIT - cx) * S, gy = ((st.y + 8) / UNIT - cy - stationSprite(st, s, 0, bossUp).height - 12) * S;
+      if (near?.id === st.id) {
+        const hint = coarse ? "Tap the button below" : "Press E";
+        const { w, h } = tagBox(hint);
+        const x = Math.min(safe.right - w / 2, Math.max(safe.left + w / 2, gx));
+        let y = Math.max(safe.top + h, gy - h);
+        y += dodge({ x: x - w / 2, y: y - h / 2, w, h }, you);
+        tag(hint, x, y, "near");
+        return;
+      }
+      const name = st.id.startsWith("unlock:") ? `Expand: ${ZONES[st.id.slice(7) as ZoneId].name}` : st.label;
+      const text = g.kind === "voyage"
+        ? (nowMs < g.endsAt ? `${name} · back in ${mmss(g.endsAt - nowMs)}` : `${name} · chest ready`)
+        : `${name} · ${Math.max(1, Math.round(Math.hypot(st.x - pos.x, st.y - pos.y) / 50))} m`;
+      const box = tagBox(text);
+      const sz = S * 5, len = sz * 2.4, gap = S * 2;
+      if (gx >= safe.left && gx <= safe.right && gy >= safe.top && gy <= safe.bottom) {
+        // Goal in view: the arrow points down at it with the label above, all kept below the HUD.
+        let tip = Math.max(gy, safe.top + box.h + gap + len);
+        const lx = Math.min(safe.right - box.w / 2, Math.max(safe.left + box.w / 2, gx));
+        const top = tip - len - gap - box.h;
+        tip += dodge({ x: Math.min(lx - box.w / 2, gx - sz), y: top, w: Math.max(box.w, sz * 2), h: box.h + gap + len }, you);
+        guideArrow(ctx, gx, tip + (rm ? 0 : Math.round(Math.sin(t * 5) * 2) * S), Math.PI / 2, sz);
+        tag(text, lx, tip - len - gap - box.h / 2, "guide");
+        return;
+      }
+      // Goal out of view: the arrow sits on the edge of the free area, on the line from the player to the goal.
+      const m = sz * 1.6;
+      const L = safe.left + m, R = safe.right - m, T = safe.top + m, B = safe.bottom - m;
+      const ox = Math.min(R, Math.max(L, (pos.x / UNIT - cx) * S)), oy = Math.min(B, Math.max(T, (pos.y / UNIT - cy) * S));
+      const dx = gx - ox, dy = gy - oy;
+      const k = Math.min(dx ? (dx > 0 ? R - ox : L - ox) / dx : Infinity, dy ? (dy > 0 ? B - oy : T - oy) / dy : Infinity);
+      const ang = Math.atan2(dy, dx), ux = Math.cos(ang), uy = Math.sin(ang);
+      const ax = ox + dx * k;
+      let ay = oy + dy * k;
+      ay += dodge({ x: ax - ux * len / 2 - len / 2, y: ay - uy * len / 2 - len / 2, w: len, h: len }, you);
+      guideArrow(ctx, ax, ay, ang, sz);
+      // The label sits just behind the arrow's tail, clamped to the free area and clear of the player's tag.
+      let lx = ax - ux * (len + box.w / 2 + gap), ly = ay - uy * (len + box.h / 2 + gap);
+      lx = Math.min(safe.right - box.w / 2, Math.max(safe.left + box.w / 2, lx));
+      ly = Math.min(safe.bottom - box.h / 2, Math.max(safe.top + box.h / 2, ly));
+      ly += dodge({ x: lx - box.w / 2, y: ly - box.h / 2, w: box.w, h: box.h }, you);
+      tag(text, lx, ly, "guide");
     };
 
     const frame = (now: number) => {
@@ -252,11 +341,13 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
       const n = nearestStation(pos, s.zones);
       if (n?.id !== near?.id) { near = n; live.current.onNear(n); }
 
-      // ---- camera (art px) ----
+      // ---- camera (art px): the player sits in the middle of the area the HUD leaves free ----
+      measureSafe(now);
       const worldW = WORLD.w / UNIT, worldH = WORLD.h / UNIT;
       const px = pos.x / UNIT, py = pos.y / UNIT;
-      const tx = Math.max(Math.min(0, worldW - vw), Math.min(Math.max(0, worldW - vw), px - vw / 2));
-      const ty = Math.max(Math.min(0, worldH - vh), Math.min(Math.max(0, worldH - vh), py - vh / 2));
+      const midX = (safe.left + safe.right) / 2 / S, midY = (safe.top + safe.bottom) / 2 / S;
+      const tx = Math.max(Math.min(0, worldW - vw), Math.min(Math.max(0, worldW - vw), px - midX));
+      const ty = Math.max(Math.min(0, worldH - vh), Math.min(Math.max(0, worldH - vh), py - midY));
       const k = rm ? 1 : Math.min(1, dt * 7);
       camX += (tx - camX) * k; camY += (ty - camY) * k;
       if (snap || Math.abs(tx - camX) > 400 || Math.abs(ty - camY) > 400) { camX = tx; camY = ty; snap = false; }
@@ -419,28 +510,17 @@ export function World({ stateRef, spritesRef, peersRef, blocked, reducedMotion, 
           const lx = st.x / UNIT, ly = (st.y + 8) / UNIT - spr.height - 5;
           const text = st.id.startsWith("unlock:") ? `Expand: ${ZONES[st.id.slice(7) as ZoneId].name}` : st.label;
           if (lx < camX - 60 || lx > camX + vw + 60 || ly < camY - 20 || ly > camY + vh + 20) continue;
-          label(isNear ? `${text}  [E]` : text, lx, ly, isNear ? "near" : st.id.startsWith("unlock:") ? "lock" : "station");
+          // Keep the whole tag on screen so signs near the edge (Expand: ...) stay readable.
+          const shown = isNear ? `${text}  [E]` : text, box = tagBox(shown), half = box.w / 2 + box.b + 2;
+          tag(shown, Math.min(cv.width - half, Math.max(half, (lx - camX) * S)), (ly - camY) * S, isNear ? "near" : st.id.startsWith("unlock:") ? "lock" : "station");
         }
         for (const res of residents) if (Math.hypot(res.x - pos.x, res.y - pos.y) < 260) label(`${res.name} (resident)`, res.x / UNIT, res.y / UNIT - 36, "station");
         for (const peer of peersRef.current.values()) label(`Lv${peer.level} ${peer.name}`, peer.x / UNIT, peer.y / UNIT - 42, "peer");
-        label(`${s.voyage ? "Sailing: " : ""}Lv${s.level} ${s.name}${s.rebirths ? ` ★${s.rebirths}` : ""}`, pos.x / UNIT, pos.y / UNIT - 50, "you");
+        const you = label(`${s.voyage ? "Sailing: " : ""}Lv${s.level} ${s.name}${s.rebirths ? ` ★${s.rebirths}` : ""}`, pos.x / UNIT, pos.y / UNIT - 50, "you");
         for (const peer of peersRef.current.values()) if (peer.emote && Date.now() - peer.emoteAt < 3500) {
           ctx.drawImage(icon(peer.emote), Math.round((peer.x / UNIT - cx - 9) * S), Math.round((peer.y / UNIT - cy - 66) * S), 18 * S, 18 * S);
         }
-      }
-      // ---- story guide: a bouncing arrow over the next goal, or an arrow at the screen edge pointing to it ----
-      const goal = s.voyage ? null : guideTarget(s);
-      if (goal) {
-        const W = vw * S, H = vh * S, sz = S * 6;
-        const gx = (goal.x / UNIT - cx) * S, gy = ((goal.y + 8) / UNIT - cy - stationSprite(goal, s, 0, bossUp).height - 14) * S;
-        const top = H * 0.45, bottom = H - 100 * dpr, side = 30 * dpr;
-        if (gx > side && gx < W - side && gy > H * 0.2 && gy < bottom) {
-          guideArrow(ctx, gx, gy + (rm ? 0 : Math.round(Math.sin(t * 5) * 2) * S), Math.PI / 2, sz);
-        } else {
-          const ox = W / 2, oy = (top + bottom) / 2, dx = gx - ox, dy = gy - oy;
-          const k = Math.min(dx ? (dx > 0 ? W - side - ox : side - ox) / dx : Infinity, dy ? (dy > 0 ? bottom - oy : top - oy) / dy : Infinity);
-          guideArrow(ctx, ox + dx * k, oy + dy * k, Math.atan2(dy, dx), sz * 1.2);
-        }
+        drawGuide(s, you, bossUp, cx, cy, t, rm, nowMs);
       }
       // floaters
       for (let i = floaters.length - 1; i >= 0; i--) {

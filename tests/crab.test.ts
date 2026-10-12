@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CRAB, createState, dayNumber, dispatch, exportSave, importSave, type GameState } from "../src/engine";
+import { CRAB, VOYAGE_CHAPTER, createState, dayNumber, dispatch, exportSave, importSave, type GameState } from "../src/engine";
 
 const T0 = 1_800_000_000_000;
 const fresh = (over: Partial<GameState> = {}): GameState => ({ ...createState({ friendId: "42", name: "Friend #42", family: 0, guest: false, now: T0, seed: 7 }), streak: { day: dayNumber(T0), count: 1 }, ...over });
@@ -24,7 +24,7 @@ describe("crab dash", () => {
   it("needs energy, an awake Friend and no voyage", () => {
     expect(dispatch(fresh({ energy: CRAB.energy - 1 }), { type: "crabStart" }, T0).ok).toBe(false);
     expect(dispatch(fresh({ sleeping: { startedAt: T0, until: T0 + 1000 } }), { type: "crabStart" }, T0).ok).toBe(false);
-    const away = dispatch(fresh(), { type: "voyageStart", id: "scout" }, T0);
+    const away = dispatch(fresh({ story: VOYAGE_CHAPTER }), { type: "voyageStart", id: "scout" }, T0);
     expect(away.ok).toBe(true);
     expect(dispatch(away.state, { type: "crabStart" }, T0 + 1000).ok).toBe(false);
   });

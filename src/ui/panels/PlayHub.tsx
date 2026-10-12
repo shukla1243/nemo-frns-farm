@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BOSS, ZONES, type ZoneId } from "../../engine/config";
 import { bossStatus } from "../../engine/systems";
+import { VOYAGE_CHAPTER, voyagesOpen } from "../../engine/voyages";
 import { actOf, chapterAt } from "../../engine/story";
 import { STATIONS, type StationId } from "../../world/map";
 import { stationSprite } from "../../world/World";
@@ -40,6 +41,7 @@ export function PlayHub({ onClose, go }: { onClose: () => void; go: (station: St
     const st = STATIONS.find(x => x.id === c.station)!;
     const locked = !s.zones[st.zone];
     const status = c.station === "reef" && !locked ? (boss.active && !boss.defeated ? `Kraken is up! ${mmss(boss.endsIn)} left` : `Rises in ${mmss(boss.nextIn)}`)
+      : c.station === "pier" && !voyagesOpen(s) ? `Opens after "${chapterAt(VOYAGE_CHAPTER - 1).title}"`
       : c.station === "pier" && s.voyage ? (now < s.voyage.endsAt ? `At sea, back in ${mmss(s.voyage.endsAt - now)}` : "Back! Claim the chest")
       : c.station === "wheel" && s.wheelFreeAt <= now ? "Free spin ready!" : null;
     return (

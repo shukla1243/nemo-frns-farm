@@ -29,6 +29,7 @@ const FRAMES = {
   btnHot: frame({ outline: "k", rim: "o", rimLight: "O", rimDark: "l", fill: "o", inner: "o", border: 3 }),
   btnRed: frame({ outline: "k", rim: "r", rimLight: "R", rimDark: "#7a1b24", fill: "r", inner: "r", border: 3 }),
   btnGreen: frame({ outline: "k", rim: "G", rimLight: "h", rimDark: "g", fill: "G", inner: "G", border: 3 }),
+  btnGold: frame({ outline: "k", rim: "u", rimLight: "U", rimDark: "l", fill: "u", inner: "u", border: 3 }),
   dark: frame({ outline: "k", rim: "K", rimLight: "w", rimDark: "k", fill: "K", inner: "K", border: 3 }),
   gold: frame({ outline: "k", rim: "u", rimLight: "U", rimDark: "l", fill: "#fbe39a", inner: "#fbe39a", border: 3 }),
   sea: frame({ outline: "k", rim: "b", rimLight: "B", rimDark: "#163653", fill: "b", inner: "b", border: 3 }),
