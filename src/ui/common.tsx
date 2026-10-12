@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { GameState } from "../engine/types";
 import type { Action, Result } from "../engine/actions";
 import type { Cost, ItemId } from "../engine/config";
@@ -77,10 +77,31 @@ export function Panel({ title, icon, onClose, children, wide }: { title: string;
   );
 }
 
+/** Tab strip. When the tabs overflow (phones), the hidden side fades out and shows an arrow that scrolls it. */
 export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: [T, string][]; value: T; onChange: (t: T) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState({ left: false, right: false });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const left = el.scrollLeft > 2, right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+      setMore(m => (m.left === left && m.right === right ? m : { left, right }));
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const ro = new ResizeObserver(update); ro.observe(el);
+    return () => { el.removeEventListener("scroll", update); ro.disconnect(); };
+  }, [tabs.length]);
+  useEffect(() => { ref.current?.querySelector<HTMLElement>("[aria-selected=true]")?.scrollIntoView({ block: "nearest", inline: "nearest" }); }, [value]);
+  const nudge = (dir: 1 | -1) => { const el = ref.current; if (el) el.scrollBy({ left: dir * el.clientWidth * 0.7, behavior: document.documentElement.dataset.rm === "1" ? "auto" : "smooth" }); };
   return (
-    <div className="tabs" role="tablist">
-      {tabs.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={value === id} className={value === id ? "on" : ""} onClick={() => onChange(id)}>{label}</button>)}
+    <div className={`tabs-wrap ${more.left ? "more-left" : ""} ${more.right ? "more-right" : ""}`}>
+      {more.left && <button type="button" className="tabs-more left" aria-label="Scroll tabs left" onClick={() => nudge(-1)}>‹</button>}
+      <div className="tabs" role="tablist" ref={ref}>
+        {tabs.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={value === id} className={value === id ? "on" : ""} onClick={() => onChange(id)}>{label}</button>)}
+      </div>
+      {more.right && <button type="button" className="tabs-more right" aria-label="Scroll tabs right" onClick={() => nudge(1)}>›</button>}
     </div>
   );
 }
