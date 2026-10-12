@@ -19,7 +19,7 @@
     "qa:panels": "node tests/e2e/panels.mjs"
   },
   "dependencies": {
-    "@rarefriends/friendsdk": "file:vendor/rarefriends-friendsdk-0.1.2.tgz",
+    "@rarefriends/friendsdk": "file:vendor/rarefriends-friendsdk-0.2.3.tgz",
     "animejs": "^4.5.0",
     "nostr-tools": "^2.25.2",
     "react": "^19.2.8",
