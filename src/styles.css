@@ -362,6 +362,7 @@ button.item:hover:not(:disabled) { filter: brightness(1.05); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
+:root[data-rm="1"] *, :root[data-rm="1"] *::before, :root[data-rm="1"] *::after { animation: none !important; transition-duration: 0s !important; }
 @media (min-width: 641px) {
   .toasts { top: calc(env(safe-area-inset-top) + 180px); bottom: auto; left: auto; right: calc(env(safe-area-inset-right) + 8px); transform: none; align-items: flex-end; width: min(36vw, 420px); }
 }

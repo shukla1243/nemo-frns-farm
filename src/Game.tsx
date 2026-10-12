@@ -6,7 +6,7 @@ import { exportSave, importSave, migrate, saveLocal } from "./engine/save";
 import { World, type WorldApi } from "./world/World";
 import type { Station } from "./world/map";
 import { Hud, type Toast } from "./ui/Hud";
-import { GameContext, type Ctx, type PanelId } from "./ui/common";
+import { GameContext, storedReducedMotion, type Ctx, type PanelId } from "./ui/common";
 import { BagPanel, FarmPanel, HomePanel, ShrinePanel } from "./ui/panels/Life";
 import { MarketPanel, PoolPanel, UnlockPanel, WheelPanel } from "./ui/panels/Economy";
 import { AbyssPanel, DockPanel, MinesPanel } from "./ui/panels/Games";
@@ -41,10 +41,7 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
   const [fx, setFx] = useState<{ kind: FxKind; id: number } | null>(null);
   const spritesRef = useRef<GenerationSprites | null>(null);
   const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
-  const [reducedMotion, setReducedMotionState] = useState(() => {
-    try { const v = localStorage.getItem("nemo-frns-farm:rm"); if (v !== null) return v === "1"; } catch { /* ignore */ }
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  });
+  const [reducedMotion, setReducedMotionState] = useState(storedReducedMotion);
   const setReducedMotion = (v: boolean) => { setReducedMotionState(v); try { localStorage.setItem("nemo-frns-farm:rm", v ? "1" : "0"); } catch { /* ignore */ } };
   const worldApi = useRef<WorldApi | null>(null);
   const outboxRef = useRef<(o: Result["outbox"]) => void>(() => {});
