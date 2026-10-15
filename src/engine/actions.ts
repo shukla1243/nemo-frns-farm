@@ -436,6 +436,8 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     case "flip": {
       const w = s.lastWin; if (!w) fail("Nothing to flip.");
       if (w!.flips >= FLIP.maxFlips) fail("Max flips reached. Bank it!");
+      // The win must still be in the wallet; otherwise a lost flip would cost nothing.
+      if (s.shell < w!.amount) fail("That win was already spent.");
       const chance = FLIP.winChance + (hasTrait(s, "chaos") ? 0.02 : 0);
       if (rng.chance(chance)) {
         giveShell(s, w!.amount);
@@ -445,7 +447,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
         log(s, events, `DOUBLED! Now ${w!.amount} SHELL.`, "epic", { cue: "reveal-rare", fx: w!.flips >= 3 ? "jackpot" : "confetti" }, now);
         return { won: true };
       }
-      s.shell = Math.max(0, s.shell - w!.amount);
+      s.shell -= w!.amount;
       s.stats.flipsLost++;
       s.mood -= 6;
       log(s, events, `Flip lost… ${w!.amount} SHELL gone.`, "bad", { cue: "impact", fx: "shake" }, now);
