@@ -16,7 +16,7 @@ export function VoyagePanel({ onClose }: { onClose: () => void }) {
             <>
               <p className="lead"><Icon id="anchor" size={24} /> Your Friend is sailing: <b>{def.id === "homeland" ? homeIsle(s.family) : def.name}</b></p>
               <Bar value={now - v.startedAt} max={v.endsAt - v.startedAt} color="#f5c542" label="Voyage progress" />
-              <p>Back in <b>{mmss(v.endsAt - now)}</b>. The outcome was decided when they left. You can close the game; they keep sailing.</p>
+              <p>Back in <b>{mmss(v.endsAt - now)}</b>. The odds were locked when they left; the chest is opened when they return. You can close the game; they keep sailing.</p>
               <p className="muted">While your Friend is away you can still farm, trade, spin the wheel and use the market. Fishing, gathering, games, raids and the Kraken need your Friend at home.</p>
               <button type="button" className="btn hot" onClick={() => act({ type: "voyageRecall" })}>Call them home early (voyage is lost)</button>
             </>

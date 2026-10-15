@@ -14,9 +14,9 @@ import { NPC_GIFTS, REBIRTH, dayNumber, rebirthCost } from "./config";
 import { chapterAt } from "./story";
 import { checkMilestones } from "./milestones";
 import { claimPass, passClaimable } from "./pass";
-import { STOCKS, STOCK_SELL_FEE, VOYAGES, VOYAGE_CHAPTER, foodCount, homeIsle, rollVoyage, stockPrice, voyageGateText, voyagesOpen, type StockId, type VoyageId } from "./voyages";
+import { STOCKS, STOCK_SELL_FEE, VOYAGES, VOYAGE_CHAPTER, foodCount, homeIsle, rollVoyage, stockPrice, voyageGateText, voyageOdds, voyagesOpen, type StockId, type VoyageId } from "./voyages";
 import { checkAchievements, newQuest, progress } from "./quests";
-import type { GameEvent, GameState, Rival } from "./types";
+import type { GameEvent, GameState, MinesRun, Rival } from "./types";
 
 export type Action =
   | { type: "tick" }
@@ -37,7 +37,6 @@ export type Action =
   | { type: "forge"; gear: GearId; blessing?: boolean; charm?: boolean }
   | { type: "diveStart"; stake: number }
   | { type: "diveCashout" }
-  | { type: "diveCrash" }
   | { type: "minesStart"; stake: number; traps: number }
   | { type: "minesReveal"; index: number }
   | { type: "minesCashout" }
@@ -123,6 +122,14 @@ function giveItems(s: GameState, items: Partial<Record<ItemId, number>>) {
   for (const [id, n] of Object.entries(items)) if (n) s.inv[id as ItemId] += n;
 }
 const itemsText = (items: Partial<Record<ItemId, number>>) => Object.entries(items).filter(([, n]) => n).map(([id, n]) => `${n} ${ITEMS[id as ItemId].name}`).join(", ");
+
+/** Presentation only: a trap layout for the reveal, consistent with the run (the hit tile plus random hidden tiles). */
+function trapLayout(r: MinesRun, rng: Rng, hit?: number) {
+  const hidden = Array.from({ length: MINES.size }, (_, i) => i).filter(i => !r.revealed.includes(i) && i !== r.safeHint && i !== hit);
+  for (let i = hidden.length - 1; i > 0; i--) { const j = rng.int(0, i); [hidden[i], hidden[j]] = [hidden[j], hidden[i]]; }
+  const traps = hit === undefined ? hidden.slice(0, r.trapCount) : [hit, ...hidden.slice(0, r.trapCount - 1)];
+  return traps.sort((x, y) => x - y);
+}
 
 export const diveEdge = (s: GameState) => Math.max(0.02, DIVE.edge - s.gear.blade * DIVE.edgePerBlade);
 export const minesMultiplier = (traps: number, safe: number, edge = MINES.edge) => {
@@ -327,25 +334,24 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       stakeCheck(s, a.stake, DIVE.minShell);
       takeStake(s, a.stake);
       s.energy -= DIVE.energy;
-      const u = rng.next();
-      const crashAt = Math.max(1, Math.floor(100 * (1 - diveEdge(s)) / (1 - u)) / 100);
-      s.run = { kind: "dive", stake: a.stake, crashAt, startedAt: now };
+      s.run = { kind: "dive", stake: a.stake, startedAt: now };
       s.lastWin = null;
       s.stats.dives++;
       addXp(s, events, 4);
       events.push({ tone: "info", text: "Diving…", cue: "action-start" });
       return;
     }
-    case "diveCashout":
-    case "diveCrash": {
+    case "diveCashout": {
       const run = s.run; if (!run || run.kind !== "dive") fail("You aren't diving.");
       const r = run as Extract<typeof run, { kind: "dive" }>;
       const mult = diveMultiplierAt(now - r.startedAt);
       s.run = null;
-      if (a.type === "diveCrash" || mult >= r.crashAt) {
+      // Rolled now, not at the start: surviving to m has probability (1 - edge) / m, the same as a hidden crash point.
+      if (rng.next() >= Math.min(1, (1 - diveEdge(s)) / mult)) {
+        const crashAt = Math.max(1, Math.floor(100 * (1 + rng.next() * (mult - 1))) / 100);
         s.mood -= 6;
-        log(s, events, `The abyss bit at ${r.crashAt.toFixed(2)}x! Lost ${r.stake} SHELL.`, "bad", { cue: "impact", fx: "shake" }, now);
-        return { crashed: true, crashAt: r.crashAt };
+        log(s, events, `The abyss bit at ${crashAt.toFixed(2)}x! Lost ${r.stake} SHELL.`, "bad", { cue: "impact", fx: "shake" }, now);
+        return { crashed: true, crashAt };
       }
       const win = giveShell(s, r.stake * mult);
       // Loot from the deep: one roll per full multiplier step past 1x.
@@ -362,7 +368,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       s.mood += mult >= 3 ? 8 : 3;
       s.lastWin = { amount: win, flips: 0, source: "dive" };
       log(s, events, `Cashed out at ${mult.toFixed(2)}x: +${win} SHELL ${itemsText(loot)}`, mult >= 5 ? "epic" : "good", { cue: mult >= 10 ? "reveal-legendary" : mult >= 3 ? "reveal-rare" : "reward", fx: mult >= 5 ? "confetti" : undefined }, now);
-      return { crashed: false, mult, win, loot, crashAt: r.crashAt };
+      return { crashed: false, mult, win, loot };
     }
 
     // ---------------- Tide Mines ----------------
@@ -372,11 +378,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       stakeCheck(s, a.stake, MINES.minShell);
       takeStake(s, a.stake);
       s.energy -= MINES.energy;
-      const tiles = Array.from({ length: MINES.size }, (_, i) => i);
-      for (let i = tiles.length - 1; i > 0; i--) { const j = rng.int(0, i); [tiles[i], tiles[j]] = [tiles[j], tiles[i]]; }
-      const traps = tiles.slice(0, a.traps).sort((x, y) => x - y);
-      const safe = tiles.slice(a.traps);
-      s.run = { kind: "mines", stake: a.stake, traps, revealed: [], trapCount: a.traps, loot: {}, safeHint: hasTrait(s, "void") ? safe[0] : null };
+      s.run = { kind: "mines", stake: a.stake, revealed: [], trapCount: a.traps, loot: {}, safeHint: hasTrait(s, "void") ? rng.int(0, MINES.size - 1) : null };
       s.lastWin = null;
       addXp(s, events, 3);
       events.push({ tone: "info", text: `${a.traps} traps hidden. Dig carefully…`, cue: "action-start" });
@@ -386,11 +388,14 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const run = s.run; if (!run || run.kind !== "mines") fail("No mines run.");
       const r = run as Extract<typeof run, { kind: "mines" }>;
       if (a.index < 0 || a.index >= MINES.size || r.revealed.includes(a.index)) fail("Pick another tile.");
-      if (r.traps.includes(a.index)) {
+      // Rolled per reveal: no trap has been hit yet, so every trap is among the unrevealed tiles other than the safe hint.
+      const hintHidden = r.safeHint !== null && !r.revealed.includes(r.safeHint);
+      const open = MINES.size - r.revealed.length - (hintHidden ? 1 : 0);
+      if (a.index !== r.safeHint && rng.next() < r.trapCount / open) {
         s.run = null;
         s.mood -= 5;
         log(s, events, `TRAP! Lost ${r.stake} SHELL and the loot.`, "bad", { cue: "impact", fx: "shake" }, now);
-        return { trap: true, traps: r.traps };
+        return { trap: true, traps: trapLayout(r, rng, a.index) };
       }
       r.revealed.push(a.index);
       const drop = weighted(rng, [{ id: "stone", weight: 36 }, { id: "ore", weight: 30 + s.gear.pick * 3 }, { id: "coral", weight: 10 }, { id: "glass", weight: 8 }, { id: "none", weight: 16 }]);
@@ -418,7 +423,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       s.mood += 4;
       s.lastWin = { amount: win, flips: 0, source: "mines" };
       log(s, events, `Mines cashout ${mult.toFixed(2)}x: +${win} SHELL ${itemsText(r.loot)}`, mult >= 5 ? "epic" : "good", { cue: mult >= 5 ? "reveal-rare" : "reward", fx: mult >= 5 ? "confetti" : undefined }, now);
-      return { mult, win, traps: r.traps };
+      return { mult, win, traps: trapLayout(r, rng) };
     }
 
     // ---------------- Double or nothing ----------------
@@ -690,7 +695,8 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       for (const id of ["bread", "sardine", "kelp", "carrot", "coconut", "clownfish", "berry", "tuna", "sushi", "pumpkin", "angler", "stew", "pie"] as ItemId[]) {
         while (packed > 0 && s.inv[id] > 0) { s.inv[id]--; packed--; }
       }
-      s.voyage = { id: v!.id, startedAt: now, endsAt: now + v!.minutes * 60_000, result: rollVoyage(s, v!, rng), announced: false };
+      // The odds lock at departure; the outcome is rolled when the chest is opened.
+      s.voyage = { id: v!.id, startedAt: now, endsAt: now + v!.minutes * 60_000, odds: voyageOdds(s, v!).map(o => o.weight), announced: false };
       s.stats.voyages++;
       const where = v!.id === "homeland" ? `${homeIsle(s.family)}` : v!.name;
       log(s, events, `Your Friend set sail for ${where}. Back in ${v!.minutes >= 60 ? `${v!.minutes / 60} h` : `${v!.minutes} min`}.`, "info", { cue: "action-start", icon: "anchor" }, now);
@@ -708,7 +714,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const v = s.voyage;
       if (!v) fail("No voyage to claim.");
       if (now < v!.endsAt) fail("Your Friend is still at sea.");
-      const r = v!.result;
+      const r = rollVoyage(VOYAGES.find(x => x.id === v!.id)!, v!.odds, rng);
       s.voyage = null;
       if (r.shell) giveShell(s, r.shell);
       giveItems(s, r.items);

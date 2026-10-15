@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  BOSS, DIVE, FISH_FIRST_CATCH_ZONE, HOMES, MINES, NEEDS, SLEEP_MS, START, WHEEL, ZONES, ascendCost, bossStatus, createRng, createState, diveMultiplierAt,
+  BOSS, FISH_FIRST_CATCH_ZONE, HOMES, MINES, NEEDS, SLEEP_MS, START, WHEEL, ZONES, ascendCost, bossStatus, createState, diveMultiplierAt,
   dayNumber, dispatch, forgeCost, maxEnergy, minesMultiplier, xpToNext, type Action, type GameState,
 } from "../src/engine";
 import { exportSave, importSave } from "../src/game/save";
@@ -137,37 +137,27 @@ describe("gathering", () => {
 });
 
 describe("Abyss Dive (crash)", () => {
-  it("crash point distribution returns ~ (1 - edge) for any target", () => {
-    const rng = createRng(123);
-    const edge = DIVE.edge;
-    for (const target of [1.5, 2, 5, 10]) {
-      let ret = 0; const N = 200_000;
-      for (let i = 0; i < N; i++) {
-        const crash = Math.max(1, Math.floor(100 * (1 - edge) / (1 - rng.next())) / 100);
-        if (crash > target) ret += target;
-      }
-      expect(ret / N).toBeGreaterThan(0.9);
-      expect(ret / N).toBeLessThan(0.985);
-    }
-  });
   it("cashing out before the crash pays stake x multiplier", () => {
     const s = rich(fresh());
     s.shell = 1000;
     const started = run(s, { type: "diveStart", stake: 100 });
     expect(started.state.shell).toBe(900);
-    const run0 = started.state.run as { crashAt: number };
-    const t = run0.crashAt > 1.2 ? 1500 : 0;
-    const r = run(started.state, { type: "diveCashout" }, T0 + t);
-    const mult = diveMultiplierAt(t);
-    if (mult < run0.crashAt) { expect(r.data!.crashed).toBe(false); expect(r.state.shell).toBe(900 + Math.floor(100 * mult)); }
-    else expect(r.data!.crashed).toBe(true);
+    const r = run(started.state, { type: "diveCashout" }, T0 + 1500);
+    const mult = diveMultiplierAt(1500);
+    if (!r.data!.crashed) expect(r.state.shell).toBe(900 + Math.floor(100 * mult));
+    else expect(r.state.shell).toBe(900);
   });
   it("a crash keeps the stake that left the wallet at dive start", () => {
     const s = rich(fresh());
     const started = run(s, { type: "diveStart", stake: 100 });
-    const r = run(started.state, { type: "diveCrash" }, T0 + 10);
-    expect(r.state.shell).toBe(started.state.shell);
-    expect(r.state.shell).toBe(s.shell - 100);
+    for (let seed = 1; seed < 60; seed++) {
+      const r = run({ ...started.state, seed }, { type: "diveCashout" }, T0 + 20_000);
+      if (!r.data!.crashed) continue;
+      expect(r.state.shell).toBe(started.state.shell);
+      expect(r.state.shell).toBe(s.shell - 100);
+      return;
+    }
+    throw new Error("no crash at 9x in 60 seeds");
   });
 });
 
@@ -184,12 +174,11 @@ describe("Tide Mines", () => {
     const s = rich(fresh());
     const started = run(s, { type: "minesStart", stake: 100, traps: 3 });
     expect(started.ok).toBe(true);
-    const run0 = started.state.run as { traps: number[] };
-    const trapHit = run(started.state, { type: "minesReveal", index: run0.traps[0] });
-    expect(trapHit.data!.trap).toBe(true);
+    const reveals = Array.from({ length: 60 }, (_, seed) => run({ ...started.state, seed: seed + 1 }, { type: "minesReveal", index: 0 }));
+    const trapHit = reveals.find(r => r.data!.trap)!;
     expect(trapHit.state.run).toBeNull();
-    const safe = [...Array(25).keys()].find(i => !run0.traps.includes(i))!;
-    const dug = run(started.state, { type: "minesReveal", index: safe });
+    expect(trapHit.state.shell).toBe(started.state.shell);
+    const dug = reveals.find(r => !r.data!.trap)!;
     const cashed = run(dug.state, { type: "minesCashout" });
     expect(cashed.state.shell).toBe(started.state.shell + Math.floor(100 * minesMultiplier(3, 1)));
   });

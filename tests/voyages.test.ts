@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { VOYAGE_CHAPTER, createRng, createState, dayNumber, dispatch, type GameState } from "../src/engine";
-import { STOCK_IDS, STOCK_SELL_FEE, VOYAGES, rollVoyage, stockPrice, voyageBonus, voyageOdds, type StockId } from "../src/engine/voyages";
+import { STOCK_IDS, STOCK_SELL_FEE, VOYAGES, rollVoyage, stockPrice, voyageBonus, voyageOdds } from "../src/engine/voyages";
 import { migrate } from "../src/game/save";
 
 const T0 = Date.UTC(2026, 8, 24, 12);
@@ -29,11 +29,10 @@ describe("voyages", () => {
     expect(c.state.voyage).toBeNull();
     expect(c.state.stats.voyages).toBe(1);
   });
-  it("the outcome is fixed at departure (reloading cannot reroll it)", () => {
+  it("the odds are fixed at departure", () => {
     const s = fresh();
     const a = dispatch(s, { type: "voyageStart", id: "reef" }, T0).state;
-    const b = dispatch(s, { type: "voyageStart", id: "reef" }, T0).state;
-    expect(a.voyage?.result).toEqual(b.voyage?.result);
+    expect(a.voyage?.odds).toEqual(voyageOdds(s, VOYAGES.find(v => v.id === "reef")!).map(o => o.weight));
   });
   it("recall ends the voyage early with nothing and costs mood", () => {
     const s = fresh();
@@ -68,7 +67,8 @@ describe("voyages", () => {
       const rng = createRng(1234);
       let shell = 0;
       const n = 20_000;
-      for (let i = 0; i < n; i++) shell += rollVoyage(s, v, rng).shell;
+      const odds = voyageOdds(s, v).map(o => o.weight);
+      for (let i = 0; i < n; i++) shell += rollVoyage(v, odds, rng).shell;
       expect(shell / n).toBeLessThan(v.costShell);
     }
   });
@@ -89,15 +89,16 @@ describe("voyages", () => {
     const reef = VOYAGES.find(v => v.id === "reef")!;
     const only = { ...reef, outcomes: reef.outcomes.filter(o => o.id === "fullshare") };
     expect(only.outcomes).toHaveLength(1);
-    expect(rollVoyage(fresh(), only, createRng(5)).stock).toEqual({ id: "FINX", shares: 1 });
+    expect(rollVoyage(only, [1], createRng(5)).stock).toEqual({ id: "FINX", shares: 1 });
   });
-  it("a save drops unknown stock tickers, including a pending voyage prize", () => {
+  it("a save drops unknown stock tickers and gives an old pending voyage locked odds", () => {
     const s = fresh() as GameState & { stocks: Record<string, number> };
     s.stocks.OLD1 = 2; s.stocks.KELP = 1;
-    s.voyage = { id: "reef", startedAt: T0, endsAt: T0 + 1, result: { outcome: "bag", label: "", shell: 0, items: {}, stock: { id: "OLD1" as StockId, shares: 1 }, relic: false, lost: false }, announced: false };
-    const back = migrate(JSON.parse(JSON.stringify(s)));
+    const old = { id: "reef", startedAt: T0, endsAt: T0 + 1, result: { outcome: "bag", stock: { id: "OLD1", shares: 1 } }, announced: false };
+    const back = migrate({ ...JSON.parse(JSON.stringify(s)), voyage: old });
     expect(Object.keys(back.stocks).sort()).toEqual([...STOCK_IDS].sort());
     expect(back.stocks.KELP).toBe(1);
-    expect(back.voyage!.result.stock).toBeNull();
+    expect("result" in back.voyage!).toBe(false);
+    expect(back.voyage!.odds).toEqual(voyageOdds(back, VOYAGES.find(v => v.id === "reef")!).map(o => o.weight));
   });
 });

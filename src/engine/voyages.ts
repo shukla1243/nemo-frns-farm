@@ -1,7 +1,7 @@
 /**
  * Voyages: timed expeditions. Your Friend leaves the island for minutes or hours and comes back with
  * treasure, simulated island company shares, a family relic, or nothing at all. Odds are shown up front
- * and the outcome is rolled at departure, so reloading can't change it.
+ * and locked at departure; the outcome is rolled when the chest is opened, so storage holds no hidden result.
  *
  * Island company shares are SIMULATED game collectibles from fictional NEMO sea companies.
  * They are not securities, carry no real value, and their prices come from a deterministic formula.
@@ -107,8 +107,9 @@ export function voyageOdds(s: GameState, v: Voyage) {
 
 export type VoyageResult = { outcome: string; label: string; shell: number; items: Partial<Record<ItemId, number>>; stock: { id: StockId; shares: number } | null; relic: boolean; lost: boolean };
 
-export function rollVoyage(s: GameState, v: Voyage, rng: Rng): VoyageResult {
-  const o = weighted(rng, voyageOdds(s, v));
+/** Roll an outcome with the weights locked at departure (one per outcome, in order). */
+export function rollVoyage(v: Voyage, odds: number[], rng: Rng): VoyageResult {
+  const o = weighted(rng, v.outcomes.map((x, i) => ({ ...x, weight: odds[i] ?? 0 })));
   const span = (r?: [number, number]) => (r ? Math.round(r[0] + rng.next() * (r[1] - r[0])) : 0);
   let stock: VoyageResult["stock"] = null;
   if (o.stock) {

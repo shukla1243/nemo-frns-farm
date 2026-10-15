@@ -128,7 +128,7 @@ describe("welcome back report", () => {
   it("says where the Friend is: on a voyage, back from one, or at home", () => {
     const s = fresh();
     expect(welcomeBack(s, T0).friend).toEqual({ kind: "home" });
-    s.voyage = { id: "scout", startedAt: T0 - 1000, endsAt: T0 + 60_000, result: { outcome: "empty", label: "", shell: 0, items: {}, stock: null, relic: false, lost: false }, announced: false };
+    s.voyage = { id: "scout", startedAt: T0 - 1000, endsAt: T0 + 60_000, odds: [0, 0, 0, 1], announced: false };
     expect(welcomeBack(s, T0).friend).toEqual({ kind: "voyage", endsAt: T0 + 60_000 });
     expect(welcomeBack(s, T0 + 60_000).friend).toEqual({ kind: "back" });
   });

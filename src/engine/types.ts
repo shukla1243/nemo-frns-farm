@@ -1,4 +1,4 @@
-import type { StockId, VoyageId, VoyageResult } from "./voyages";
+import type { StockId, VoyageId } from "./voyages";
 import type { CropId, EventId, FishId, GearId, ItemId, TraitId, ZoneId } from "./config";
 
 type Plot = { crop: CropId | null; plantedAt: number; readyAt: number; withered: boolean };
@@ -8,8 +8,8 @@ export type Rival = {
   vault: number; sunk: number; bot: true; lastRaidedAt: number;
 };
 
-export type DiveRun = { kind: "dive"; stake: number; crashAt: number; startedAt: number };
-export type MinesRun = { kind: "mines"; stake: number; traps: number[]; revealed: number[]; trapCount: number; loot: Partial<Record<ItemId, number>>; safeHint: number | null };
+export type DiveRun = { kind: "dive"; stake: number; startedAt: number };
+export type MinesRun = { kind: "mines"; stake: number; revealed: number[]; trapCount: number; loot: Partial<Record<ItemId, number>>; safeHint: number | null };
 type FishRun = { kind: "fish"; fish: FishId; zone: number; castAt: number };
 type CrabRun = { kind: "crab"; startedAt: number };
 type ActiveRun = DiveRun | MinesRun | FishRun | CrabRun;
@@ -61,7 +61,8 @@ export type GameState = {
   /** milestone track id -> tier reached */
   milestones: Record<string, number>;
   streak: { day: number; count: number };
-  voyage: { id: VoyageId; startedAt: number; endsAt: number; result: VoyageResult; announced: boolean } | null;
+  /** Bonus-adjusted outcome weights locked at departure; the outcome is rolled at claim. */
+  voyage: { id: VoyageId; startedAt: number; endsAt: number; odds: number[]; announced: boolean } | null;
   stocks: Record<StockId, number>;
   /** Family relics found on voyages: +2% XP each, forever. */
   relics: number;

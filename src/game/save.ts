@@ -1,7 +1,7 @@
 import { ITEM_IDS, ZONE_ORDER, type ItemId } from "../engine/config";
 import { hashSeed } from "../engine/rng";
 import { createState, emptyStats, emptyStocks } from "../engine/state";
-import { STOCKS, STOCK_IDS } from "../engine/voyages";
+import { STOCK_IDS, VOYAGES, voyageOdds } from "../engine/voyages";
 import type { GameState } from "../engine/types";
 
 const PREFIX = "NFF1";
@@ -52,9 +52,10 @@ export function migrate(raw: GameState): GameState {
   s.rebirths = raw.rebirths ?? 0;
   s.milestones = raw.milestones ?? {};
   s.streak = raw.streak ?? { day: 0, count: 0 };
-  s.voyage = raw.voyage ?? null;
-  // Tickers outside the current list (renamed companies) are dropped, including a pending voyage prize.
-  if (s.voyage?.result.stock && !(s.voyage.result.stock.id in STOCKS)) s.voyage.result.stock = null;
+  // Older saves stored a pre-rolled voyage result; a pending voyage now keeps only its locked odds.
+  const v = raw.voyage, def = v && VOYAGES.find(x => x.id === v.id);
+  s.voyage = v && def ? { id: v.id, startedAt: v.startedAt, endsAt: v.endsAt, odds: Array.isArray(v.odds) ? v.odds : voyageOdds(s, def).map(o => o.weight), announced: !!v.announced } : null;
+  // Tickers outside the current list (renamed companies) are dropped.
   s.stocks = emptyStocks();
   for (const id of STOCK_IDS) if (Number.isFinite(raw.stocks?.[id])) s.stocks[id] = raw.stocks[id];
   s.relics = raw.relics ?? 0;
