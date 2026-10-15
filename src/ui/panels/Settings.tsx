@@ -1,53 +1,21 @@
 import { useState } from "react";
 import { homeIsle } from "../../engine/voyages";
-import { exportSave, importSave, clearLocal } from "../../game/save";
 import { TRAITS } from "../../engine/config";
 import { sound } from "../../game/sound";
 import { Panel, SimTag, useG } from "../common";
 import { music } from "../../game/music";
 
-export function SettingsPanel({ onClose, onReplace }: { onClose: () => void; onReplace: (code: string) => string | null }) {
-  const { s, reducedMotion, setReducedMotion } = useG();
+export function SettingsPanel({ onClose }: { onClose: () => void }) {
+  const { reducedMotion, setReducedMotion } = useG();
   const [musicOn, setMusicOn] = useState(music.on);
   const [muted, setMuted] = useState(sound.muted);
-  const [code, setCode] = useState("");
-  const [msg, setMsg] = useState("");
-  const [confirmReset, setConfirmReset] = useState(false);
-  const exported = exportSave(s);
   return (
-    <Panel title="Settings & Saves" icon="settings" onClose={onClose}>
+    <Panel title="Settings" icon="settings" onClose={onClose}>
       <section className="section">
         <h3>Accessibility</h3>
         <label className="check"><input type="checkbox" checked={!muted} onChange={e => { sound.setMuted(!e.target.checked); setMuted(!e.target.checked); if (e.target.checked) sound.play("select"); }} /> Sound effects</label>
         <label className="check"><input type="checkbox" checked={musicOn} onChange={e => { music.setOn(e.target.checked); setMusicOn(e.target.checked); }} /> Music (the calm island theme)</label>
         <label className="check"><input type="checkbox" checked={reducedMotion} onChange={e => setReducedMotion(e.target.checked)} /> Reduce motion (no shake, confetti or wave animation)</label>
-      </section>
-      <section className="section">
-        <h3>Autosave</h3>
-        <p className="fineprint">Local autosave runs every 10 s and when you leave the page. Time away counts: crops keep growing and your Friend rests at home (needs drain at most 50% while offline).</p>
-      </section>
-      <section className="section">
-        <h3>Save code</h3>
-        <p className="muted">Copy this to back up or move your island by hand. It's bound to Friend #{s.friendId} and checksummed.</p>
-        <textarea readOnly className="code" value={exported} onFocus={e => e.currentTarget.select()} rows={3} />
-        <div className="btn-row">
-          <button type="button" className="btn" onClick={() => { void navigator.clipboard?.writeText(exported).then(() => setMsg("Copied!"), () => setMsg("Select the text and copy it manually.")); }}>Copy</button>
-        </div>
-        <textarea className="code" placeholder="Paste a save code to restore…" value={code} onChange={e => setCode(e.target.value)} rows={3} />
-        <button type="button" className="btn" disabled={!code.trim()} onClick={() => {
-          try { importSave(code, s.friendId); const err = onReplace(code); setMsg(err ?? "Save restored!"); } catch (e) { setMsg(e instanceof Error ? e.message : "Invalid code."); }
-        }}>Restore from code</button>
-        {msg && <p className="muted" role="status">{msg}</p>}
-      </section>
-      <section className="section">
-        <h3>Danger zone</h3>
-        {!confirmReset ? <button type="button" className="btn ghost" onClick={() => setConfirmReset(true)}>Reset this island…</button> : (
-          <div className="btn-row">
-            <span className="warn">Erase all progress for Friend #{s.friendId} on this device?</span>
-            <button type="button" className="btn hot" onClick={() => { clearLocal(s.friendId, s.guest); location.reload(); }}>Yes, reset</button>
-            <button type="button" className="btn" onClick={() => setConfirmReset(false)}>Cancel</button>
-          </div>
-        )}
       </section>
       <p className="fineprint"><SimTag /> Every SHELL balance, reward and trade here is simulated. The game holds no RF.</p>
     </Panel>

@@ -13,17 +13,10 @@
     "dev:lan": "friendsdk dev --host 0.0.0.0",
     "check": "friendsdk check",
     "build": "friendsdk build",
-    "build:vite": "tsc --noEmit && vite build",
-    "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build:e2e": "vite build --mode e2e --outDir dist-e2e",
-    "e2e": "node tests/e2e/run.mjs",
-    "test:e2e": "npm run build:e2e && npm run e2e",
-    "dev:e2e": "vite --mode e2e --host 0.0.0.0",
-    "sim": "vitest run tests/economy.sim.test.ts",
-    "qa:tour": "node tests/e2e/tour.mjs",
-    "qa:panels": "node tests/e2e/panels.mjs"
+    "test:e2e": "node tests/e2e/run.mjs",
+    "sim": "vitest run tests/economy.sim.test.ts"
   },
   "dependencies": {
     "animejs": "^4.5.0",
@@ -34,7 +27,6 @@
     "@rarefriends/friendsdk": "git+https://github.com/rarefriends/friendsdk.git#c19058711f3c207c67cd30b8136de89978f08ddd",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
-    "@vitejs/plugin-react": "^6.1.1",
     "playwright": "^1.63.0",
     "typescript": "^6.0.3",
     "vite": "^8.3.0",

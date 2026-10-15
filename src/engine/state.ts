@@ -8,9 +8,9 @@ import type { GameEvent, GameState, Rival, ShellSource, Stats, Tone } from "./ty
 import { newQuest } from "./quests";
 import { STOCK_IDS, type StockId } from "./voyages";
 
-export const emptyStocks = () => Object.fromEntries(STOCK_IDS.map(id => [id, 0])) as Record<StockId, number>;
+const emptyStocks = () => Object.fromEntries(STOCK_IDS.map(id => [id, 0])) as Record<StockId, number>;
 
-export const emptyStats = (): Stats => ({
+const emptyStats = (): Stats => ({
   shellSunk: 0, shellEarned: 0, shellSpent: 0,
   earnedBy: { work: 0, reward: 0, chance: 0, fishing: 0, crab: 0, refund: 0 },
   fish: 0, harvests: 0, gathered: 0, dives: 0, bestDive: 0,

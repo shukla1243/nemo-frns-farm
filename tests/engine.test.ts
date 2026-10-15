@@ -3,7 +3,6 @@ import {
   BOSS, FISH_FIRST_CATCH_ZONE, HOMES, MINES, NEEDS, SLEEP_MS, START, WHEEL, ZONES, ascendCost, bossStatus, createState, diveMultiplierAt,
   dayNumber, dispatch, forgeCost, maxEnergy, minesMultiplier, xpToNext, type Action, type GameState,
 } from "../src/engine";
-import { exportSave, importSave } from "../src/game/save";
 
 const T0 = 1_800_000_000_000;
 // Today's streak is pre-claimed so each test measures only its own mechanic.
@@ -357,15 +356,6 @@ describe("robustness", () => {
     const r = run(s, { type: "buildHome" });
     expect(r.ok).toBe(false);
     expect(r.state.shell).toBe(s.shell);
-  });
-  it("save codes round-trip and reject tampering / wrong Friend", () => {
-    const s = rich(fresh());
-    const code = exportSave(s);
-    const back = importSave(code, "42");
-    expect(back.shell).toBe(s.shell);
-    expect(() => importSave(code, "43")).toThrow(/belongs/);
-    const [p, sum, body] = code.split(".");
-    expect(() => importSave(`${p}.${sum}.${body.slice(0, -4)}AAAA`, "42")).toThrow();
   });
   it("needs regen during awake time when fed", () => {
     const s = fresh({ energy: 10, hunger: 100 });

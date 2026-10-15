@@ -8,7 +8,8 @@ import { useEffect, useRef } from "react";
 import type { GameState } from "../engine/types";
 import { RIVAL_NAMES, ZONES, type ZoneId } from "../engine/config";
 import { bossStatus } from "../engine/systems";
-import { drawFriend, type GenerationSprites, type SpriteFacing } from "../game/sprites";
+import type { Facing, FriendArt } from "@rarefriends/friendsdk";
+import { drawFriend } from "../game/sprites";
 import { buildTerrain, drawWaterGlints } from "../art/tiles";
 import * as A from "../art/sprites";
 import { icon } from "../art/icons";
@@ -26,7 +27,7 @@ export type WorldApi = { floaters: Floater[]; pos: Pt; teleport(p: Pt): void };
 
 type Props = {
   stateRef: React.MutableRefObject<GameState>;
-  spritesRef: React.MutableRefObject<GenerationSprites | null>;
+  art: FriendArt;
   blocked: boolean;
   reducedMotion: boolean;
   apiRef: React.MutableRefObject<WorldApi | null>;
@@ -118,7 +119,7 @@ function decorations(zones: Record<ZoneId, boolean>): Decor[] {
   return out;
 }
 
-export function World({ stateRef, spritesRef, blocked, reducedMotion, apiRef, onNear, onInteract }: Props) {
+export function World({ stateRef, art, blocked, reducedMotion, apiRef, onNear, onInteract }: Props) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const live = useRef({ blocked, reducedMotion, onNear, onInteract });
@@ -132,7 +133,7 @@ export function World({ stateRef, spritesRef, blocked, reducedMotion, apiRef, on
     const pos: Pt = { ...SPAWN };
     const keys = new Set<string>();
     let dest: Pt | null = null, pending: Station | null = null;
-    let facing: SpriteFacing = "down", side: "left" | "right" = "right", walking = false;
+    let facing: Facing = "down", side: "left" | "right" = "right", walking = false;
     let S = 3, dpr = 1, cw = 0, ch = 0, vw = 0, vh = 0; // S = device px per art px
     let camX = 0, camY = 0; // art px (float, rounded when drawing)
     let terrain: HTMLCanvasElement | null = null, terrainKey = "";
@@ -410,16 +411,13 @@ export function World({ stateRef, spritesRef, blocked, reducedMotion, apiRef, on
           }
         }
         shadow(pos.x, pos.y, 10);
-        const sp = spritesRef.current;
         const f = rm ? 0 : Math.floor(now / 110) % 8;
         const bob = walking || rm ? 0 : Math.round(Math.sin(t * 2.5) * 0.6);
         const away = !!s.voyage;
         if (away) lctx.globalAlpha = 0.45;
-        if (sp) {
-          const head = drawFriend(lctx, sp, ax, ay + bob, 2, s.sleeping ? "down" : facing, walking, f, side, "#fff4dc");
-          const h = A.hat(Math.min(5, Math.floor(s.level / 10)));
-          lctx.drawImage(h, Math.round(head.headX - h.width), Math.round(head.headY - h.height * 2 + 5), h.width * 2, h.height * 2);
-        } else lctx.drawImage(icon("clownfish"), Math.round(ax - 9), Math.round(ay - 16));
+        const head = drawFriend(lctx, art, ax, ay + bob, 2, s.sleeping ? "down" : facing, walking, f, side, "#fff4dc");
+        const h = A.hat(Math.min(5, Math.floor(s.level / 10)));
+        lctx.drawImage(h, Math.round(head.headX - h.width), Math.round(head.headY - h.height * 2 + 5), h.width * 2, h.height * 2);
         lctx.globalAlpha = 1;
         if (away) lctx.drawImage(icon("anchor"), Math.round(ax + 10), Math.round(ay - 52));
         else if (s.sleeping) lctx.drawImage(icon("zz"), Math.round(ax + 10), Math.round(ay - 52 + Math.sin(t * 2) * 2));
@@ -528,7 +526,7 @@ export function World({ stateRef, spritesRef, blocked, reducedMotion, apiRef, on
       window.removeEventListener("blur", stop);
       apiRef.current = null;
     };
-  }, [stateRef, apiRef, spritesRef]);
+  }, [stateRef, apiRef, art]);
 
   return (
     <div ref={wrap} className="world">

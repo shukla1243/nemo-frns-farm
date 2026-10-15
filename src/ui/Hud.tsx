@@ -61,7 +61,7 @@ function guideButton(g: Guide, now: number) {
 export function Hud({ portraitUrl, near, onAction, toasts, unread, guide, onGuide }: {
   portraitUrl: string | null; near: Station | null; onAction: () => void; toasts: Toast[]; unread: number; guide: Guide; onGuide: () => void;
 }) {
-  const { s, now, act, open, identity, reducedMotion } = useG();
+  const { s, now, act, open, reducedMotion } = useG();
   const [muted, setMuted] = useState(sound.muted);
   const toastBox = useRef<HTMLDivElement>(null);
   const need = xpToNext(s.level);
@@ -88,7 +88,7 @@ export function Hud({ portraitUrl, near, onAction, toasts, unread, guide, onGuid
           <span className="me-art frame-slot">{portraitUrl ? <img src={portraitUrl} alt="" /> : <Icon id="clownfish" size={32} />}</span>
           <span className="me-text">
             <b>{s.name}{s.rebirths > 0 && <span className="rebirth"> ★{s.rebirths}</span>}</b>
-            <small>Lv {s.level} {titleFor(s.level)}{identity.guest ? " · guest" : ""}</small>
+            <small>Lv {s.level} {titleFor(s.level)}</small>
             <span className="xp" aria-label={`Experience ${s.xp} of ${need}`}><i style={{ width: `${Math.min(100, (s.xp / need) * 100)}%` }} className={s.xp >= need ? "full" : ""} /></span>
           </span>
           {s.xp >= need && <span className="ready-badge"><Icon id="star" size={18} /></span>}

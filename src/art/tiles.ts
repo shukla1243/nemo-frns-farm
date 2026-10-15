@@ -125,21 +125,3 @@ export function drawWaterGlints(ctx: CanvasRenderingContext2D, zones: Record<Zon
     ctx.fillRect(x + 1, y - 1, 1, 1);
   }
 }
-
-/** A tileable pixel-water pattern (data URL) for DOM backgrounds, pre-scaled ×3. */
-let waterUrl = "";
-export function waterPattern() {
-  if (waterUrl) return waterUrl;
-  const c = document.createElement("canvas");
-  c.width = c.height = 32;
-  const ctx = c.getContext("2d")!;
-  paintTile(ctx, "deep", 0, 0); paintTile(ctx, "deep", 1, 0); paintTile(ctx, "deep", 0, 1); paintTile(ctx, "deep", 1, 1);
-  ctx.fillStyle = "rgba(214,243,255,.5)"; ctx.fillRect(5, 7, 3, 1); ctx.fillRect(21, 24, 3, 1); ctx.fillRect(22, 23, 1, 1); ctx.fillRect(6, 6, 1, 1);
-  const big = document.createElement("canvas");
-  big.width = big.height = 96;
-  const b = big.getContext("2d")!;
-  b.imageSmoothingEnabled = false;
-  b.drawImage(c, 0, 0, 96, 96);
-  waterUrl = big.toDataURL();
-  return waterUrl;
-}

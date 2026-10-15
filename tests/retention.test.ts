@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { ACT_ONE_LEN, ACT_TWO_LEN, PASS, VOYAGE_CHAPTER, chapterAt, createState, dayNumber, dispatch, passClaimable, seasonIdAt, voyagesOpen, type GameState } from "../src/engine";
-import { exportSave, importSave } from "../src/game/save";
 import { guide } from "../src/world/guide";
 import { STATIONS, UNLOCK_SIGNS } from "../src/world/map";
 import { RESIDENTS, residentAt } from "../src/world/npcs";
@@ -89,12 +88,6 @@ describe("Season Journey", () => {
   });
   it("pays SHELL and items only", () => {
     expect(PASS.every(t => Object.keys(t).every(k => ["score", "shell", "items"].includes(k)))).toBe(true);
-  });
-  it("old saves without the journey field load at tier 0", () => {
-    const s = fresh();
-    const raw = JSON.parse(JSON.stringify(s)); delete raw.season.pass;
-    const loaded = importSave(exportSave(raw as GameState), s.friendId);
-    expect(loaded.season.pass).toBe(0);
   });
 });
 

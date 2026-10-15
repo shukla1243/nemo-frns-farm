@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dispatch, type Action, type Result } from "./engine/actions";
-import type { GameEvent, GameState } from "./engine/types";
-import { AUTOSAVE_MS, type ItemId, type ZoneId } from "./engine/config";
-import { importSave, migrate, saveLocal } from "./game/save";
+import type { GameEvent } from "./engine/types";
+import type { ItemId, ZoneId } from "./engine/config";
+import { createState } from "./engine/state";
+import type { Ready } from "@rarefriends/friendsdk/react";
+import type { LoadResult } from "../server/index";
 import { World, type WorldApi } from "./world/World";
 import type { Station } from "./world/map";
 import { Hud, type Toast } from "./ui/Hud";
-import { GameContext, storedReducedMotion, type Ctx, type PanelId } from "./ui/common";
+import { GameContext, systemReducedMotion, type Ctx, type PanelId } from "./ui/common";
 import { BagPanel, FarmPanel, HomePanel, ShrinePanel } from "./ui/panels/Life";
 import { MarketPanel, PoolPanel, UnlockPanel, WheelPanel } from "./ui/panels/Economy";
 import { AbyssPanel, DockPanel, MinesPanel } from "./ui/panels/Games";
@@ -22,25 +24,31 @@ import { ReportPanel } from "./ui/panels/Report";
 import { music } from "./game/music";
 import { STATIONS, UNLOCK_SIGNS, activeStations, type StationId } from "./world/map";
 import { guide as guideFor } from "./world/guide";
-import { loadSprites, portrait, type GenerationSprites } from "./game/sprites";
+import { portrait } from "./game/sprites";
 import { sound } from "./game/sound";
-import type { Identity } from "./identity/Gate";
 import { Fx, type FxKind } from "./ui/Fx";
 
 let toastSeq = 0;
 
-export function Game({ identity, initial, welcome, since }: { identity: Identity; initial: GameState; welcome: string | null; since: number | null }) {
+function randomSeed() {
+  const a = new Uint32Array(1);
+  crypto.getRandomValues(a);
+  return a[0] || 1;
+}
+
+export function Game({ ready }: { ready: Ready<LoadResult> }) {
+  const { game } = ready;
+  const art = game.art!;
+  const [initial] = useState(() => createState({ friendId: game.friend.id, name: game.friend.label, family: art.familyId, guest: false, now: Date.now(), seed: randomSeed() }));
   const stateRef = useRef(initial);
   const [s, setS] = useState(initial);
   const [now, setNow] = useState(Date.now());
-  const [panel, setPanel] = useState<PanelId | null>(welcome === "new" ? "story" : since ? "report" : null);
+  const [panel, setPanel] = useState<PanelId | null>("story");
   const [near, setNear] = useState<Station | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [fx, setFx] = useState<{ kind: FxKind; id: number } | null>(null);
-  const spritesRef = useRef<GenerationSprites | null>(null);
-  const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
-  const [reducedMotion, setReducedMotionState] = useState(storedReducedMotion);
-  const setReducedMotion = (v: boolean) => { setReducedMotionState(v); try { localStorage.setItem("nemo-frns-farm:rm", v ? "1" : "0"); } catch { /* ignore */ } };
+  const portraitUrl = useMemo(() => portrait(art, 56), [art]);
+  const [reducedMotion, setReducedMotion] = useState(systemReducedMotion);
   const worldApi = useRef<WorldApi | null>(null);
   const rmRef = useRef(reducedMotion); rmRef.current = reducedMotion;
   useEffect(() => { document.documentElement.dataset.rm = reducedMotion ? "1" : "0"; }, [reducedMotion]);
@@ -85,21 +93,11 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
     return r;
   }, [onEvents]);
 
-  // Dev-only QA hook (stripped from production builds): open panels and grant resources for screenshots.
+  // Dev-only QA hook (friendsdk dev): open panels and send actions from the browser console or Playwright.
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    (window as unknown as Record<string, unknown>).__nff = {
-      open: (p: PanelId | null) => setPanel(p),
-      act,
-      grant: () => {
-        const next = structuredClone(stateRef.current);
-        for (const z of Object.keys(next.zones)) next.zones[z as ZoneId] = true;
-        next.shell += 100_000; next.level = 12; next.home = 2;
-        for (const k of Object.keys(next.inv)) next.inv[k as ItemId] += 30;
-        stateRef.current = next; setS(next);
-      },
-    };
-  }, [act]);
+    if (game.mode !== "dev") return;
+    (window as unknown as Record<string, unknown>).__nff = { open: (p: PanelId | null) => setPanel(p), act };
+  }, [game.mode, act]);
 
   // Clock + engine tick.
   useEffect(() => {
@@ -107,44 +105,18 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
     return () => clearInterval(t);
   }, [act]);
 
-  // Friend artwork.
-  useEffect(() => {
-    let live = true;
-    loadSprites(identity.friendId).then(sp => { if (live) { spritesRef.current = sp; setPortraitUrl(portrait(sp, 56)); } }).catch(() => pushToast("Couldn't load your Friend's artwork. It will retry soon.", "bad"));
-    return () => { live = false; };
-  }, [identity.friendId, pushToast]);
-
-  // Welcome back / offline summary (once, even under StrictMode double effects).
+  // Welcome (once).
   const welcomed = useRef(false);
   useEffect(() => {
     if (welcomed.current) return;
     welcomed.current = true;
-    if (welcome && welcome !== "new") pushToast(welcome, "info");
-    if (welcome === "new") pushToast("Welcome to your island! Follow the story to get started.", "epic");
-  }, [welcome, pushToast]);
-
-  // ---------- Saves ----------
-  const replaceState = useCallback((code: string): string | null => {
-    try {
-      const next = migrate(importSave(code, stateRef.current.friendId));
-      next.guest = identity.guest;
-      const r = dispatch(next, { type: "tick" }, Date.now());
-      stateRef.current = r.state; setS(r.state); saveLocal(r.state);
-      return null;
-    } catch (e) { return e instanceof Error ? e.message : "Could not restore."; }
-  }, [identity.guest]);
+    pushToast("Welcome to your island! Follow the story to get started.", "epic");
+  }, [pushToast]);
 
   useEffect(() => {
-    const save = () => { saveLocal(stateRef.current); };
-    const t = setInterval(save, AUTOSAVE_MS);
-    const hide = () => {
-      const hidden = document.visibilityState === "hidden";
-      music.setHidden(hidden);
-      if (hidden) save();
-    };
-    window.addEventListener("pagehide", save);
+    const hide = () => music.setHidden(document.visibilityState === "hidden");
     document.addEventListener("visibilitychange", hide);
-    return () => { clearInterval(t); window.removeEventListener("pagehide", save); document.removeEventListener("visibilitychange", hide); save(); };
+    return () => document.removeEventListener("visibilitychange", hide);
   }, []);
 
   // ---------- Interaction ----------
@@ -156,8 +128,8 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
   }, [act]);
 
   const ctx: Ctx = useMemo(() => ({
-    s, now, act, open: setPanel, identity, reducedMotion, setReducedMotion,
-  }), [s, now, act, identity, reducedMotion]);
+    s, now, act, open: setPanel, reducedMotion, setReducedMotion,
+  }), [s, now, act, reducedMotion]);
 
   const close = useCallback(() => setPanel(null), []);
   const goTo = useCallback((id: StationId) => {
@@ -169,13 +141,10 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
   }, [openStation]);
   const guide = guideFor(s);
   const onGuide = guide.kind === "claim" ? () => { act({ type: "storyClaim" }); } : () => goTo(guide.station.id);
-  const [seenAt, setSeenAt] = useState(() => { try { return Number(localStorage.getItem("nemo-frns-farm:inbox-seen")) || 0; } catch { return 0; } });
+  const [seenAt, setSeenAt] = useState(0);
   const unread = s.log.filter(l => l.t > seenAt).length;
   useEffect(() => {
-    if (panel !== "inbox") return;
-    const t = Date.now();
-    setSeenAt(t);
-    try { localStorage.setItem("nemo-frns-farm:inbox-seen", String(t)); } catch { /* ignore */ }
+    if (panel === "inbox") setSeenAt(Date.now());
   }, [panel, s.log.length]);
   useEffect(() => {
     const first = () => { sound.unlock(); music.start(); };
@@ -204,12 +173,12 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
       case "harbor": return <HarborPanel onClose={close} />;
       case "reef": return <ReefPanel onClose={close} />;
       case "board": return <BoardPanel onClose={close} />;
-      case "settings": return <SettingsPanel onClose={close} onReplace={replaceState} />;
+      case "settings": return <SettingsPanel onClose={close} />;
       case "help": return <HelpPanel onClose={close} />;
       case "story": return <StoryPanel onClose={close} />;
       case "pier": return <VoyagePanel onClose={close} />;
       case "inbox": return <InboxPanel onClose={close} />;
-      case "report": return <ReportPanel onClose={close} go={goTo} since={since ?? Date.now()} />;
+      case "report": return <ReportPanel onClose={close} go={goTo} since={initial.createdAt} />;
       case "play": return <PlayHub onClose={close} go={goTo} />;
       default: return null;
     }
@@ -218,7 +187,7 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
   return (
     <GameContext.Provider value={ctx}>
       <main className={`game ${shaking ? "shake" : ""}`}>
-        <World stateRef={stateRef} spritesRef={spritesRef} blocked={!!panel} reducedMotion={reducedMotion} apiRef={worldApi}
+        <World stateRef={stateRef} art={art} blocked={!!panel} reducedMotion={reducedMotion} apiRef={worldApi}
           onNear={setNear} onInteract={openStation} />
         <Hud portraitUrl={portraitUrl} near={near} onAction={() => near && openStation(near)} toasts={toasts} unread={unread} guide={guide} onGuide={onGuide} />
         {renderPanel()}

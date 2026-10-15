@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { VOYAGE_CHAPTER, createRng, createState, dayNumber, dispatch, type GameState } from "../src/engine";
 import { STOCK_IDS, STOCK_SELL_FEE, VOYAGES, rollVoyage, stockPrice, voyageBonus, voyageOdds } from "../src/engine/voyages";
-import { migrate } from "../src/game/save";
 
 const T0 = Date.UTC(2026, 8, 24, 12);
 const fresh = (): GameState => {
@@ -90,15 +89,5 @@ describe("voyages", () => {
     const only = { ...reef, outcomes: reef.outcomes.filter(o => o.id === "fullshare") };
     expect(only.outcomes).toHaveLength(1);
     expect(rollVoyage(only, [1], createRng(5)).stock).toEqual({ id: "FINX", shares: 1 });
-  });
-  it("a save drops unknown stock tickers and gives an old pending voyage locked odds", () => {
-    const s = fresh() as GameState & { stocks: Record<string, number> };
-    s.stocks.OLD1 = 2; s.stocks.KELP = 1;
-    const old = { id: "reef", startedAt: T0, endsAt: T0 + 1, result: { outcome: "bag", stock: { id: "OLD1", shares: 1 } }, announced: false };
-    const back = migrate({ ...JSON.parse(JSON.stringify(s)), voyage: old });
-    expect(Object.keys(back.stocks).sort()).toEqual([...STOCK_IDS].sort());
-    expect(back.stocks.KELP).toBe(1);
-    expect("result" in back.voyage!).toBe(false);
-    expect(back.voyage!.odds).toEqual(voyageOdds(back, VOYAGES.find(v => v.id === "reef")!).map(o => o.weight));
   });
 });

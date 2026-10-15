@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { CRAB, VOYAGE_CHAPTER, createState, dayNumber, dispatch, type GameState } from "../src/engine";
-import { exportSave, importSave } from "../src/game/save";
 import { pauseRound, resumeRound, type Round } from "../src/ui/crabRound";
 
 const T0 = 1_800_000_000_000;
@@ -80,15 +79,6 @@ describe("crab dash", () => {
     expect(r.state.shell).toBe(s.shell);
     expect(r.state.stats.crabRuns).toBe(0);
     expect(dispatch(r.state, { type: "crabQuit" }, T0 + 2000).ok).toBe(false);
-  });
-  it("old saves gain crab stats and never resume a round", () => {
-    const s = started();
-    const old = structuredClone(s) as unknown as { stats: Record<string, number> };
-    delete old.stats.crabRuns; delete old.stats.crabBest;
-    const loaded = importSave(exportSave(old as unknown as GameState), "42");
-    expect(loaded.stats.crabRuns).toBe(0);
-    expect(loaded.stats.crabBest).toBe(0);
-    expect(loaded.run).toBeNull();
   });
 });
 

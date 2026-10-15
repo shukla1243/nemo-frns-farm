@@ -284,7 +284,6 @@ export const TRAITS: { id: TraitId; family: string; name: string; blurb: string 
 export const traitFor = (family: number): TraitId => TRAITS[((family % TRAITS.length) + TRAITS.length) % TRAITS.length].id;
 
 export const START = { shell: 3120, items: { kelpSeed: 4, bait: 5, bread: 2 } as Partial<Record<ItemId, number>> };
-export const AUTOSAVE_MS = 10_000;
 
 /** Islanders hand out one small gift per real day each. */
 export const NPC_GIFTS: Record<string, { shell?: number; items?: Partial<Record<ItemId, number>> }> = {

@@ -96,11 +96,11 @@ function SeasonTab() {
 }
 
 function LeaderTab() {
-  const { s, identity } = useG();
+  const { s } = useG();
   const [sort, setSort] = useState<"level" | "sunk" | "bestDive">("sunk");
   const me = { friendId: s.friendId, name: s.name, level: s.level, sunk: s.stats.shellSunk, bestDive: s.stats.bestDive, title: titleFor(s.level), you: true };
   const rows = [
-    ...(identity.guest ? [] : [me]),
+    me,
     ...s.rivals.map(r => ({ friendId: r.id, name: `${r.name} (sim)`, level: r.level, sunk: r.sunk, bestDive: 0, title: titleFor(r.level), you: false })),
   ].sort((a, b) => (b[sort] as number) - (a[sort] as number));
   return (
@@ -117,7 +117,7 @@ function LeaderTab() {
           </li>
         ))}
       </ol>
-      <p className="fineprint"><SimTag /> Every other island here is a simulated rival.{identity.guest ? " Guests are not listed." : ""}</p>
+      <p className="fineprint"><SimTag /> Every other island here is a simulated rival.</p>
     </>
   );
 }

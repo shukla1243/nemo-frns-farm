@@ -4,7 +4,6 @@ import type { Action, Result } from "../engine/actions";
 import type { Cost, ItemId } from "../engine/config";
 import { Icon } from "./Icon";
 import { animate } from "animejs";
-import type { Identity } from "../identity/Gate";
 
 export const n0 = (v: number) => Math.floor(v).toLocaleString();
 export const mmss = (ms: number) => {
@@ -14,11 +13,8 @@ export const mmss = (ms: number) => {
   return h ? `${h}h ${m}m` : `${m}:${String(s).padStart(2, "0")}`;
 };
 
-/** The saved in-game reduced motion choice, or the system setting when the player never chose. */
-export function storedReducedMotion() {
-  try { const v = localStorage.getItem("nemo-frns-farm:rm"); if (v !== null) return v === "1"; } catch { /* ignore */ }
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
+/** The system reduced motion setting, used until the player chooses in Settings. */
+export const systemReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export type PanelId =
   | "home" | "farm" | "market" | "pool" | "dock" | "crabs" | "shrine" | "wheel" | "board" | "mines" | "forge" | "harbor" | "abyss" | "reef"
@@ -29,7 +25,6 @@ export type Ctx = {
   now: number;
   act: (a: Action) => Result;
   open: (p: PanelId | null) => void;
-  identity: Identity;
   reducedMotion: boolean;
   setReducedMotion: (v: boolean) => void;
 };

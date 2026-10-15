@@ -17,7 +17,7 @@ let timer = 0;
 let nextTime = 0;
 let step = 0;
 let seed = 7;
-let on = (() => { try { return localStorage.getItem("nemo-frns-farm:music") !== "0"; } catch { return true; } })();
+let on = true;
 const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 
 function pluck(t: number, freq: number, gain: number, dur: number, type: OscillatorType = "triangle") {
@@ -33,7 +33,7 @@ function shaker(t: number, gain: number) {
   const len = Math.floor(ctx!.sampleRate * 0.05);
   const buf = ctx!.createBuffer(1, len, ctx!.sampleRate);
   const d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len); // friendsdk: cosmetic
   const src = ctx!.createBufferSource(), f = ctx!.createBiquadFilter(), g = ctx!.createGain();
   src.buffer = buf; f.type = "highpass"; f.frequency.value = 6000; g.gain.value = gain;
   src.connect(f).connect(g).connect(master!);
@@ -91,7 +91,6 @@ export const music = {
   },
   setOn(v: boolean) {
     on = v;
-    try { localStorage.setItem("nemo-frns-farm:music", v ? "1" : "0"); } catch { /* ignore */ }
     if (v) this.start(); else this.stop();
   },
 };
