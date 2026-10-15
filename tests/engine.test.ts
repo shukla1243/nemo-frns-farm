@@ -107,6 +107,17 @@ describe("farming", () => {
     expect(r.state.inv.kelp).toBeGreaterThanOrEqual(1);
     expect(r.state.stats.harvests).toBe(1);
   });
+  it("tent crabs steal at most 75 SHELL a night", () => {
+    let thefts = 0;
+    for (let seed = 1; seed < 200; seed++) {
+      const s = fresh({ shell: 5000, energy: 10, seed });
+      const slept = run(s, { type: "sleep" }).state;
+      const woke = run(slept, { type: "tick" }, T0 + SLEEP_MS + 10).state;
+      const lost = 5000 - woke.shell;
+      if (lost > 0) { thefts++; expect(lost).toBeLessThanOrEqual(75); }
+    }
+    expect(thefts).toBeGreaterThan(0);
+  });
   it("storms can wither crops of tent owners, not cottage owners", () => {
     let withered = 0, cottageWithered = 0;
     for (let seed = 1; seed < 80; seed++) {

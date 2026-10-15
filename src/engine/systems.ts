@@ -1,6 +1,6 @@
 import {
   BOSS, CROPS, EVENTS, EVENT_INTERVAL, HOMES, MARKET_TIDE_MS, MARKET_TIDE_RANGE, NEEDS, RAID, RIVAL_RAID_INTERVAL,
-  RIVAL_RAID_LOSS, RIVAL_RAID_MIN_SHELL, SLEEP_MS, STORM_WITHER_CHANCE, TENT_THIEF_CHANCE, SEASON, RESIDENT_NAMES, dayNumber, seasonIdAt, seasonStartOf, streakReward, type EventId, type ItemId,
+  RIVAL_RAID_LOSS, RIVAL_RAID_MIN_SHELL, SLEEP_MS, STORM_WITHER_CHANCE, TENT_THIEF, SEASON, RESIDENT_NAMES, dayNumber, seasonIdAt, seasonStartOf, streakReward, type EventId, type ItemId,
 } from "./config";
 import { createRng, hashSeed, type Rng } from "./rng";
 import { clamp, clampNeeds, defense, hasTrait, log, maxEnergy, seasonScore } from "./state";
@@ -176,8 +176,9 @@ export function wakeUp(s: GameState, events: GameEvent[], rng: Rng, now: number,
   s.sleeping = null;
   clampNeeds(s);
   let text = `Woke up${natural ? "" : " early"}: +${Math.round(restore)} energy.`;
-  if (s.home === 0 && natural && rng.chance(TENT_THIEF_CHANCE) && s.shell > 0) {
-    const stolen = Math.max(1, Math.floor(s.shell * 0.1));
+  if (s.home === 0 && natural && rng.chance(TENT_THIEF.chance) && s.shell > 0) {
+    // Capped, so the starting SHELL (which now includes the old RF grant) is not a crab buffet.
+    const stolen = Math.max(1, Math.min(TENT_THIEF.max, Math.floor(s.shell * TENT_THIEF.fraction)));
     s.shell -= stolen;
     text += ` Crabs raided your tent and took ${stolen} SHELL! Build a hut.`;
     log(s, events, text, "bad", { cue: "impact" }, now);

@@ -53,7 +53,7 @@ const ETERNAL: { goal: (t: number) => string; value: (s: GameState) => number; b
   { goal: t => `Harvest ${t} crop plots in total`, value: s => s.stats.harvests, base: 500, step: 250 },
   { goal: t => `Win ${t} raids in total`, value: s => s.stats.raidsWon, base: 75, step: 40 },
   { goal: t => `Share ${t} Kraken kills in total`, value: s => s.stats.bossKills, base: 15, step: 8 },
-  { goal: t => `Spend ${t} SHELL in total`, value: s => s.stats.shellSunk, base: 75_000, step: 52_500 },
+  { goal: t => `Spend ${t} SHELL in total`, value: s => s.stats.shellSunk, base: 200_000, step: 140_000 },
   { goal: t => `Ascend ${t} times in total`, value: s => s.stats.ascends, base: 60, step: 30 },
   { goal: t => `Cash out ${t} Tide Mines runs in total`, value: s => s.stats.minesCashouts, base: 100, step: 60 },
   { goal: t => `Reach Rebirth ${t}`, value: s => s.rebirths, base: 2, step: 1 },

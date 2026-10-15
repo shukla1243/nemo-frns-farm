@@ -4,11 +4,11 @@
 
 NEMO FRNS FARM is an endless, risk-to-earn pixel island life sim. You play as your own verified Rare
 Friends Generations NFT. You feed it, rest it, farm, fish, mine and dive, and build a home from a clownfish tent to a
-Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up and upgrade is a gamble that spends RF.
-**70% of every RF spent flows into a weekly Season Prize Pool that pays back the top 10 players.**
+Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up and upgrade is a gamble that spends
+$SHELL, the island currency.
 
-> **Simulated economy.** Every RF and $SHELL balance, reward, prize pool, island company share and trade in this build is
-> simulated for the Rare Friends Vibeathon. No transactions, no real funds, no real securities.
+> **Simulated economy.** Every $SHELL balance, reward, island company share and trade in this build is simulated. The
+> game holds no RF. No transactions, no real funds, no real securities.
 
 - **Play:** https://shukla1243.github.io/nemo-frns-farm/ (desktop and phone; needs a browser wallet holding a Rare
   Friends Generations NFT, generation 1 or higher, on Robinhood Chain 4663)
@@ -20,19 +20,19 @@ Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up
 
 | Prize category | What NEMO FRNS FARM delivers |
 |---|---|
-| **Economy Potential** | A complete, testable two-token economy that shows the Rare Friends "Potential" roadmap working today. $SHELL is paired with $RAREFRIENDS in a live constant-product pool, which is the roadmap's market step. Every chance game shows its odds and pays back less than 100%. Every RF sink splits 70% Season Pool, 25% creator and 5% burn, so creator fees arrive as assets trade. Monte Carlo bots prove the loop is net RF-negative for every play style. |
-| **Token Activity** | RF is spent constantly, and each spend is a real decision: ascension rolls, forge strikes, land, homes, charms, voyages, rebirths, wheel spins, lost stakes and swap fees. Players get a reason to spend, which is a shot at the weekly pool, and a reason to come back, with daily streaks, 12-hour voyages, a Kraken every 20 minutes and weekly seasons. |
-| **Character Spotlight** | Your Friend is the hero, drawn in-world from its canonical on-chain sprite and never recolored. Its family sets 1 of 9 play-style traits. Its family island is the target of the Homeland Voyage. It earns a new hat and title every 10 levels, and a star for every rebirth. Other players see it walking live. |
+| **Economy Potential** | A complete, testable SHELL economy with documented faucets and sinks. Every chance game shows its odds and pays back less than 100%, and Monte Carlo bots check that the chance games net every play style negative. Real RF is planned only through the Rare Friends platform contracts (paid charters, a paid wheel and cosmetics), not through the game ledger. |
+| **Token Activity** | SHELL is spent constantly, and each spend is a real decision: ascension rolls, forge strikes, land, homes, charms, voyages and rebirths. Spending raises Prosperity and the weekly season score, and players come back for daily streaks, 12-hour voyages, a Kraken every 20 minutes and weekly seasons. |
+| **Character Spotlight** | Your Friend is the hero, drawn in-world from its canonical on-chain sprite and never recolored. Its family sets 1 of 9 play-style traits. Its family island is the target of the Homeland Voyage. It earns a new hat and title every 10 levels, and a star for every rebirth. Simulated rivals and residents share its island. |
 
 ## What you can do
 
 - **Survive.** Hunger, energy and mood drain in real time. Tap the hunger bar or the flashing **Eat now** button to eat
   your best food. Sleep at home to refill energy.
 - **Work.** Chop, quarry, farm (6 crops), fish (timing mini-game), play **Crab Dash** (a
-  25-second whack-a-crab arcade with a personal best, no stake), cook, sell at the market, and swap at the Tide Pool.
+  25-second whack-a-crab arcade with a personal best, no stake), cook, sell at the market, and sell island company shares at the Tide Pool.
 - **Risk it.** Abyss Dive (crash game), Tide Mines (minesweeper multiplier), double or nothing, raids on simulated
-  rival crews, the Kraken world boss, and the Tide Wheel with a 25 RF jackpot.
-- **Voyage.** Send your Friend away for 15 minutes, 1, 6 or 12 hours. Long voyages have low odds and big upside: RF
+  rival crews, the Kraken world boss, and the free Tide Wheel with a 3,750 SHELL jackpot.
+- **Voyage.** Send your Friend away for 15 minutes, 1, 6 or 12 hours. Long voyages have low odds and big upside: SHELL
   hoards, Family Relics (+2% XP forever) from your Friend's own family island, and simulated **island company shares** in
   fictional NEMO sea companies (FINX, URCH, CLAM, KRLL, KELP, GULL, DUBL) that you can hold or sell at a live simulated price. While your Friend is away, it
   can't work, so every voyage is a real trade-off. The Voyage Pier opens once the story chapter "A Roof Over Fins" is
@@ -40,8 +40,7 @@ Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up
 - **Grow forever.** Ascend with odds that fall as you level up. Forge gear from +1 to +10, build 5 homes and unlock 7
   regions. Rebirth at level 30 for permanent bonuses. 15 milestone tracks have infinite tiers. The daily streak pays out
   automatically, and the story goes on forever: 15 chapters in Act I, 12 in Act II, and an Act III that never ends.
-- **Season Journey.** A free 10-tier reward track every week, so every player gets paid for playing, not just the
-  top 10.
+- **Season Journey.** A free 10-tier reward track every week, so every player gets paid for playing.
 - **Rivals.** Your island is solo. Simulated rivals, traders and residents who stroll the beach (clearly labelled as
   residents) fill the sea, the leaderboard and the Kraken fight.
 
@@ -54,35 +53,23 @@ everything that happened. The map fast travels, and the bell keeps a full notifi
 ## Tokenomics in one picture
 
 ```
-                earn (play)                      swap (3% fee)
-  chop/farm/fish/raid/boss/voyage ──► SHELL ◄══ Tide Pool (x·y=k) ══► RF
-                                                                     │  spend: ascend, forge, homes, land,
-                                                                     │  charms, voyages, rebirth, wheel, stakes
-                                                                     ▼
-                                  ┌──────────── RF SINK ─────────────┐
-                                  │ 70% Season Prize Pool (weekly)   │──► top 10 players
-                                  │ 25% creator treasury             │──► creator revenue on every trade
-                                  │  5% burned forever               │
-                                  └──────────────────────────────────┘
+                earn (play)
+  chop/farm/fish/raid/boss/voyage/shares ──► SHELL
+                                               │  spend: ascend, forge, homes, land,
+                                               │  charms, voyages, rebirth, market
+                                               ▼
+                                  ┌──────── SHELL SPENT ────────┐
+                                  │ Prosperity: +1% per 2,000   │──► more SHELL from sales and bounties
+                                  │ Season score: 1 pt per 20   │──► weekly board and Season Journey
+                                  └─────────────────────────────┘
 ```
 
 The full breakdown of every faucet and sink, with odds, costs and simulation results, is in
 **[docs/TOKENOMICS.md](docs/TOKENOMICS.md)**.
 
-**Simulation evidence** (`npm run sim`, scripted bots, 4 hours of game time each):
-
-| Bot | Level | RF spent | RF won | Notes |
-|---|---|---|---|---|
-| Grinder 1 | 16 | 150.6 | 26.6 | all 7 regions, gear +5/+5/+6 |
-| Grinder 2 | 14 | 114.4 | 26.6 | all 7 regions |
-| Grinder 3 | 16 | 134.3 | 20.0 | all 7 regions |
-| Grinder 4 | 16 | 124.0 | 20.4 | all 7 regions |
-| Degen 1 | 8 | 32.6 | 13.1 | ends with 0.5 RF |
-| Degen 2 | 9 | 37.3 | 20.1 | ends with 2.8 RF |
-| Degen 3 | 7 | 29.4 | 10.3 | ends with 0.9 RF |
-
-Every style spends far more RF than it wins. The economy is a net sink that feeds the Season Pool, while progress
-stays fast and rewarding.
+**Simulation evidence** (`npm run sim`, scripted bots): grinders reach level 15 to 17 in 4 hours, degens 18 to 20,
+and new players level 6 to 8 with a hut in their first half hour. The chance games net every style negative overall.
+The tables are in [docs/TOKENOMICS.md](docs/TOKENOMICS.md#simulation-results).
 
 ## How to play
 
@@ -124,16 +111,11 @@ The full guide, the lore and every islander are in **[docs/LORE.md](docs/LORE.md
 
 ## Roadmap to on-chain
 
-This follows the Rare Friends "Potential" roadmap: pair with $RAREFRIENDS for a market, use chance with verifiable
-randomness, and earn creator fees on trades.
+Real RF moves only through the Rare Friends platform contracts, never through a game ledger. Planned, not implemented:
 
-1. **Sinks.** Route RF sinks through a `SinkRouter` contract (70/25/5) into a `SeasonPool` that pays the top 10 via
-   Merkle claims.
-2. **Market.** Launch $SHELL as an ERC-20 paired with RF in a real AMM, with creator fees on every swap.
-3. **Chance.** Settle chance games and voyages with Rare Friends Dice RNG (`play`/`settle`), with prize reserves
-   backing every RF payout.
-4. **Items.** Bind homes, gear levels, relics and hats to the Friend's token-bound wallet.
-5. **Validation.** Validate raids and boss damage on a server (or with proofs) before real value is at stake.
+1. **Paid charters and a paid Tide Wheel** as Draw actions with published odds and RF prize rows, settled by Dice.
+2. **Cosmetics** (flags, hats, sails, pets) as one-row Draw actions that mint Friend-bound GameItems.
+3. **Server rules** in a FriendSDK `server.ts`, so SHELL, items and timers are decided by the game server.
 
 ## Run it
 
@@ -141,30 +123,31 @@ randomness, and earn creator fees on trades.
 npm ci
 npm run dev        # http://localhost:5173 (also on your LAN for phone testing)
 npm run build      # static site in dist/ (GitHub Pages ready, relative base)
-npm test           # engine, economy, voyage, world and AMM tests (+ Monte Carlo)
+npm test           # engine, economy, voyage and world tests (+ Monte Carlo)
 npm run sim        # economy simulation tables
 npm run test:e2e   # Playwright: builds the e2e test build (dist-e2e) and plays it on desktop and phone
 ```
 
-Requires Node.js 22+. The FriendSDK v0.1.2 package archive is vendored in `vendor/`.
+Requires Node.js 22+. The FriendSDK v0.2.3 package archive is vendored in `vendor/`.
 
 ## Checks
 
 - `npm run typecheck`: TypeScript strict, 0 errors. `knip`: no unused files, exports or dependencies.
 - `npm test`: all passing. Covers:
   - engine rules and the RTP of every chance game
-  - AMM invariants, the 70/25/5 sink split, a 1 base unit minimum swap fee, and a tiny-swap farmer that can't profit
-    from the simulated traders
+  - a SHELL-only economy (no RF anywhere in state, prices or prizes) and a server-safe engine (no clock, ambient
+    randomness or browser globals)
+  - late randomness: dive survival, mines trap rate and voyage odds rolled at reveal, checked by distribution tests
   - the story guide (never blank, voyage countdown, wood and stone before Home), the voyage gate and the Welcome back
     report
   - seasons, islanders and the endless story
   - milestones, rebirth and the daily streak
-  - voyages: costs, fixed outcomes, recall, odds, a net RF-negative EV at max bonus, and stock sales
+  - voyages: costs, locked odds, recall, a net SHELL-negative EV at max bonus, and island share sales
   - save codes, map reachability for every station, and economy bots
 - `npm run test:e2e`: every check passing on desktop (1280×800) and phone (390×844). Covers entry, story, fast
   travel, chop plus autosave, every HUD panel fitting the screen (including Play, Settings and the notification inbox),
-  farm, swap, wheel, fishing, NPC gifts and map travel, with zero page errors.
-- **Known limitations:** prize pools are client-authoritative and simulated. Rivals are simulated. The wallet flow uses
+  farm, the island share market, wheel, fishing, NPC gifts and map travel, with zero page errors.
+- **Known limitations:** the economy is client-authoritative and simulated until the game server lands. Rivals are simulated. The wallet flow uses
   the SDK functions directly. Automated tests enter through sample Friends that exist only in the e2e test build
   (`vite build --mode e2e`, output `dist-e2e/`); `npm run build` contains none of that code. A real-wallet playthrough
   needs a Gen 1+ holder.

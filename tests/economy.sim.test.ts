@@ -1,12 +1,12 @@
 /**
  * Economy simulation: scripted bots play NEMO FRNS FARM for hours of game time.
- * Verifies invariants (no NaN, no negative balances), that progression is reachable,
- * and that SHELL keeps flowing into sinks.
+ * Verifies invariants (no NaN, no negative balances), that progression is reachable, that the chance
+ * games never net any play style positive, and that new players still get early wins.
  */
 import { describe, expect, it } from "vitest";
 import {
   BOSS, CROPS, DIVE, HOMES, ITEMS, MAX_PLOTS, ZONES, ZONE_ORDER, ascendCost, bossStatus, createState, diveTimeFor,
-  dispatch, forgeCost, missing, plotCost, xpToNext, type Action, type CropId, type GameState, type ItemId,
+  dispatch, forgeCost, missing, plotCost, prosperityPct, xpToNext, type Action, type CropId, type GameState, type ItemId,
 } from "../src/engine";
 
 type Style = "grinder" | "degen";
@@ -16,10 +16,15 @@ function simulate(seed: number, hours: number, style: Style) {
   let s = createState({ friendId: String(seed), name: `Bot ${seed}`, family: seed % 9, guest: false, now: T0, seed });
   let now = T0;
   const counts: Record<string, number> = {};
+  // Net value from the chance games: SHELL plus loot at base sell price.
+  const value = (x: GameState) => x.shell + (Object.keys(x.inv) as ItemId[]).reduce((v, id) => v + x.inv[id] * (ITEMS[id].sell ?? 0), 0);
+  let riskNet = 0;
   const act = (a: Action) => {
+    const before = value(s);
     const r = dispatch(s, a, now);
     s = r.state;
     if (r.ok) counts[a.type] = (counts[a.type] ?? 0) + 1;
+    if (RISK.has(a.type)) riskNet += value(s) - before;
     return r;
   };
   const end = T0 + hours * 3600_000;
@@ -118,8 +123,10 @@ function simulate(seed: number, hours: number, style: Style) {
       if (!Number.isFinite(v)) throw new Error(`${k} became ${v} at step ${step}`);
     }
   }
-  return { s, counts };
+  return { s, counts, riskNet: Math.round(riskNet) };
 }
+
+const RISK = new Set(["diveStart", "diveCashout", "minesStart", "minesReveal", "minesCashout", "flip"]);
 
 function summary(s: GameState) {
   return {
@@ -127,7 +134,7 @@ function summary(s: GameState) {
     gear: `${s.gear.rod}/${s.gear.pick}/${s.gear.blade}`,
     shell: Math.floor(s.shell), shellEarned: s.stats.shellEarned, shellSunk: s.stats.shellSunk, raids: `${s.stats.raidsWon}W/${s.stats.raidsLost}L`,
     ascends: `${s.stats.ascends}/${s.stats.ascends + s.stats.ascendFails}`, forges: `${s.stats.forges - s.stats.forgeFails}/${s.stats.forges}`,
-    bestDive: s.stats.bestDive, achievements: s.achievements.length,
+    bestDive: s.stats.bestDive, achievements: s.achievements.length, prosperity: prosperityPct(s),
   };
 }
 
@@ -135,7 +142,7 @@ describe("economy simulation", () => {
   it("grinders progress steadily and SHELL flows into sinks", () => {
     const rows = [];
     const sims = [1, 2, 3, 4].map(seed => ({ seed, ...simulate(seed, 4, "grinder") }));
-    for (const { seed, s } of sims) rows.push({ seed, style: "grinder", hours: 4, ...summary(s) });
+    for (const { seed, s, riskNet } of sims) rows.push({ seed, style: "grinder", hours: 4, ...summary(s), riskNet });
     console.table(rows);
     for (const { s } of sims) {
       expect(s.shell).toBeGreaterThanOrEqual(0);
@@ -144,17 +151,33 @@ describe("economy simulation", () => {
       expect(s.stats.shellSunk).toBeGreaterThan(0);
       for (const n of Object.values(s.inv)) expect(n).toBeGreaterThanOrEqual(0);
     }
-    console.table(rows);
+    // Chance games return less than they take, counting loot at sell value.
+    expect(sims.reduce((n, x) => n + x.riskNet, 0)).toBeLessThan(0);
   }, 120_000);
 
   it("degens swing harder but still sink SHELL", () => {
     const rows = [];
-    for (const seed of [11, 12, 13]) {
-      const { s } = simulate(seed, 4, "degen");
-      rows.push({ seed, style: "degen", hours: 4, ...summary(s) });
+    const nets: number[] = [];
+    for (const seed of [11, 12, 13, 14, 15, 16, 17, 18, 19]) {
+      const { s, riskNet } = simulate(seed, 4, "degen");
+      rows.push({ seed, style: "degen", hours: 4, ...summary(s), riskNet });
+      nets.push(riskNet);
       expect(s.shell).toBeGreaterThanOrEqual(0);
       expect(s.stats.shellSunk).toBeGreaterThan(0);
     }
     console.table(rows);
+    // Stakes scale with the balance, so a lucky streak compounds; the typical degen still loses at the tables.
+    expect(nets.sort((a, b) => a - b)[Math.floor(nets.length / 2)]).toBeLessThan(0);
+  }, 120_000);
+
+  it("new players get early wins in the first half hour", () => {
+    const sims = [21, 22, 23, 24, 25, 26, 27, 28].map(seed => ({ seed, ...simulate(seed, 0.5, "grinder") }));
+    console.table(sims.map(({ seed, s }) => ({ seed, style: "new", hours: 0.5, ...summary(s) })));
+    for (const { s } of sims) {
+      // The RF-era economy reached level 5 to 7 and a Driftwood Hut in the first 30 minutes; first catch, hut and Kindling are the first trophies.
+      expect(s.level).toBeGreaterThanOrEqual(5);
+      expect(s.home).toBeGreaterThanOrEqual(1);
+      expect(s.achievements).toEqual(expect.arrayContaining(["first_fish", "hut", "burn10"]));
+    }
   }, 120_000);
 });

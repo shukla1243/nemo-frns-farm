@@ -20,7 +20,7 @@ export const TRACKS: Track[] = [
   { id: "forges", name: "Smith", unit: "forge strikes", base: 5, value: s => s.stats.forges },
   { id: "spins", name: "Gambler", unit: "wheel spins", base: 5, value: s => s.stats.spins },
   { id: "voyages", name: "Voyager", unit: "voyages sailed", base: 3, value: s => s.stats.voyages },
-  { id: "spent", name: "Patron", unit: "SHELL spent", base: 1500, value: s => s.stats.shellSunk },
+  { id: "spent", name: "Patron", unit: "SHELL spent", base: 4000, value: s => s.stats.shellSunk },
   { id: "earned", name: "Tycoon", unit: "SHELL earned", base: 1000, value: s => s.stats.shellEarned },
 ];
 

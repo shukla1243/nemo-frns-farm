@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  SEASON, chapterAt, createState, dispatch, seasonBoard, seasonIdAt, seasonScore,
+  ACHIEVEMENTS, SEASON, chapterAt, createState, dispatch, prosperityPct, seasonBoard, seasonIdAt, seasonScore,
   seasonStartOf, dayNumber, rebirthCost, threshold, rankName, TRACKS, REBIRTH, type GameState,
 } from "../src/engine";
 
@@ -19,12 +19,24 @@ describe("seasons", () => {
     const board = seasonBoard(rolled, next, rolled.lastSeason!.id, rolled.lastSeason!.score);
     expect(board.findIndex(e => e.you) + 1).toBe(1);
   });
-  it("season score counts SHELL spent at 7.5 SHELL per point", () => {
+  it("season score counts SHELL spent at 20 SHELL per point", () => {
     const s = fresh(); s.shell = 10_000;
-    const r = dispatch(s, { type: "buy", item: "charm" }, T0);
+    const r = dispatch(s, { type: "buy", item: "charm", qty: 4 }, T0);
     expect(r.ok).toBe(true);
-    expect(r.state.season.sunk).toBe(225);
-    expect(seasonScore(r.state) - seasonScore(s)).toBe(30);
+    expect(r.state.season.sunk).toBe(900);
+    expect(seasonScore(r.state) - seasonScore(s)).toBe(45);
+  });
+  it("prosperity grows 1% per 2,000 SHELL spent, up to 30%", () => {
+    const s = fresh();
+    s.stats.shellSunk = 19_999;
+    expect(prosperityPct(s)).toBe(9);
+    s.stats.shellSunk = 1_000_000;
+    expect(prosperityPct(s)).toBe(30);
+  });
+  it("spending milestones and trophies scale with SHELL spent", () => {
+    expect(TRACKS.find(t => t.id === "spent")!.base).toBe(4000);
+    expect(ACHIEVEMENTS.find(a => a.id === "burn10")!.test({ ...fresh(), stats: { ...fresh().stats, shellSunk: 3999 } })).toBe(false);
+    expect(ACHIEVEMENTS.find(a => a.id === "burn100")!.test({ ...fresh(), stats: { ...fresh().stats, shellSunk: 40_000 } })).toBe(true);
   });
 });
 

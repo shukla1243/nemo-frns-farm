@@ -81,7 +81,7 @@ export const HOMES: { name: string; cost: Cost; defense: number; sleep: number; 
   { name: "Sea Castle", cost: { shell: 10000, items: { wood: 200, stone: 200, coral: 120, pearl: 20, glass: 20 } }, defense: 130, sleep: 1, vault: 0.65, perk: "Well Rested: +10% yields after sleep." },
 ];
 export const SLEEP_MS = 15_000;
-export const TENT_THIEF_CHANCE = 0.2;
+export const TENT_THIEF = { chance: 0.2, fraction: 0.1, max: 75 };
 export const TRAP_DEFENSE = 12;
 
 // ---------- Farming ----------
@@ -242,7 +242,8 @@ export const RIVAL_NAMES: { name: string; color: string }[] = [
 ];
 
 // ---------- Prosperity (spend to earn) ----------
-export const PROSPERITY = { shellPerPercent: 750, cap: 30 }; // +1% SHELL yields per 750 SHELL spent, max +30%
+// SHELL spent counts every purchase, so it runs about 2.5x the old RF sinks; these rates keep the RF-era pace.
+export const PROSPERITY = { shellPerPercent: 2000, cap: 30 }; // +1% SHELL yields per 2,000 SHELL spent, max +30%
 
 // ---------- World events ----------
 export type EventId = "meteor" | "storm" | "boom" | "goldtide" | "frenzy";
@@ -301,7 +302,7 @@ export const streakReward = (count: number) => {
 export const SEASON = {
   ms: 7 * 86_400_000,
   offsetMs: 4 * 86_400_000, // seasons roll over Monday 00:00 UTC
-  shellPerPoint: 7.5, // one season point per 7.5 SHELL spent
+  shellPerPoint: 20, // one season point per 20 SHELL spent
 };
 export const seasonIdAt = (now: number) => Math.floor((now - SEASON.offsetMs) / SEASON.ms);
 export const seasonStartOf = (id: number) => id * SEASON.ms + SEASON.offsetMs;

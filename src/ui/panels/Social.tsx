@@ -200,7 +200,7 @@ function MilestonesTab() {
   );
 }
 
-/** Free weekly reward track: every player earns tiers from season points, not just the top 10. */
+/** Free weekly reward track: every player earns tiers from season points. */
 function SeasonJourney() {
   const { s, act } = useG();
   const score = seasonScore(s);

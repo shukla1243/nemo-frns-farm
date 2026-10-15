@@ -77,7 +77,7 @@ cooking meals at Home.
 - **Risky money:** the Abyss Dive, Tide Mines, double or nothing, raids, the Kraken and the Tide Wheel. Every game shows
   its odds before you play.
 - **Voyages:** send your Friend away for 15 minutes, 1, 6 or 12 hours. Short trips are safe. The long ones usually come
-  back empty but can return a hoard of RF, a Family Relic or simulated island company shares such as FINX. While it's away,
+  back empty but can return a hoard of SHELL, a Family Relic or simulated island company shares such as FINX. While it's away,
   your Friend can't work.
 
 ### Getting stronger forever
@@ -90,10 +90,10 @@ cooking meals at Home.
 - **Milestones** and the **daily streak** pay out on their own. Just play.
 - **Season Journey:** a free 10-tier reward track on the Bounty Board that resets every week.
 
-### Where your RF goes
+### Where your SHELL goes
 
-Every RF you spend is split: 70% to the weekly Season Prize Pool, 25% to the creator, and 5% burned forever. The top 10
-players each week share the pool. The full details are in [TOKENOMICS.md](TOKENOMICS.md). Everything is simulated.
+Every SHELL you spend on the island raises your Prosperity (more SHELL from sales and bounties) and your weekly season
+score. The full details are in [TOKENOMICS.md](TOKENOMICS.md). Everything is simulated.
 
 ### Rivals
 
