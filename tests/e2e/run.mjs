@@ -1,39 +1,56 @@
 /**
- * End-to-end play in `friendsdk dev` (Playwright). Plays two fixture Friends of different generations through the
- * host exactly as the website mounts the game: #117713 (Skeleton, generation 1) on desktop and #172863 (Mask,
- * generation 2) on a phone. Covers the first chapters of the story (grove, farm, fishing, Rock Cove, the hut), a
- * SHELL voyage with the dev clock, reloads and a second browser reading the island back from the server, the
- * host's top-right corner and page errors. Screenshots go to artifacts/t5-7-*.png.
- *   npm run test:e2e                          starts its own dev server on fresh state and closes it
- *   npm run test:e2e -- --prepare             only writes fresh dev state, for a dev server started next
- *   npm run test:e2e -- http://localhost:4173 plays a running `friendsdk dev` started on prepared state
+ * End-to-end play in `friendsdk dev` (Playwright). Starts the public CLI (`npx friendsdk dev --port 4310`) as a
+ * child process, plays two fixture Friends of different generations through the host exactly as the website mounts
+ * the game, and always kills the child's process tree at the end. #117713 (Skeleton, generation 1) on desktop plays
+ * the first chapters (grove, farm, fishing, Rock Cove, the hut) and a SHELL voyage, with reloads and a second browser
+ * reading the island back from the server; #172863 (Mask, generation 2) plays on a phone. Also checks the host's
+ * top-right corner and page errors. Screenshots go to artifacts/t5-7-*.png.
+ *   npm run test:e2e
  *
- * The dev panel's server clock control only works once dev state has a record, and `friendsdk dev` writes one only
- * for a game with actions. Until the economy lands (T8), fresh state gets a dev.json without a record so the
- * clock control (`clockOffsetMs`) works.
+ * Time moves with the dev panel's documented "+1 hour" control. That control only works once the dev state has a
+ * dev.json, which `friendsdk dev` writes only for a game with actions, and "Reset all dev state" deletes it. Until
+ * the economy lands (T8), the test starts from fresh state of its own: it empties .friendsdk/dev and writes a dev.json
+ * without a record, then checks after every click (through the dev page's status read) that the clock moved.
  */
 import { chromium } from "playwright";
+import { spawn, execFileSync } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 
-async function prepare() {
-  await rm(".friendsdk/dev", { recursive: true, force: true });
-  await mkdir(".friendsdk/dev", { recursive: true });
-  await writeFile(".friendsdk/dev/dev.json", JSON.stringify({ fingerprint: "", record: null, keeperOffline: false, clockOffsetMs: 0 }));
-}
-if (process.argv[2] === "--prepare") { await prepare(); process.exit(0); }
-// FriendSDK 1.0 has no public programmatic dev API; this is the module `friendsdk dev` runs (its own e2e tests use it).
-const devModule = new URL("../../node_modules/@rarefriends/friendsdk/dist/dev/server.js", import.meta.url);
-if (!process.argv[2]) await prepare();
-const dev = process.argv[2] ? null : await (await import(devModule.href)).startDev({ dir: process.cwd(), port: 4310, host: "127.0.0.1", reset: false, tokenExpirySec: 60, portExplicit: true });
-const base = process.argv[2] ?? dev.hostUrl;
+const PORT = 4310;
+await rm(".friendsdk/dev", { recursive: true, force: true });
+await mkdir(".friendsdk/dev", { recursive: true });
+await writeFile(".friendsdk/dev/dev.json", JSON.stringify({ fingerprint: "", record: null, keeperOffline: false, clockOffsetMs: 0 }));
 await mkdir("artifacts", { recursive: true });
+
+const child = spawn(`npx friendsdk dev --port ${PORT} --host 127.0.0.1`, { shell: true, detached: process.platform !== "win32", stdio: ["ignore", "pipe", "pipe"] });
+function killDev() {
+  if (child.exitCode !== null || !child.pid) return;
+  try {
+    if (process.platform === "win32") execFileSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+    else process.kill(-child.pid, "SIGTERM");
+  } catch { /* already gone */ }
+}
+process.on("exit", killDev);
+process.on("SIGINT", () => { killDev(); process.exit(130); });
+const base = await new Promise((resolve, reject) => {
+  let out = "";
+  const timer = setTimeout(() => reject(new Error(`friendsdk dev did not start within 90 s:
+${out}`)), 90_000);
+  const read = chunk => {
+    out += chunk;
+    const m = /Dev host: (http:\/\/\S+)/.exec(out);
+    if (m) { clearTimeout(timer); resolve(m[1]); }
+  };
+  child.stdout.on("data", read);
+  child.stderr.on("data", read);
+  child.on("exit", code => { clearTimeout(timer); reject(new Error(`friendsdk dev exited (${code}) before it started:
+${out}`)); });
+});
 
 const browser = await chromium.launch();
 let failures = 0;
 const check = (cond, msg) => { if (!cond) { failures++; console.error("FAIL:", msg); } else console.log("ok:", msg); };
-const MIN = 60_000;
 const FOODS = ["bread", "kelp", "coconut", "carrot", "berry", "sardine", "clownfish", "pumpkin", "tuna", "sushi", "stew", "pie", "feast", "angler"];
-let clockOffset = 0;
 
 async function open(friendId, viewport, mobile) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: mobile ? 2 : 1, isMobile: mobile, hasTouch: mobile });
@@ -75,14 +92,46 @@ async function open(friendId, viewport, mobile) {
   const gather = async (kind, until) => {
     for (let i = 0; i < 60 && !(await until(await state())); i++) {
       await care();
-      if ((await state()).energy < 8) { await setClock(clockOffset + 20 * MIN); await reload(); await travel(kind === "chop" ? "Palm Grove" : "Rock Cove"); }
+      if ((await state()).energy < 8) { await laterBy1h(); await reload(); await travel(kind === "chop" ? "Palm Grove" : "Rock Cove"); }
       await ui.locator(".action-btn").click();
       await page.waitForTimeout(1300);
     }
   };
-  const setClock = async ms => {
-    clockOffset = ms;
-    await page.evaluate(body => fetch("/__friendsdk/controls", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }), { clockOffsetMs: ms });
+  /** The dev panel's "+1 hour" server clock control, checked through the dev page's status read. */
+  const laterBy1h = async () => {
+    const offset = async () => {
+      const res = await page.evaluate(() => fetch("/__friendsdk/status").then(r => ({ ok: r.ok, body: r.ok ? r.json() : null })).then(async r => ({ ok: r.ok, body: await r.body })));
+      if (!res.ok || typeof res.body?.controls?.clockOffsetMs !== "number") throw new Error("The dev page's status read is missing; cannot verify the server clock.");
+      return res.body.controls.clockOffsetMs;
+    };
+    const before = await offset();
+    const button = page.getByRole("button", { name: "+1 hour", exact: true });
+    if (!(await button.count())) throw new Error('The dev panel has no "+1 hour" server clock control.');
+    await button.click();
+    for (let i = 0; i < 50 && (await offset()) === before; i++) await page.waitForTimeout(100);
+    const after = await offset();
+    if (after !== before + 3_600_000) throw new Error(`The dev clock did not move (${before} -> ${after}): friendsdk dev ignores it without a dev.json.`);
+  };
+  /** Cast and press REEL while the hook sits in the green, the way a player times it. */
+  const fish = async () => {
+    await ui.getByRole("button", { name: "Cast", exact: true }).click();
+    const pressed = await frame().evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const reel = () => [...document.querySelectorAll("button")].find(b => /REEL/.test(b.textContent ?? ""));
+      for (let i = 0; i < 300 && !reel(); i++) await sleep(20);
+      let since = null;
+      for (let i = 0; i < 1200; i++) {
+        const z = document.querySelector(".reel-zone"), m = document.querySelector(".reel-marker");
+        if (!z || !m || !reel()) return false;
+        const left = parseFloat(z.style.left), width = parseFloat(z.style.width), at = parseFloat(m.style.left);
+        const t = performance.now();
+        if (at > left + width * 0.2 && at < left + width * 0.8) { since ??= t; if (t - since > 60) { reel().click(); return true; } } else since = null;
+        await new Promise(r => requestAnimationFrame(r));
+      }
+      return false;
+    });
+    await ui.locator(".fishing.done").waitFor({ timeout: 8000 });
+    return pressed;
   };
   /** The host's full-screen button owns the top-right 52 x 52 px of the game box. */
   const cornerFree = () => frame().evaluate(() => {
@@ -102,7 +151,7 @@ async function open(friendId, viewport, mobile) {
     return bad.slice(0, 5);
   });
   const storageKeys = () => frame().evaluate(() => Object.keys(localStorage));
-  return { ctx, page, ui, errors, state, act, panel, shot, close, travel, reload, claim, gather, setClock, cornerFree, hudFits, storageKeys };
+  return { ctx, page, ui, errors, state, act, panel, shot, close, travel, reload, claim, gather, laterBy1h, fish, cornerFree, hudFits, storageKeys };
 }
 
 async function desktop() {
@@ -131,7 +180,7 @@ async function desktop() {
   check(await ui.locator(".plot .bar").first().isVisible(), "desktop: a crop is growing");
   await g.shot("desktop-3-farm");
   await g.close();
-  await g.setClock(2 * MIN);
+  await g.laterBy1h();
   await g.reload();
   await g.panel("farm");
   await ui.getByRole("button", { name: "Harvest", exact: true }).first().click();
@@ -142,17 +191,11 @@ async function desktop() {
 
   // Chapter 3: fishing.
   await g.panel("dock");
-  await ui.getByRole("button", { name: "Cast", exact: true }).click();
-  await ui.getByRole("button", { name: /REEL/ }).waitFor({ timeout: 6000 });
-  await ui.getByRole("button", { name: /REEL/ }).click();
-  await ui.locator(".fishing.done").waitFor({ timeout: 5000 }).catch(() => undefined);
-  await page.waitForTimeout(600);
-  await g.shot("desktop-4-fishing");
-  await g.close();
-  for (let i = 0; i < 6 && (await g.state()).stats.fish < 1; i++) {
-    await g.act({ type: "fishCast" });
-    await g.act({ type: "fishReel", hit: true });
+  for (let i = 0; i < 4 && (await g.state()).stats.fish < 1; i++) {
+    check(await g.fish(), "desktop: the REEL button came up and was pressed in the green");
+    if (i === 0) await g.shot("desktop-4-fishing");
   }
+  await g.close();
   check((await g.state()).stats.fish >= 1, "desktop: caught a fish");
   await g.claim();
 
@@ -187,7 +230,7 @@ async function desktop() {
   check(s.voyage?.id === "scout" && s.shell < before.shell, "desktop: a Tide Scout voyage left and SHELL was paid");
   await g.shot("desktop-6-voyage");
   await g.close();
-  await g.setClock(clockOffset + 20 * MIN);
+  await g.laterBy1h();
   await g.reload();
   await g.panel("pier");
   await ui.getByRole("button", { name: "Open the voyage chest", exact: true }).click();
@@ -254,7 +297,7 @@ try {
   await phone();
 } finally {
   await browser.close();
-  await dev?.close();
+  killDev();
 }
 console.log(failures ? `\n${failures} check(s) failed` : "\nAll e2e checks passed");
 process.exit(failures ? 1 : 0);
