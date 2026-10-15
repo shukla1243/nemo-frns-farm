@@ -26,14 +26,16 @@ const rngOf = (s: GameState) => createRng(s.seed);
 
 /**
  * Advance time. Handles needs, sleep, crops (via timestamps), world events, market tide,
- * simulated rivals and their raids. Large gaps (offline) are capped for fairness.
+ * simulated rivals and their raids. The result does not depend on how often it runs: time within
+ * NEEDS.onlineWindowMs of the last action counts as play, the rest as time away (needs drain no lower than
+ * NEEDS.awayFloor, the Friend rests at home), and every due event and raid rolls.
  */
 export function tick(s: GameState, now: number, events: GameEvent[]): void {
   const dtMs = now - s.lastTick;
   if (dtMs <= 0) return;
   const rng = rngOf(s);
-  const offline = dtMs > 60_000;
-  const dt = dtMs / 1000;
+  const onlineMs = Math.max(0, Math.min(now, s.lastActive + NEEDS.onlineWindowMs) - s.lastTick);
+  const dt = dtMs / 1000, onDt = onlineMs / 1000, awayDt = (dtMs - onlineMs) / 1000;
   s.lastTick = now;
 
   // --- Daily streak (automatic on the first tick of each day you play) ---
@@ -57,19 +59,19 @@ export function tick(s: GameState, now: number, events: GameEvent[]): void {
 
   // --- Needs ---
   const hungerRate = NEEDS.hungerDecayPerSec * (hasTrait(s, "void") ? 0.75 : 1) * (hasTrait(s, "titan") ? 1.15 : 1) * (s.sleeping ? 0.5 : 1);
-  let hungerLoss = hungerRate * dt, moodLoss = NEEDS.moodDecayPerSec * dt;
-  if (offline) {
-    hungerLoss = Math.min(hungerLoss, s.hunger * NEEDS.offlineDecayCap);
-    moodLoss = Math.min(moodLoss, s.mood * NEEDS.offlineDecayCap);
-    // Offline time counts as rest at home.
-    const restFraction = HOMES[s.home].sleep * Math.min(1, dt / 600);
-    s.energy += maxEnergy(s) * restFraction;
-  }
   const wasHungry = s.hunger < NEEDS.hungryAt;
-  s.hunger -= hungerLoss;
-  s.mood -= moodLoss * (s.hunger <= 0 ? 3 : 1);
-  if (!s.sleeping && s.hunger >= NEEDS.hungryAt && !offline) s.energy += NEEDS.energyRegenPerSec * dt;
+  s.hunger -= hungerRate * onDt;
+  s.mood -= NEEDS.moodDecayPerSec * onDt * (s.hunger <= 0 ? 3 : 1);
+  if (!s.sleeping && s.hunger >= NEEDS.hungryAt) s.energy += NEEDS.energyRegenPerSec * onDt;
   clampNeeds(s);
+  if (awayDt > 0) {
+    // Away: needs drain at the same rate but never below the floor; a fed Friend rests at home.
+    const floor = NEEDS.awayFloor;
+    if (s.hunger > floor) s.hunger = Math.max(floor, s.hunger - hungerRate * awayDt);
+    if (s.mood > floor) s.mood = Math.max(floor, s.mood - NEEDS.moodDecayPerSec * awayDt);
+    if (s.hunger >= NEEDS.hungryAt) s.energy += maxEnergy(s) * HOMES[s.home].sleep * awayDt / 600;
+    clampNeeds(s);
+  }
   if (!wasHungry && s.hunger < NEEDS.hungryAt) log(s, events, "Your Friend is hungry! Yields -25% and no energy regen until you eat.", "bad", { cue: "impact" }, now);
 
   // --- Crops: storm damage happens at storm start (see events) ---
@@ -101,7 +103,7 @@ export function tick(s: GameState, now: number, events: GameEvent[]): void {
       else log(s, events, "The storm passed. Your crops survived!", "good", {}, now);
     } else log(s, events, "Storm raging, but your Cottage shelters the crops.", "info", {}, now);
   }
-  if (!s.event && now >= s.nextEventAt && !offline) {
+  if (!s.event && now >= s.nextEventAt) {
     const id = rng.pick(Object.keys(EVENTS) as EventId[]);
     const def = EVENTS[id];
     const startsAt = now + (def.warnMs ?? 0);
@@ -109,14 +111,14 @@ export function tick(s: GameState, now: number, events: GameEvent[]): void {
     delete s.buffs.stormHit;
     log(s, events, `${def.warnMs ? "Incoming" : "Event"}: ${def.name}. ${def.blurb}`, id === "storm" ? "bad" : "epic", { cue: "anticipation" }, now);
     s.nextEventAt = s.event.endsAt + rng.int(EVENT_INTERVAL[0], EVENT_INTERVAL[1]);
-  } else if (offline && now >= s.nextEventAt) {
-    s.nextEventAt = now + rng.int(EVENT_INTERVAL[0], EVENT_INTERVAL[1]);
   }
 
   // --- Rivals grow ---
   for (const r of s.rivals) {
     r.vault += dt * (0.25 + r.level * 0.04);
-    if (rng.chance(Math.min(1, dt / 240))) {
+    // One level per 240 s on average, however the time is split between calls.
+    const due = dt / 240, ups = Math.min(50, Math.floor(due) + (rng.chance(due % 1) ? 1 : 0));
+    for (let k = 0; k < ups; k++) {
       r.level++; r.power += 5 + rng.int(0, 4); r.defense += 3 + rng.int(0, 5); r.sunk += (40 + r.level * 10) * 150;
     }
     // Keep rivals in the player's league so the harbor stays interesting.
@@ -127,7 +129,7 @@ export function tick(s: GameState, now: number, events: GameEvent[]): void {
   // --- Rival raids on you ---
   if (now >= s.nextRivalRaidAt) {
     s.nextRivalRaidAt = now + rng.int(RIVAL_RAID_INTERVAL[0], RIVAL_RAID_INTERVAL[1]);
-    if (!offline && s.shieldUntil <= now && s.shell >= RIVAL_RAID_MIN_SHELL && s.zones.harbor) rivalRaid(s, events, rng, now);
+    if (s.shieldUntil <= now && s.shell >= RIVAL_RAID_MIN_SHELL && s.zones.harbor) rivalRaid(s, events, rng, now);
   }
 
   s.seed = rng.state();

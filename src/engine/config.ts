@@ -66,7 +66,8 @@ export const NEEDS = {
   grumpyAt: 25,
   happyAt: 75,
   hungryYieldPenalty: 0.25,
-  offlineDecayCap: 0.5, // offline can drain at most half of a need
+  onlineWindowMs: 60_000, // time after the last action that still counts as play
+  awayFloor: 50, // time away never drains hunger or mood below this
   baseMaxEnergy: 100,
   maxEnergyPerLevel: 3,
 };

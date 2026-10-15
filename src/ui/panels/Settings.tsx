@@ -15,7 +15,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
       </section>
       <section className="section">
         <h3>Your island</h3>
-        <p className="fineprint">Your island is kept on the Rare Friends game server for Friend #{s.friendId} and follows it to every device. Time away counts: crops keep growing and your Friend rests at home (needs drain at most 50% while away).</p>
+        <p className="fineprint">Your island is kept on the Rare Friends game server for Friend #{s.friendId} and follows it to every device. Time away counts: crops keep growing and your Friend rests at home (a minute after your last action, hunger and mood stop draining at half).</p>
       </section>
       <p className="fineprint"><SimTag /> Every SHELL balance, reward and trade here is simulated. The game holds no RF.</p>
     </Panel>
