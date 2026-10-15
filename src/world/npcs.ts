@@ -23,7 +23,7 @@ export const NPCS: Npc[] = [
     lines: s => [
       `Welcome to our little island, ${s.name}! Every Friend who washes ashore gets a fresh start here.`,
       chapterHint(s),
-      "Seventy percent of every RF spent on the island goes into the weekly Season Prize Pool. The ten busiest islanders split it every Monday.",
+      "Every SHELL you spend on the island raises your season score. The board resets every Monday.",
     ],
   },
   {
@@ -40,8 +40,8 @@ export const NPCS: Npc[] = [
     look: { skin: "Y", shirt: "m", pants: "w", hair: "o" },
     lines: () => [
       "Sell what you gather here. Prices ride the market tide, so watch for a Market Boom!",
-      "Need RF? Swap SHELL at the Tide Pool. It's a real two-sided pool, so big swaps move the price.",
-      "Protection Charms cost RF, but they give back half your materials if an upgrade fails.",
+      "Brought shares home from a wreck? The Tide Pool buys them. Prices move every hour.",
+      "Protection Charms cost SHELL, but they give back half your materials if an upgrade fails.",
     ],
   },
   {

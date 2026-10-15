@@ -39,15 +39,15 @@ export function stockPrice(id: StockId, now: number) {
 export const STOCK_SELL_FEE = 0.02;
 
 export type VoyageId = "scout" | "homeland" | "reef" | "trench";
-type Outcome = { id: string; label: string; weight: number; shell?: [number, number]; rf?: [number, number]; items?: Partial<Record<ItemId, number>>; stock?: [number, number]; relic?: boolean; lost?: boolean };
-export type Voyage = { id: VoyageId; name: string; blurb: string; minutes: number; costRf: number; costShell: number; food: number; minLevel: number; outcomes: Outcome[] };
+type Outcome = { id: string; label: string; weight: number; shell?: [number, number]; items?: Partial<Record<ItemId, number>>; stock?: [number, number]; relic?: boolean; lost?: boolean };
+export type Voyage = { id: VoyageId; name: string; blurb: string; minutes: number; costShell: number; food: number; minLevel: number; outcomes: Outcome[] };
 
 const FAMILY_ISLES = ["Skeleton Isle", "Mask Atoll", "Family Cay", "Cellular Reef", "Asymmetry Rock", "Hoverer Heights", "Colossus Crag", "Sparkling Sands", "Hollow Deep"];
 export const homeIsle = (family: number) => FAMILY_ISLES[((family % 9) + 9) % 9];
 
 export const VOYAGES: Voyage[] = [
   {
-    id: "scout", name: "Tide Scout", blurb: "A quick paddle around the reef. Safe and small.", minutes: 15, costRf: 0, costShell: 30, food: 1, minLevel: 1,
+    id: "scout", name: "Tide Scout", blurb: "A quick paddle around the reef. Safe and small.", minutes: 15, costShell: 30, food: 1, minLevel: 1,
     outcomes: [
       { id: "haul", label: "Driftwood and stone", weight: 50, items: { wood: 12, stone: 8 } },
       { id: "shells", label: "A pouch of SHELL", weight: 30, shell: [60, 140] },
@@ -56,17 +56,17 @@ export const VOYAGES: Voyage[] = [
     ],
   },
   {
-    id: "homeland", name: "Homeland Voyage", blurb: "Sail to your Friend's family island and search the ruins for relics.", minutes: 60, costRf: 50, costShell: 120, food: 2, minLevel: 3,
+    id: "homeland", name: "Homeland Voyage", blurb: "Sail to your Friend's family island and search the ruins for relics.", minutes: 60, costShell: 195, food: 2, minLevel: 3,
     outcomes: [
       { id: "pearls", label: "Pearls from the old shrine", weight: 30, items: { pearl: 3, coral: 6 } },
       { id: "scrolls", label: "Ancient Luck Scrolls", weight: 15, items: { blessing: 2 } },
       { id: "relic", label: "A Family Relic (+2% XP forever)", weight: 10, relic: true },
-      { id: "rf", label: "A buried RF cache", weight: 5, rf: [150, 400] },
+      { id: "cache", label: "A buried SHELL cache", weight: 5, shell: [225, 600] },
       { id: "storm", label: "Turned back by a storm", weight: 40 },
     ],
   },
   {
-    id: "reef", name: "Shipwreck Salvage Run", blurb: "Dive the merchant wrecks off Barnacle Shoals for island company shares. Low odds, big upside.", minutes: 360, costRf: 200, costShell: 300, food: 3, minLevel: 6,
+    id: "reef", name: "Shipwreck Salvage Run", blurb: "Dive the merchant wrecks off Barnacle Shoals for island company shares. Low odds, big upside.", minutes: 360, costShell: 600, food: 3, minLevel: 6,
     outcomes: [
       { id: "shares", label: "Island company shares", weight: 22, stock: [0.1, 0.6] },
       { id: "bag", label: "A bag of island company shares", weight: 6, stock: [0.8, 2] },
@@ -76,9 +76,9 @@ export const VOYAGES: Voyage[] = [
     ],
   },
   {
-    id: "trench", name: "Abyssal Trench", blurb: "Twelve hours in the deepest dark. Most never find anything. Some come back rich.", minutes: 720, costRf: 400, costShell: 500, food: 4, minLevel: 12,
+    id: "trench", name: "Abyssal Trench", blurb: "Twelve hours in the deepest dark. Most never find anything. Some come back rich.", minutes: 720, costShell: 1100, food: 4, minLevel: 12,
     outcomes: [
-      { id: "hoard", label: "The Trench hoard (RF)", weight: 14, rf: [800, 2400], items: { pearl: 6 } },
+      { id: "hoard", label: "The Trench hoard", weight: 14, shell: [1200, 3600], items: { pearl: 6 } },
       { id: "relic", label: "A Family Relic and pearls", weight: 4, relic: true, items: { pearl: 4 } },
       { id: "dark", label: "Lost in the dark. Nothing found", weight: 74 },
       { id: "lost", label: "Lost at sea: came back battered and robbed", weight: 8, lost: true },
@@ -98,14 +98,14 @@ export function voyageBonus(s: GameState) {
 export function voyageOdds(s: GameState, v: Voyage) {
   const bonus = voyageBonus(s) / 100;
   const total = v.outcomes.reduce((n, o) => n + o.weight, 0);
-  const isBust = (o: Outcome) => !o.shell && !o.rf && !o.items && !o.stock && !o.relic;
+  const isBust = (o: Outcome) => !o.shell && !o.items && !o.stock && !o.relic;
   const bust = v.outcomes.filter(isBust).reduce((n, o) => n + o.weight, 0);
   const good = total - bust;
   const shift = Math.min(bust * 0.8, total * bonus);
   return v.outcomes.map(o => ({ ...o, weight: isBust(o) ? o.weight - shift * (o.weight / bust) : o.weight + shift * (o.weight / good) }));
 }
 
-export type VoyageResult = { outcome: string; label: string; shell: number; rf: number; items: Partial<Record<ItemId, number>>; stock: { id: StockId; shares: number } | null; relic: boolean; lost: boolean };
+export type VoyageResult = { outcome: string; label: string; shell: number; items: Partial<Record<ItemId, number>>; stock: { id: StockId; shares: number } | null; relic: boolean; lost: boolean };
 
 export function rollVoyage(s: GameState, v: Voyage, rng: Rng): VoyageResult {
   const o = weighted(rng, voyageOdds(s, v));
@@ -115,6 +115,6 @@ export function rollVoyage(s: GameState, v: Voyage, rng: Rng): VoyageResult {
     const id: StockId = o.id === "fullshare" ? "FINX" : weighted(rng, STOCK_IDS.map(k => ({ k, weight: k === "FINX" || k === "GULL" ? 3 : 2 }))).k;
     stock = { id, shares: Math.round((o.stock[0] + rng.next() * (o.stock[1] - o.stock[0])) * 1000) / 1000 };
   }
-  return { outcome: o.id, label: o.label, shell: span(o.shell), rf: span(o.rf), items: o.items ?? {}, stock, relic: !!o.relic, lost: !!o.lost };
+  return { outcome: o.id, label: o.label, shell: span(o.shell), items: o.items ?? {}, stock, relic: !!o.relic, lost: !!o.lost };
 }
 

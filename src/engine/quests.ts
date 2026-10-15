@@ -10,7 +10,7 @@ const QUEST_DEFS: { kind: QuestKind; zone?: ZoneId; label: (n: number) => string
   { kind: "dive", zone: "abyss", label: n => `Cash out ${n} Abyss dives at 2x+`, base: 1, perLevel: 0.1, shell: 60 },
   { kind: "mines", zone: "mines", label: n => `Cash out ${n} Tide Mines runs`, base: 2, perLevel: 0.1, shell: 50 },
   { kind: "raid", zone: "harbor", label: n => `Win ${n} raids`, base: 1, perLevel: 0.1, shell: 70 },
-  { kind: "burn", label: n => `Spend ${n / 100} RF`, base: 100, perLevel: 20, shell: 60 },
+  { kind: "spend", label: n => `Spend ${n} SHELL at the Shrine or Forge`, base: 150, perLevel: 30, shell: 60 },
   { kind: "forge", zone: "forge", label: n => `Attempt ${n} forge upgrades`, base: 1, perLevel: 0.1, shell: 50 },
   { kind: "boss", zone: "reef", label: n => `Hit the Kraken ${n} times`, base: 3, perLevel: 0.2, shell: 60 },
 ];
@@ -40,25 +40,25 @@ export function progress(s: GameState, events: GameEvent[], kind: QuestKind, amo
 }
 
 // ---------- Achievements ----------
-export const ACHIEVEMENTS: { id: string; name: string; blurb: string; test: (s: GameState) => boolean; reward: { shell?: number; rf?: number } }[] = [
+export const ACHIEVEMENTS: { id: string; name: string; blurb: string; test: (s: GameState) => boolean; reward: { shell: number } }[] = [
   { id: "first_fish", name: "First Catch", blurb: "Catch a fish.", test: s => s.stats.fish >= 1, reward: { shell: 20 } },
-  { id: "golden", name: "Finding Gold", blurb: "Catch a Golden Nemo.", test: s => s.stats.goldnemo >= 1, reward: { rf: 100 } },
+  { id: "golden", name: "Finding Gold", blurb: "Catch a Golden Nemo.", test: s => s.stats.goldnemo >= 1, reward: { shell: 150 } },
   { id: "hut", name: "Roof Over Fins", blurb: "Build a Driftwood Hut.", test: s => s.home >= 1, reward: { shell: 50 } },
-  { id: "castle", name: "King of the Tide", blurb: "Build the Sea Castle.", test: s => s.home >= HOMES.length - 1, reward: { rf: 500 } },
+  { id: "castle", name: "King of the Tide", blurb: "Build the Sea Castle.", test: s => s.home >= HOMES.length - 1, reward: { shell: 750 } },
   { id: "dive5", name: "Deep Diver", blurb: "Cash out a dive at 5x or more.", test: s => s.stats.bestDive >= 5, reward: { shell: 100 } },
-  { id: "dive20", name: "Abyss Whisperer", blurb: "Cash out a dive at 20x or more.", test: s => s.stats.bestDive >= 20, reward: { rf: 200 } },
+  { id: "dive20", name: "Abyss Whisperer", blurb: "Cash out a dive at 20x or more.", test: s => s.stats.bestDive >= 20, reward: { shell: 300 } },
   { id: "mines10", name: "Sapper", blurb: "Cash out Tide Mines after 10 safe tiles.", test: s => s.stats.bestMinesTiles >= 10, reward: { shell: 150 } },
   { id: "raider", name: "Pirate Friend", blurb: "Win 5 raids.", test: s => s.stats.raidsWon >= 5, reward: { shell: 150 } },
   { id: "wall", name: "Unbreakable", blurb: "Defend your vault 3 times.", test: s => s.stats.defended >= 3, reward: { shell: 100 } },
-  { id: "lvl10", name: "Rising Tide", blurb: "Reach level 10.", test: s => s.level >= 10, reward: { rf: 150 } },
-  { id: "lvl25", name: "Ocean Legend", blurb: "Reach level 25.", test: s => s.level >= 25, reward: { rf: 500 } },
-  { id: "burn10", name: "Kindling", blurb: "Spend 10 RF in the game.", test: s => s.stats.burned >= 1000, reward: { shell: 150 } },
-  { id: "burn100", name: "Inferno", blurb: "Spend 100 RF in the game.", test: s => s.stats.burned >= 10000, reward: { rf: 300 } },
-  { id: "forge7", name: "Blacksmith", blurb: "Forge any gear to +7.", test: s => Math.max(s.gear.rod, s.gear.pick, s.gear.blade) >= 7, reward: { rf: 200 } },
-  { id: "forge10", name: "Mythsmith", blurb: "Forge any gear to +10.", test: s => Math.max(s.gear.rod, s.gear.pick, s.gear.blade) >= 10, reward: { rf: 1000 } },
+  { id: "lvl10", name: "Rising Tide", blurb: "Reach level 10.", test: s => s.level >= 10, reward: { shell: 225 } },
+  { id: "lvl25", name: "Ocean Legend", blurb: "Reach level 25.", test: s => s.level >= 25, reward: { shell: 750 } },
+  { id: "burn10", name: "Kindling", blurb: "Spend 1,500 SHELL on the island.", test: s => s.stats.shellSunk >= 1500, reward: { shell: 150 } },
+  { id: "burn100", name: "Inferno", blurb: "Spend 15,000 SHELL on the island.", test: s => s.stats.shellSunk >= 15000, reward: { shell: 450 } },
+  { id: "forge7", name: "Blacksmith", blurb: "Forge any gear to +7.", test: s => Math.max(s.gear.rod, s.gear.pick, s.gear.blade) >= 7, reward: { shell: 300 } },
+  { id: "forge10", name: "Mythsmith", blurb: "Forge any gear to +10.", test: s => Math.max(s.gear.rod, s.gear.pick, s.gear.blade) >= 10, reward: { shell: 1500 } },
   { id: "jackpot", name: "Tide Turner", blurb: "Hit the Tide Wheel jackpot.", test: s => s.stats.jackpots >= 1, reward: { shell: 250 } },
   { id: "kraken", name: "Kraken Slayer", blurb: "Share a Kraken kill.", test: s => s.stats.bossKills >= 1, reward: { shell: 200 } },
-  { id: "island", name: "Island Tycoon", blurb: "Unlock every zone.", test: s => Object.values(s.zones).every(Boolean), reward: { rf: 300 } },
+  { id: "island", name: "Island Tycoon", blurb: "Unlock every zone.", test: s => Object.values(s.zones).every(Boolean), reward: { shell: 450 } },
   { id: "flip5", name: "Degen Dolphin", blurb: "Win 5 double-or-nothing flips in total.", test: s => s.stats.flipsWon >= 5, reward: { shell: 120 } },
 ];
 
@@ -66,10 +66,8 @@ export function checkAchievements(s: GameState, events: GameEvent[]) {
   for (const a of ACHIEVEMENTS) {
     if (s.achievements.includes(a.id) || !a.test(s)) continue;
     s.achievements.push(a.id);
-    if (a.reward.shell) { s.shell += a.reward.shell; s.stats.shellEarned += a.reward.shell; }
-    if (a.reward.rf) { s.rf += a.reward.rf; s.stats.rfWon += a.reward.rf; }
-    const reward = [a.reward.shell ? `${a.reward.shell} SHELL` : "", a.reward.rf ? `${a.reward.rf / 100} RF` : ""].filter(Boolean).join(" + ");
-    const text = `Achievement: ${a.name}! +${reward}`;
+    s.shell += a.reward.shell; s.stats.shellEarned += a.reward.shell;
+    const text = `Achievement: ${a.name}! +${a.reward.shell} SHELL`;
     events.push({ tone: "epic", text, cue: "reveal-rare", fx: "confetti" });
     s.log.unshift({ t: s.lastTick, text, tone: "epic" });
   }

@@ -6,7 +6,7 @@ import {
 import { ascendChance } from "../../engine/actions";
 import { cropReady, growMs } from "../../engine/systems";
 import { defense, discounted, maxEnergy, missing, power, prosperityPct } from "../../engine/state";
-import { Bar, CostList, Panel, mmss, n0, rf, useG } from "../common";
+import { Bar, CostList, Panel, mmss, n0, useG } from "../common";
 import { Icon, SpriteImg } from "../Icon";
 import { crop as cropSprite } from "../../art/sprites";
 
@@ -171,10 +171,10 @@ export function ShrinePanel({ onClose }: { onClose: () => void }) {
           <label className="check"><input type="checkbox" checked={blessing} disabled={s.inv.blessing < 1} onChange={e => setBlessing(e.target.checked)} /> Use Luck Scroll (+{ASCEND.blessing}%) · have {s.inv.blessing}</label>
           <label className="check"><input type="checkbox" checked={charm} disabled={s.inv.charm < 1} onChange={e => setCharm(e.target.checked)} /> Protection Charm (on fail refund ½ SHELL & materials) · have {s.inv.charm}</label>
           <button type="button" className="btn primary big" disabled={s.xp < need || !!missing(s, cost)} onClick={() => act({ type: "ascend", blessing, charm })}>
-            Ascend: spend {rf(cost.rf ?? 0)} RF
+            Ascend: spend {n0(cost.shell ?? 0)} SHELL
           </button>
           {s.xp < need && <p className="muted">Earn {n0(need - s.xp)} more XP by working, fishing, farming and taking risks.</p>}
-          <p className="fineprint">Failure spends the cost (70% to the Season Pool) but never lowers your level. Each failure adds +{ASCEND.pityStep}% pity.</p>
+          <p className="fineprint">Failure spends the cost but never lowers your level. Each failure adds +{ASCEND.pityStep}% pity.</p>
         </section>
       )}
       <RebirthSection />
@@ -193,10 +193,10 @@ function RebirthSection() {
     <section className="section rebirth-box">
       <h3><Icon id="star" size={22} /> Rebirth {s.rebirths > 0 ? `(you are Rebirth ${s.rebirths})` : ""}</h3>
       <p>Start again at level 1 and keep your home, gear, items and island. Each rebirth adds <b>+{Math.round(REBIRTH.xpBonus * 100)}% XP</b> and <b>+{Math.round(REBIRTH.shellBonus * 100)}% SHELL</b> forever and a star next to your name.</p>
-      <p className="muted">Rebirth {next} total bonus: +{Math.round(next * REBIRTH.xpBonus * 100)}% XP, +{Math.round(next * REBIRTH.shellBonus * 100)}% SHELL. Cost: {rf(cost)} RF (a sink: 70% to the Season Pool).</p>
+      <p className="muted">Rebirth {next} total bonus: +{Math.round(next * REBIRTH.xpBonus * 100)}% XP, +{Math.round(next * REBIRTH.shellBonus * 100)}% SHELL. Cost: {n0(cost)} SHELL.</p>
       {!ready ? <p className="warn">Unlocks at level {REBIRTH.minLevel}. You are level {s.level}.</p>
-        : !sure ? <button type="button" className="btn big" onClick={() => setSure(true)}>Rebirth for {rf(cost)} RF</button>
-          : <div className="btn-row"><button type="button" className="btn hot big" disabled={s.rf < cost} onClick={() => { act({ type: "rebirth" }); setSure(false); }}>Yes, rebirth now</button><button type="button" className="btn" onClick={() => setSure(false)}>Not yet</button></div>}
+        : !sure ? <button type="button" className="btn big" onClick={() => setSure(true)}>Rebirth for {n0(cost)} SHELL</button>
+          : <div className="btn-row"><button type="button" className="btn hot big" disabled={s.shell < cost} onClick={() => { act({ type: "rebirth" }); setSure(false); }}>Yes, rebirth now</button><button type="button" className="btn" onClick={() => setSure(false)}>Not yet</button></div>}
     </section>
   );
 }

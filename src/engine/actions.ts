@@ -1,23 +1,22 @@
 import {
   ASCEND, BOSS, CRAB, CROPS, DIVE, ENERGY_DRINK, FISH_ENERGY, FISH_FIRST_CATCH_ZONE, FISH_TABLE, FISH_ZONE_BASE, FISH_ZONE_PER_ROD, FLIP, FORGE_CHANCE,
   FORGE_PITY_STEP, GATHER, GEAR, GOLDEN_CROP_CHANCE, HOMES, ITEMS, MAX_GEAR, MAX_LEVEL, MAX_PLOTS, MINES, RAID, RECIPES,
-  SHOP, WELL_FED_MS, WHEEL, WHEEL_COST, WHEEL_FREE_MS, ZONES, ascendCost, diveMultiplierAt, forgeCost, plotCost,
+  SHOP, WELL_FED_MS, WHEEL, WHEEL_FREE_MS, ZONES, ascendCost, diveMultiplierAt, forgeCost, plotCost,
   titleFor, xpToNext, type CropId, type GearId, type ItemId, type MealId, type ZoneId,
 } from "./config";
 import { createRng, hashSeed, weighted, type Rng } from "./rng";
-import { applySwap, quote, type SwapDir } from "./amm";
 import {
-  addXp, clamp, clampNeeds, discounted, forfeitRf, giveRf, giveShell, hasTrait, log, loseRf, luck, maxEnergy, missing, pay, sink,
+  addXp, clamp, clampNeeds, discounted, giveShell, hasTrait, log, luck, maxEnergy, missing, pay,
   power, shellMult, yieldMult,
 } from "./state";
 import { bossStatus, cropReady, eventActive, growMs, startSleep, tick, wakeUp } from "./systems";
-import { NPC_GIFTS, REBIRTH, SEASON, dayNumber, rebirthCost, seasonNumber } from "./config";
+import { NPC_GIFTS, REBIRTH, dayNumber, rebirthCost } from "./config";
 import { chapterAt } from "./story";
 import { checkMilestones } from "./milestones";
 import { claimPass, passClaimable } from "./pass";
 import { STOCKS, STOCK_SELL_FEE, VOYAGES, VOYAGE_CHAPTER, foodCount, homeIsle, rollVoyage, stockPrice, voyageGateText, voyagesOpen, type StockId, type VoyageId } from "./voyages";
 import { checkAchievements, newQuest, progress } from "./quests";
-import type { Currency, GameEvent, GameState, RaidTarget } from "./types";
+import type { GameEvent, GameState, RaidTarget } from "./types";
 
 export type Action =
   | { type: "tick" }
@@ -36,11 +35,10 @@ export type Action =
   | { type: "unlockZone"; zone: ZoneId }
   | { type: "ascend"; blessing?: boolean; charm?: boolean }
   | { type: "forge"; gear: GearId; blessing?: boolean; charm?: boolean }
-  | { type: "swap"; dir: SwapDir; amount: number; minOut?: number }
-  | { type: "diveStart"; stake: number; currency: Currency }
+  | { type: "diveStart"; stake: number }
   | { type: "diveCashout" }
   | { type: "diveCrash" }
-  | { type: "minesStart"; stake: number; currency: Currency; traps: number }
+  | { type: "minesStart"; stake: number; traps: number }
   | { type: "minesReveal"; index: number }
   | { type: "minesCashout" }
   | { type: "fishCast" }
@@ -53,9 +51,8 @@ export type Action =
   | { type: "raidReceived"; id: string; attacker: string; amount: number }
   | { type: "bossAttack"; others?: number }
   | { type: "bossClaim"; others?: number }
-  | { type: "spin"; free?: boolean }
+  | { type: "spin"; free: true }
   | { type: "claimQuest"; id: number }
-  | { type: "seasonClaim"; rank: number; pool: number }
   | { type: "passClaim" }
   | { type: "forage" }
   | { type: "storyClaim" }
@@ -75,7 +72,6 @@ export type Result = { state: GameState; events: GameEvent[]; outbox: Outbox[]; 
 
 class Reject extends Error {}
 const fail = (message: string): never => { throw new Reject(message); };
-const fmtRf = (c: number) => `${(c / 100).toFixed(2)} RF`;
 
 /** JSON deep copy: game state is plain JSON, and the Nakama runtime has no structuredClone. */
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
@@ -122,16 +118,13 @@ function cooldown(s: GameState, key: string, ms: number, now: number) {
   if ((s.cooldowns[key] ?? 0) > now) fail("Not so fast!");
   s.cooldowns[key] = now + ms;
 }
-function stakeCheck(s: GameState, stake: number, currency: Currency, minShell: number, minRf: number) {
+function stakeCheck(s: GameState, stake: number, minShell: number) {
   if (!Number.isFinite(stake) || stake <= 0 || Math.floor(stake) !== stake) fail("Invalid stake.");
-  if (currency === "shell") { if (stake < minShell) fail(`Minimum stake is ${minShell} SHELL.`); if (s.shell < stake) fail("Not enough SHELL."); }
-  else { if (stake < minRf) fail(`Minimum stake is ${fmtRf(minRf)}.`); if (s.rf < stake) fail("Not enough RF."); }
+  if (stake < minShell) fail(`Minimum stake is ${minShell} SHELL.`);
+  if (s.shell < stake) fail("Not enough SHELL.");
 }
-function takeStake(s: GameState, stake: number, currency: Currency) {
-  if (currency === "shell") { s.shell -= stake; s.stats.shellSpent += stake; } else s.rf -= stake;
-}
-function payout(s: GameState, amount: number, currency: Currency) {
-  return currency === "shell" ? giveShell(s, amount) : giveRf(s, amount);
+function takeStake(s: GameState, stake: number) {
+  s.shell -= stake; s.stats.shellSpent += stake;
 }
 function giveItems(s: GameState, items: Partial<Record<ItemId, number>>) {
   for (const [id, n] of Object.entries(items)) if (n) s.inv[id as ItemId] += n;
@@ -214,7 +207,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       pay(s, cost);
       s.home++;
       addXp(s, events, 30 * s.home);
-      log(s, events, `Built ${next.name}! ${next.perk} (${fmtRf(cost.rf ?? 0)} burned)`, "epic", { cue: "reveal-rare", fx: "confetti" }, now);
+      log(s, events, `Built ${next.name}! ${next.perk}`, "epic", { cue: "reveal-rare", fx: "confetti" }, now);
       return;
     }
     case "unlockZone": {
@@ -225,7 +218,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       pay(s, cost);
       s.zones[a.zone] = true;
       addXp(s, events, 25);
-      log(s, events, `The island grows! ${ZONES[a.zone].name} unlocked. (${fmtRf(cost.rf ?? 0)} burned)`, "epic", { cue: "reveal-rare", fx: "confetti" }, now);
+      log(s, events, `The island grows! ${ZONES[a.zone].name} unlocked.`, "epic", { cue: "reveal-rare", fx: "confetti" }, now);
       return;
     }
     case "buyPlot": {
@@ -235,7 +228,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const need = missing(s, cost); if (need) fail(need);
       pay(s, cost);
       s.plots.push({ crop: null, plantedAt: 0, readyAt: 0, withered: false });
-      log(s, events, `New farm plot #${s.plots.length}! (${fmtRf(cost.rf ?? 0)} burned)`, "good", { cue: "purchase" }, now);
+      log(s, events, `New farm plot #${s.plots.length}!`, "good", { cue: "purchase" }, now);
       return;
     }
 
@@ -318,11 +311,11 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       requireAwake(s);
       const offer = SHOP.find(o => o.id === a.item); if (!offer) fail("Not for sale.");
       const qty = clamp(Math.floor(a.qty ?? 1), 1, 99);
-      const cost = { rf: (offer!.price.rf ?? 0) * qty, shell: (offer!.price.shell ?? 0) * qty, items: Object.fromEntries(Object.entries(offer!.price.items ?? {}).map(([k, v]) => [k, (v ?? 0) * qty])) };
+      const cost = { shell: (offer!.price.shell ?? 0) * qty, items: Object.fromEntries(Object.entries(offer!.price.items ?? {}).map(([k, v]) => [k, (v ?? 0) * qty])) };
       const need = missing(s, cost); if (need) fail(need);
       pay(s, cost);
       s.inv[a.item] += offer!.qty * qty;
-      log(s, events, `Bought ${qty}x ${ITEMS[a.item].name}${cost.rf ? ` (${fmtRf(cost.rf)} burned)` : ""}.`, "info", { cue: "purchase" }, now);
+      log(s, events, `Bought ${qty}x ${ITEMS[a.item].name}.`, "info", { cue: "purchase" }, now);
       return;
     }
     case "sell": {
@@ -335,33 +328,15 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       log(s, events, `Sold ${qty}x ${ITEMS[a.item].name} for ${got} SHELL.`, "good", { cue: "reward" }, now);
       return { got };
     }
-    case "swap": {
-      requireAwake(s);
-      const amount = Math.floor(a.amount);
-      if (a.dir === "shellToRf" ? s.shell < amount : s.rf < amount) fail("Not enough balance.");
-      const q = quote(s.pool, a.dir, amount);
-      if (!q) fail("Swap too small or too large for the pool.");
-      if (a.minOut && q!.out < a.minOut) fail("Price moved! Slippage protection stopped the swap.");
-      applySwap(s.pool, a.dir, amount, q!);
-      if (a.dir === "shellToRf") { s.shell -= amount; s.stats.shellSpent += amount; s.rf += q!.out; s.world.volumeRf += q!.out; }
-      else { s.rf -= amount; s.shell += q!.out; s.stats.shellEarned += q!.out; s.world.volumeRf += amount; }
-      // The 3% fee is taken in RF and flows through the sink split.
-      sink(s, q!.fee); s.stats.swaps++;
-      progress(s, events, "burn", q!.fee);
-      const text = a.dir === "shellToRf" ? `Swapped ${amount} SHELL → ${fmtRf(q!.out)}` : `Swapped ${fmtRf(amount)} → ${q!.out} SHELL`;
-      log(s, events, `${text} (fee ${fmtRf(q!.fee)} → season pool)`, "good", { cue: "purchase", fx: "burn" }, now);
-      return { out: q!.out };
-    }
-
     // ---------------- Abyss Dive (crash) ----------------
     case "diveStart": {
       requireZone(s, "abyss"); requireNoRun(s); requireEnergy(s, DIVE.energy);
-      stakeCheck(s, a.stake, a.currency, DIVE.minShell, DIVE.minRf);
-      takeStake(s, a.stake, a.currency);
+      stakeCheck(s, a.stake, DIVE.minShell);
+      takeStake(s, a.stake);
       s.energy -= DIVE.energy;
       const u = rng.next();
       const crashAt = Math.max(1, Math.floor(100 * (1 - diveEdge(s)) / (1 - u)) / 100);
-      s.run = { kind: "dive", stake: a.stake, currency: a.currency, crashAt, startedAt: now };
+      s.run = { kind: "dive", stake: a.stake, crashAt, startedAt: now };
       s.lastWin = null;
       s.stats.dives++;
       addXp(s, events, 4);
@@ -375,12 +350,11 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const mult = diveMultiplierAt(now - r.startedAt);
       s.run = null;
       if (a.type === "diveCrash" || mult >= r.crashAt) {
-        if (r.currency === "rf") forfeitRf(s, r.stake);
         s.mood -= 6;
-        log(s, events, `The abyss bit at ${r.crashAt.toFixed(2)}x! Lost ${r.currency === "rf" ? fmtRf(r.stake) : `${r.stake} SHELL`}.`, "bad", { cue: "impact", fx: "shake" }, now);
+        log(s, events, `The abyss bit at ${r.crashAt.toFixed(2)}x! Lost ${r.stake} SHELL.`, "bad", { cue: "impact", fx: "shake" }, now);
         return { crashed: true, crashAt: r.crashAt };
       }
-      const win = payout(s, r.stake * mult, r.currency);
+      const win = giveShell(s, r.stake * mult);
       // Loot from the deep: one roll per full multiplier step past 1x.
       const loot: Partial<Record<ItemId, number>> = {};
       const rolls = Math.floor((mult - 1) / DIVE.lootEvery) * (eventActive(s, "frenzy", now) ? 2 : 1);
@@ -393,8 +367,8 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (mult >= 2) progress(s, events, "dive");
       addXp(s, events, Math.round(4 * mult));
       s.mood += mult >= 3 ? 8 : 3;
-      s.lastWin = { amount: win, currency: r.currency, flips: 0, source: "dive" };
-      log(s, events, `Cashed out at ${mult.toFixed(2)}x: +${r.currency === "rf" ? fmtRf(win) : `${win} SHELL`} ${itemsText(loot)}`, mult >= 5 ? "epic" : "good", { cue: mult >= 10 ? "reveal-legendary" : mult >= 3 ? "reveal-rare" : "reward", fx: mult >= 5 ? "confetti" : undefined }, now);
+      s.lastWin = { amount: win, flips: 0, source: "dive" };
+      log(s, events, `Cashed out at ${mult.toFixed(2)}x: +${win} SHELL ${itemsText(loot)}`, mult >= 5 ? "epic" : "good", { cue: mult >= 10 ? "reveal-legendary" : mult >= 3 ? "reveal-rare" : "reward", fx: mult >= 5 ? "confetti" : undefined }, now);
       return { crashed: false, mult, win, loot, crashAt: r.crashAt };
     }
 
@@ -402,14 +376,14 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     case "minesStart": {
       requireZone(s, "mines"); requireNoRun(s); requireEnergy(s, MINES.energy);
       if (!MINES.trapOptions.includes(a.traps)) fail("Invalid trap count.");
-      stakeCheck(s, a.stake, a.currency, MINES.minShell, MINES.minRf);
-      takeStake(s, a.stake, a.currency);
+      stakeCheck(s, a.stake, MINES.minShell);
+      takeStake(s, a.stake);
       s.energy -= MINES.energy;
       const tiles = Array.from({ length: MINES.size }, (_, i) => i);
       for (let i = tiles.length - 1; i > 0; i--) { const j = rng.int(0, i); [tiles[i], tiles[j]] = [tiles[j], tiles[i]]; }
       const traps = tiles.slice(0, a.traps).sort((x, y) => x - y);
       const safe = tiles.slice(a.traps);
-      s.run = { kind: "mines", stake: a.stake, currency: a.currency, traps, revealed: [], trapCount: a.traps, loot: {}, safeHint: hasTrait(s, "void") ? safe[0] : null };
+      s.run = { kind: "mines", stake: a.stake, traps, revealed: [], trapCount: a.traps, loot: {}, safeHint: hasTrait(s, "void") ? safe[0] : null };
       s.lastWin = null;
       addXp(s, events, 3);
       events.push({ tone: "info", text: `${a.traps} traps hidden. Dig carefully…`, cue: "action-start" });
@@ -421,9 +395,8 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (a.index < 0 || a.index >= MINES.size || r.revealed.includes(a.index)) fail("Pick another tile.");
       if (r.traps.includes(a.index)) {
         s.run = null;
-        if (r.currency === "rf") forfeitRf(s, r.stake);
         s.mood -= 5;
-        log(s, events, `TRAP! Lost ${r.currency === "rf" ? fmtRf(r.stake) : `${r.stake} SHELL`} and the loot.`, "bad", { cue: "impact", fx: "shake" }, now);
+        log(s, events, `TRAP! Lost ${r.stake} SHELL and the loot.`, "bad", { cue: "impact", fx: "shake" }, now);
         return { trap: true, traps: r.traps };
       }
       r.revealed.push(a.index);
@@ -443,15 +416,15 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (r.revealed.length === 0) fail("Dig at least one tile first.");
       const mult = minesMultiplier(r.trapCount, r.revealed.length);
       s.run = null;
-      const win = payout(s, r.stake * mult, r.currency);
+      const win = giveShell(s, r.stake * mult);
       giveItems(s, r.loot);
       s.stats.minesCashouts++;
       s.stats.bestMinesTiles = Math.max(s.stats.bestMinesTiles, r.revealed.length);
       progress(s, events, "mines");
       addXp(s, events, 2 * r.revealed.length);
       s.mood += 4;
-      s.lastWin = { amount: win, currency: r.currency, flips: 0, source: "mines" };
-      log(s, events, `Mines cashout ${mult.toFixed(2)}x: +${r.currency === "rf" ? fmtRf(win) : `${win} SHELL`} ${itemsText(r.loot)}`, mult >= 5 ? "epic" : "good", { cue: mult >= 5 ? "reveal-rare" : "reward", fx: mult >= 5 ? "confetti" : undefined }, now);
+      s.lastWin = { amount: win, flips: 0, source: "mines" };
+      log(s, events, `Mines cashout ${mult.toFixed(2)}x: +${win} SHELL ${itemsText(r.loot)}`, mult >= 5 ? "epic" : "good", { cue: mult >= 5 ? "reveal-rare" : "reward", fx: mult >= 5 ? "confetti" : undefined }, now);
       return { mult, win, traps: r.traps };
     }
 
@@ -461,17 +434,17 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (w!.flips >= FLIP.maxFlips) fail("Max flips reached. Bank it!");
       const chance = FLIP.winChance + (hasTrait(s, "chaos") ? 0.02 : 0);
       if (rng.chance(chance)) {
-        payout(s, w!.amount, w!.currency);
+        giveShell(s, w!.amount);
         w!.amount *= 2; w!.flips++;
         s.stats.flipsWon++;
         s.mood += 3;
-        log(s, events, `DOUBLED! Now ${w!.currency === "rf" ? fmtRf(w!.amount) : `${w!.amount} SHELL`}.`, "epic", { cue: "reveal-rare", fx: w!.flips >= 3 ? "jackpot" : "confetti" }, now);
+        log(s, events, `DOUBLED! Now ${w!.amount} SHELL.`, "epic", { cue: "reveal-rare", fx: w!.flips >= 3 ? "jackpot" : "confetti" }, now);
         return { won: true };
       }
-      if (w!.currency === "shell") s.shell = Math.max(0, s.shell - w!.amount); else loseRf(s, Math.min(s.rf, w!.amount));
+      s.shell = Math.max(0, s.shell - w!.amount);
       s.stats.flipsLost++;
       s.mood -= 6;
-      log(s, events, `Flip lost… ${w!.currency === "rf" ? fmtRf(w!.amount) : `${w!.amount} SHELL`} gone.`, "bad", { cue: "impact", fx: "shake" }, now);
+      log(s, events, `Flip lost… ${w!.amount} SHELL gone.`, "bad", { cue: "impact", fx: "shake" }, now);
       s.lastWin = null;
       return { won: false };
     }
@@ -555,8 +528,8 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
         const frac = RAID.stealFraction[0] + rng.next() * (RAID.stealFraction[1] - RAID.stealFraction[0]);
         const stolen = Math.max(1, Math.floor(t.vault * frac * (hasTrait(s, "trickster") ? 1.25 : 1)));
         giveShell(s, stolen);
-        let rfBonus = 0;
-        if (rng.chance(0.15)) rfBonus = giveRf(s, rng.int(20, 80));
+        let bonus = 0;
+        if (rng.chance(0.15)) bonus = giveShell(s, rng.int(30, 120));
         if (bot) { bot.vault = Math.max(0, bot.vault - stolen); bot.lastRaidedAt = now; }
         if (s.revenge?.rivalId === t.id) s.revenge = null;
         s.stats.raidsWon++;
@@ -564,8 +537,8 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
         addXp(s, events, 25);
         progress(s, events, "raid");
         if (!t.bot) outbox.push({ kind: "raid", targetId: t.id, amount: stolen, won: true });
-        log(s, events, `Raid on ${t.name} succeeded! +${stolen} SHELL${rfBonus ? ` +${fmtRf(rfBonus)}` : ""}`, "epic", { cue: "reveal-rare", fx: "confetti" }, now);
-        return { won: true, stolen, rfBonus, chance };
+        log(s, events, `Raid on ${t.name} succeeded! +${stolen} SHELL${bonus ? ` +${bonus} bonus SHELL` : ""}`, "epic", { cue: "reveal-rare", fx: "confetti" }, now);
+        return { won: true, stolen, bonus, chance };
       }
       const fee = Math.floor(s.shell * RAID.hospitalFraction);
       s.shell -= fee; s.stats.shellSpent += fee;
@@ -616,33 +589,26 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (s.boss.damage <= 0) fail("You didn't hit the Kraken this time.");
       s.boss.claimed = true;
       const share = Math.min(1, s.boss.damage / BOSS.hp);
-      const rf = giveRf(s, Math.max(10, BOSS.poolRf * share));
-      const shell = giveShell(s, 50 + s.boss.damage / 20);
+      const shell = giveShell(s, Math.max(15, BOSS.poolShell * share) + 50 + s.boss.damage / 20);
       const loot: Partial<Record<ItemId, number>> = { coral: rng.int(3, 8), pearl: rng.chance(0.4 + share) ? 1 : 0 };
       giveItems(s, loot);
       s.stats.bossKills++;
-      log(s, events, `Kraken slain! Your share: +${fmtRf(rf)} +${shell} SHELL ${itemsText(loot)}`, "epic", { cue: "reveal-legendary", fx: "jackpot" }, now);
-      return { rf, shell };
+      log(s, events, `Kraken slain! Your share: +${shell} SHELL ${itemsText(loot)}`, "epic", { cue: "reveal-legendary", fx: "jackpot" }, now);
+      return { shell };
     }
 
     // ---------------- Tide Wheel ----------------
     case "spin": {
       requireAwake(s);
-      if (a.free) {
-        if (s.wheelFreeAt > now) fail("Free spin not ready yet.");
-        s.wheelFreeAt = now + WHEEL_FREE_MS;
-      } else {
-        if (s.rf < WHEEL_COST) fail("A spin burns 1 RF.");
-        s.rf -= WHEEL_COST; sink(s, WHEEL_COST);
-        progress(s, events, "burn", WHEEL_COST);
-      }
+      if (s.wheelFreeAt > now) fail("Free spin not ready yet.");
+      s.wheelFreeAt = now + WHEEL_FREE_MS;
       const prize = weighted(rng, WHEEL);
+      const big = (prize.shell ?? 0) >= 150;
       if (prize.shell) giveShell(s, prize.shell);
-      if (prize.rf) giveRf(s, prize.rf);
       if (prize.items) giveItems(s, prize.items);
       s.stats.spins++;
       if (prize.jackpot) s.stats.jackpots++;
-      log(s, events, `Tide Wheel: ${prize.label}!`, prize.jackpot ? "epic" : prize.rf ? "good" : "info", { cue: prize.jackpot ? "reveal-legendary" : prize.rf ? "reveal-rare" : "reward", fx: prize.jackpot ? "jackpot" : prize.rf ? "confetti" : undefined }, now);
+      log(s, events, `Tide Wheel: ${prize.label}!`, prize.jackpot ? "epic" : big ? "good" : "info", { cue: prize.jackpot ? "reveal-legendary" : big ? "reveal-rare" : "reward", fx: prize.jackpot ? "jackpot" : big ? "confetti" : undefined }, now);
       return { prize: prize.id, index: WHEEL.indexOf(prize) };
     }
 
@@ -658,19 +624,19 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const chance = ascendChance(s, !!a.blessing);
       pay(s, cost);
       if (a.blessing) s.inv.blessing--;
-      progress(s, events, "burn", cost.rf ?? 0);
+      progress(s, events, "spend", cost.shell ?? 0);
       const roll = rng.next() * 100;
       if (roll < chance) {
         const oldTitle = titleFor(s.level);
         s.level++; s.xp = 0; s.ascendPity = 0; s.stats.ascends++;
         s.energy = maxEnergy(s); s.mood += 20;
         const newTitle = titleFor(s.level);
-        log(s, events, `ASCENDED to level ${s.level}!${newTitle !== oldTitle ? ` New title: ${newTitle}!` : ""} (${fmtRf(cost.rf ?? 0)} burned)`, "epic", { cue: "reveal-legendary", fx: "levelup" }, now);
+        log(s, events, `ASCENDED to level ${s.level}!${newTitle !== oldTitle ? ` New title: ${newTitle}!` : ""}`, "epic", { cue: "reveal-legendary", fx: "levelup" }, now);
         if (a.charm) { /* charm unused on success */ }
         return { success: true, chance, roll };
       }
       s.ascendPity++; s.stats.ascendFails++; s.mood -= 10;
-      let text = `Ascension failed (${chance.toFixed(0)}% chance). ${fmtRf(cost.rf ?? 0)} burned. Pity +${ASCEND.pityStep}% next try.`;
+      let text = `Ascension failed (${chance.toFixed(0)}% chance). ${cost.shell ?? 0} SHELL spent. Pity +${ASCEND.pityStep}% next try.`;
       if (a.charm) {
         s.inv.charm--;
         const refundShell = Math.floor((cost.shell ?? 0) / 2);
@@ -694,16 +660,16 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (a.blessing) s.inv.blessing--;
       s.stats.forges++;
       progress(s, events, "forge");
-      progress(s, events, "burn", cost.rf ?? 0);
+      progress(s, events, "spend", cost.shell ?? 0);
       if (rng.next() * 100 < chance) {
         s.gear[a.gear]++; s.forgePity[a.gear] = 0;
         addXp(s, events, 10 * s.gear[a.gear]);
         const n = s.gear[a.gear];
-        log(s, events, `${GEAR[a.gear].name} forged to +${n}! (${fmtRf(cost.rf ?? 0)} burned)`, n >= 7 ? "epic" : "good", { cue: n >= 7 ? "reveal-legendary" : "reveal-rare", fx: n >= 5 ? "confetti" : undefined }, now);
+        log(s, events, `${GEAR[a.gear].name} forged to +${n}!`, n >= 7 ? "epic" : "good", { cue: n >= 7 ? "reveal-legendary" : "reveal-rare", fx: n >= 5 ? "confetti" : undefined }, now);
         return { success: true, chance };
       }
       s.forgePity[a.gear]++; s.stats.forgeFails++; s.mood -= 5;
-      let text = `The hammer slipped! ${GEAR[a.gear].name} stays +${lvl}. ${fmtRf(cost.rf ?? 0)} burned. Pity +${FORGE_PITY_STEP}%.`;
+      let text = `The hammer slipped! ${GEAR[a.gear].name} stays +${lvl}. ${cost.shell ?? 0} SHELL spent. Pity +${FORGE_PITY_STEP}%.`;
       if (a.charm) {
         s.inv.charm--;
         for (const [id, n] of Object.entries(cost.items ?? {})) if (n) s.inv[id as ItemId] += Math.floor(n / 2);
@@ -738,8 +704,8 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (s.level < v!.minLevel && s.rebirths === 0) fail(`${v!.name} needs level ${v!.minLevel}.`);
       if (s.hunger < 40) fail("Your Friend is too hungry to sail. Eat first.");
       if (foodCount(s) < v!.food) fail(`Pack ${v!.food} food for the trip (bread, fish or crops).`);
-      const need = missing(s, { rf: v!.costRf, shell: v!.costShell }); if (need) fail(need);
-      pay(s, { rf: v!.costRf, shell: v!.costShell });
+      const need = missing(s, { shell: v!.costShell }); if (need) fail(need);
+      pay(s, { shell: v!.costShell });
       let packed = v!.food;
       for (const id of ["bread", "sardine", "kelp", "carrot", "coconut", "clownfish", "berry", "tuna", "sushi", "pumpkin", "angler", "stew", "pie"] as ItemId[]) {
         while (packed > 0 && s.inv[id] > 0) { s.inv[id]--; packed--; }
@@ -765,15 +731,14 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const r = v!.result;
       s.voyage = null;
       if (r.shell) giveShell(s, r.shell);
-      if (r.rf) giveRf(s, r.rf);
       giveItems(s, r.items);
       if (r.stock) s.stocks[r.stock.id] = Math.round((s.stocks[r.stock.id] + r.stock.shares) * 1000) / 1000;
       if (r.relic) s.relics++;
       if (r.lost) { const lost = Math.floor(s.shell * 0.1); s.shell -= lost; s.mood -= 30; s.energy = Math.min(s.energy, 10); }
-      const won = !!(r.shell || r.rf || Object.keys(r.items).length || r.stock || r.relic);
+      const won = !!(r.shell || Object.keys(r.items).length || r.stock || r.relic);
       if (won) s.stats.voyageWins++;
       addXp(s, events, won ? 40 : 15);
-      const parts = [r.shell ? `${r.shell} SHELL` : "", r.rf ? `${fmtRf(r.rf)}` : "", itemsText(r.items), r.stock ? `${r.stock.shares} ${r.stock.id} island company shares` : "", r.relic ? "a Family Relic (+2% XP forever)" : ""].filter(Boolean);
+      const parts = [r.shell ? `${r.shell} SHELL` : "", itemsText(r.items), r.stock ? `${r.stock.shares} ${r.stock.id} island company shares` : "", r.relic ? "a Family Relic (+2% XP forever)" : ""].filter(Boolean);
       log(s, events, won ? `Voyage success: ${r.label}! +${parts.join(", ")}` : `Voyage: ${r.label}.`, won ? "epic" : "bad", { cue: won ? "reveal-rare" : "impact", fx: won ? "confetti" : "shake", icon: won ? "chest" : "skull" }, now);
       return { result: r, won };
     }
@@ -794,7 +759,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       requireAwake(s); requireNoRun(s);
       requirePresent(s);
       if (s.level < REBIRTH.minLevel) fail(`Rebirth unlocks at level ${REBIRTH.minLevel}.`);
-      const cost = { rf: rebirthCost(s.rebirths) };
+      const cost = { shell: rebirthCost(s.rebirths) };
       const need = missing(s, cost); if (need) fail(need);
       pay(s, cost);
       s.rebirths++;
@@ -809,7 +774,6 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const ch = chapterAt(s.story);
       if (!ch.done(s)) fail(`Chapter goal: ${ch.goal}`);
       if (ch.reward.shell) giveShell(s, ch.reward.shell);
-      if (ch.reward.rf) giveRf(s, ch.reward.rf);
       if (ch.reward.items) giveItems(s, ch.reward.items);
       addXp(s, events, 20 + s.story * 10);
       s.story++;
@@ -823,19 +787,6 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     case "passClaim": {
       if (!passClaimable(s)) fail("No Season Journey tiers to claim yet. Earn more season points.");
       return claimPass(s, events, now);
-    }
-    case "seasonClaim": {
-      const last = s.lastSeason;
-      if (!last) fail("No finished season to claim yet.");
-      if (last!.claimed) fail("Season prize already claimed.");
-      if (!Number.isInteger(a.rank) || a.rank < 1 || a.rank > SEASON.payouts.length) fail("Only the top 10 win season prizes.");
-      if (last!.score <= 0) fail("You didn't score last season.");
-      last!.claimed = true;
-      const pool = Math.max(0, Math.min(a.pool, last!.pool || a.pool));
-      const rf = giveRf(s, pool * SEASON.payouts[a.rank - 1]);
-      s.stats.seasonWins++; s.stats.seasonRf += rf;
-      log(s, events, `Season ${seasonNumber(last!.id)} rank ${a.rank}! +${fmtRf(rf)} from the Season Prize Pool.`, "epic", { cue: "reveal-legendary", fx: "jackpot" }, now);
-      return { rf };
     }
 
     // ---------------- Quests ----------------

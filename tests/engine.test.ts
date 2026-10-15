@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  BOSS, DIVE, FISH_FIRST_CATCH_ZONE, HOMES, MINES, NEEDS, RF, SLEEP_MS, WHEEL, ZONES, ascendCost, bossStatus, createRng, createState, diveMultiplierAt,
+  BOSS, DIVE, FISH_FIRST_CATCH_ZONE, HOMES, MINES, NEEDS, SLEEP_MS, START, WHEEL, ZONES, ascendCost, bossStatus, createRng, createState, diveMultiplierAt,
   dayNumber, dispatch, forgeCost, maxEnergy, minesMultiplier, xpToNext, type Action, type GameState,
 } from "../src/engine";
 import { exportSave, importSave } from "../src/game/save";
@@ -9,9 +9,10 @@ const T0 = 1_800_000_000_000;
 // Today's streak is pre-claimed so each test measures only its own mechanic.
 const fresh = (over: Partial<GameState> = {}, family = 0): GameState => ({ ...createState({ friendId: "42", name: "Friend #42", family, guest: false, now: T0, seed: 7 }), streak: { day: dayNumber(T0), count: 1 }, ...over });
 const rich = (s: GameState) => {
-  s.rf = 1000 * RF; s.shell = 100_000;
+  s.shell = 100_000;
   for (const k of Object.keys(s.inv)) s.inv[k as keyof typeof s.inv] = 500;
   for (const z of Object.keys(s.zones)) s.zones[z as keyof typeof s.zones] = true;
+  s.achievements.push("island"); // its SHELL reward would blur balance checks
   return s;
 };
 function run(s: GameState, a: Action, now = s.lastTick) { return dispatch(s, a, now); }
@@ -19,7 +20,7 @@ function run(s: GameState, a: Action, now = s.lastTick) { return dispatch(s, a, 
 describe("state", () => {
   it("starts with simulated grant, two plots, beach+grove unlocked, three quests", () => {
     const s = fresh();
-    expect(s.rf).toBe(20 * RF);
+    expect(s.shell).toBe(START.shell);
     expect(s.plots).toHaveLength(2);
     expect(s.zones.beach && s.zones.grove).toBe(true);
     expect(s.zones.abyss).toBe(false);
@@ -74,25 +75,25 @@ describe("needs", () => {
 });
 
 describe("building & island growth", () => {
-  it("home upgrade needs materials and burns RF", () => {
+  it("home upgrade needs materials and sinks SHELL", () => {
     const s = fresh();
     expect(run(s, { type: "buildHome" }).ok).toBe(false);
     const r = run(rich(fresh()), { type: "buildHome" });
     expect(r.ok).toBe(true);
     expect(r.state.home).toBe(1);
-    expect(r.state.stats.burned).toBe(HOMES[1].cost.rf);
+    expect(r.state.stats.shellSunk).toBe(HOMES[1].cost.shell);
   });
-  it("unlocking a zone burns RF and opens it", () => {
+  it("unlocking a zone sinks SHELL and opens it", () => {
     const s = fresh({ shell: 1000 });
     s.inv.wood = 50;
     const r = run(s, { type: "unlockZone", zone: "cove" });
     expect(r.ok).toBe(true);
     expect(r.state.zones.cove).toBe(true);
-    expect(r.state.stats.burned).toBe(ZONES.cove.cost.rf);
+    expect(r.state.stats.shellSunk).toBe(ZONES.cove.cost.shell);
   });
   it("locked zones block their activities", () => {
     expect(run(fresh(), { type: "gather", kind: "quarry" }).ok).toBe(false);
-    expect(run(fresh(), { type: "diveStart", stake: 10, currency: "shell" }).ok).toBe(false);
+    expect(run(fresh(), { type: "diveStart", stake: 10 }).ok).toBe(false);
   });
 });
 
@@ -152,7 +153,7 @@ describe("Abyss Dive (crash)", () => {
   it("cashing out before the crash pays stake x multiplier", () => {
     const s = rich(fresh());
     s.shell = 1000;
-    const started = run(s, { type: "diveStart", stake: 100, currency: "shell" });
+    const started = run(s, { type: "diveStart", stake: 100 });
     expect(started.state.shell).toBe(900);
     const run0 = started.state.run as { crashAt: number };
     const t = run0.crashAt > 1.2 ? 1500 : 0;
@@ -161,13 +162,12 @@ describe("Abyss Dive (crash)", () => {
     if (mult < run0.crashAt) { expect(r.data!.crashed).toBe(false); expect(r.state.shell).toBe(900 + Math.floor(100 * mult)); }
     else expect(r.data!.crashed).toBe(true);
   });
-  it("RF lost to the abyss is burned", () => {
+  it("a crash keeps the stake that left the wallet at dive start", () => {
     const s = rich(fresh());
-    const started = run(s, { type: "diveStart", stake: 100, currency: "rf" });
+    const started = run(s, { type: "diveStart", stake: 100 });
     const r = run(started.state, { type: "diveCrash" }, T0 + 10);
-    expect(r.state.stats.burned).toBe(100);
-    expect(started.state.stats.burned).toBe(0);
-    expect(r.state.rf).toBe(started.state.rf); // stake already left the wallet at dive start
+    expect(r.state.shell).toBe(started.state.shell);
+    expect(r.state.shell).toBe(s.shell - 100);
   });
 });
 
@@ -182,7 +182,7 @@ describe("Tide Mines", () => {
   });
   it("revealing a trap loses the stake; cashout pays", () => {
     const s = rich(fresh());
-    const started = run(s, { type: "minesStart", stake: 100, currency: "shell", traps: 3 });
+    const started = run(s, { type: "minesStart", stake: 100, traps: 3 });
     expect(started.ok).toBe(true);
     const run0 = started.state.run as { traps: number[] };
     const trapHit = run(started.state, { type: "minesReveal", index: run0.traps[0] });
@@ -199,7 +199,7 @@ describe("double or nothing", () => {
   it("flip has ~48% win rate and loses the whole amount", () => {
     let wins = 0; const N = 2000;
     for (let i = 0; i < N; i++) {
-      const s = { ...fresh(), seed: i + 1, lastWin: { amount: 100, currency: "shell" as const, flips: 0, source: "test" }, shell: 500 };
+      const s = { ...fresh(), seed: i + 1, lastWin: { amount: 100, flips: 0, source: "test" }, shell: 500 };
       const r = run(s, { type: "flip" });
       if (r.data!.won) { wins++; expect(r.state.shell).toBe(600); } else expect(r.state.shell).toBe(400);
     }
@@ -269,27 +269,23 @@ describe("Kraken boss", () => {
     expect(bossStatus(late, 0).defeated).toBe(true);
     const claim = run(hit.state, { type: "bossClaim" }, late);
     expect(claim.ok).toBe(true);
-    expect(claim.state.rf).toBeGreaterThan(hit.state.rf);
+    expect(claim.state.shell).toBeGreaterThan(hit.state.shell);
     expect(run(claim.state, { type: "bossClaim" }, late + 1).ok).toBe(false);
   });
 });
 
 describe("Tide Wheel", () => {
-  it("expected return is below the spin cost (RF-equivalent, 150 SHELL ≈ 1 RF)", () => {
+  it("the free spin is a modest gift: its expected value stays under 250 SHELL", () => {
     const total = WHEEL.reduce((n, p) => n + p.weight, 0);
     const itemValue: Record<string, number> = { ore: 8, coral: 12, pearl: 60, charm: 225 };
     const ev = WHEEL.reduce((sum, p) => {
       const shell = (p.shell ?? 0) + Object.entries(p.items ?? {}).reduce((v, [k, n]) => v + itemValue[k] * n!, 0);
-      return sum + p.weight / total * ((p.rf ?? 0) + shell / 1.5);
+      return sum + p.weight / total * shell;
     }, 0);
-    expect(ev).toBeLessThan(100);
-    const rfOnly = WHEEL.reduce((sum, p) => sum + p.weight / total * (p.rf ?? 0), 0);
-    expect(rfOnly).toBeLessThan(60);
+    expect(ev).toBeLessThan(250);
   });
-  it("paid spins burn 1 RF; free spin has a cooldown", () => {
+  it("the free spin has a cooldown", () => {
     const s = fresh();
-    const r = run(s, { type: "spin" });
-    expect(r.state.stats.burned).toBe(100);
     const f = run(s, { type: "spin", free: true });
     expect(f.ok).toBe(true);
     expect(run(f.state, { type: "spin", free: true }).ok).toBe(false);
@@ -297,7 +293,7 @@ describe("Tide Wheel", () => {
 });
 
 describe("ascension & forge", () => {
-  it("cannot ascend without full XP; success levels up, failure burns + pity", () => {
+  it("cannot ascend without full XP; success levels up, failure spends + pity", () => {
     const s = rich(fresh());
     expect(run(s, { type: "ascend" }).ok).toBe(false);
     s.xp = xpToNext(1);
@@ -305,7 +301,7 @@ describe("ascension & forge", () => {
     for (let seed = 1; seed < 300; seed++) {
       const t = { ...structuredClone(s), seed, level: 20, xp: xpToNext(20) };
       const r = run(t, { type: "ascend", charm: true });
-      expect(r.state.stats.burned).toBe(ascendCost(20).rf);
+      expect(r.state.stats.shellSunk).toBe(ascendCost(20).shell);
       if (r.data!.success) { successes++; expect(r.state.level).toBe(21); }
       else { fails++; expect(r.state.ascendPity).toBe(1); expect(r.state.inv.charm).toBe(499); }
     }
@@ -318,7 +314,7 @@ describe("ascension & forge", () => {
     for (let seed = 1; seed < 50; seed++) {
       const r = run({ ...structuredClone(s), seed }, { type: "forge", gear: "blade" });
       expect(r.state.gear.blade).toBeGreaterThanOrEqual(9);
-      expect(r.state.stats.burned).toBe(forgeCost(10).rf);
+      expect(r.state.stats.shellSunk).toBe(forgeCost(10).shell);
     }
   });
 });
@@ -341,14 +337,13 @@ describe("robustness", () => {
     const s = fresh();
     const r = run(s, { type: "buildHome" });
     expect(r.ok).toBe(false);
-    expect(r.state.rf).toBe(s.rf);
     expect(r.state.shell).toBe(s.shell);
   });
   it("save codes round-trip and reject tampering / wrong Friend", () => {
     const s = rich(fresh());
     const code = exportSave(s);
     const back = importSave(code, "42");
-    expect(back.rf).toBe(s.rf);
+    expect(back.shell).toBe(s.shell);
     expect(() => importSave(code, "43")).toThrow(/belongs/);
     const [p, sum, body] = code.split(".");
     expect(() => importSave(`${p}.${sum}.${body.slice(0, -4)}AAAA`, "42")).toThrow();

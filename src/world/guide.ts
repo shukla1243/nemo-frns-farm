@@ -4,7 +4,7 @@ import type { GameState } from "../engine/types";
 import { STATIONS, UNLOCK_SIGNS, type Station, type StationId } from "./map";
 
 /** Where each story chapter happens, so the world can point new players at their next goal. */
-const ACT_ONE_AT: StationId[] = ["chop", "farm", "dock", "unlock:cove", "home", "pool", "shrine", "mines", "harbor", "abyss", "forge", "home", "reef", "shrine", "home"];
+const ACT_ONE_AT: StationId[] = ["chop", "farm", "dock", "unlock:cove", "home", "pier", "shrine", "mines", "harbor", "abyss", "forge", "home", "reef", "shrine", "home"];
 const ACT_TWO_AT: StationId[] = ["dock", "dock", "forge", "abyss", "home", "farm", "harbor", "reef", "market", "home", "forge", "shrine"];
 const ETERNAL_AT: StationId[] = ["dock", "farm", "harbor", "reef", "shrine", "shrine", "mines", "shrine"];
 

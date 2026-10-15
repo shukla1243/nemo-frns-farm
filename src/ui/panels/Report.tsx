@@ -1,5 +1,5 @@
 import { BOSS, ITEMS, MAX_LEVEL, xpToNext } from "../../engine/config";
-import { bossStatus, seasonBoard } from "../../engine/systems";
+import { bossStatus } from "../../engine/systems";
 import { passClaimable } from "../../engine/pass";
 import type { GameState } from "../../engine/types";
 import type { StationId } from "../../world/map";
@@ -21,11 +21,9 @@ function readyNow(s: GameState, now: number): Ready[] {
   if (bounties) out.push({ id: "bounties", icon: "board", text: `${bounties} bount${bounties > 1 ? "ies" : "y"} ready to claim`, station: "board" });
   const pass = passClaimable(s);
   if (pass) out.push({ id: "pass", icon: "flag", text: `${pass} Season Journey tier${pass > 1 ? "s" : ""} to claim`, station: "board" });
-  const last = s.lastSeason;
-  if (last && !last.claimed && last.score > 0 && seasonBoard(s, now, [], last.id, last.score).findIndex(e => e.you) < 10) out.push({ id: "season", icon: "trophy", text: "You placed top 10 last season. Claim your prize", station: "board" });
   if (s.wheelFreeAt <= now) out.push({ id: "wheel", icon: "coin", text: "Free Tide Wheel spin", station: "wheel" });
   const boss = bossStatus(now, s.boss.epoch === Math.floor(now / BOSS.periodMs) ? s.boss.damage : 0);
-  if (s.zones.reef && boss.active && !boss.defeated) out.push({ id: "kraken", icon: "angler", text: "The Kraken is up. Hit it for a share of 30 RF", station: "reef" });
+  if (s.zones.reef && boss.active && !boss.defeated) out.push({ id: "kraken", icon: "angler", text: "The Kraken is up. Hit it for a share of 4,500 SHELL", station: "reef" });
   const gift = NPCS.find(n => s.zones[n.zone] && giftReady(s, n.id, now));
   if (gift) {
     const n = NPCS.filter(x => s.zones[x.zone] && giftReady(s, x.id, now)).length;

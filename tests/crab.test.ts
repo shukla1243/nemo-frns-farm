@@ -39,15 +39,13 @@ describe("crab dash", () => {
     expect(early.state.shell).toBe(s.shell);
     expect(dispatch(s, { type: "crabFinish", score: 50 }, END - CRAB.finishGraceMs).ok).toBe(true);
   });
-  it("pays SHELL and XP per point and never RF", () => {
+  it("pays SHELL and XP per point", () => {
     const s = started();
     const r = dispatch(s, { type: "crabFinish", score: 40 }, END);
     expect(r.ok).toBe(true);
     expect(r.state.run).toBeNull();
     expect(r.state.shell - s.shell).toBe(40 * CRAB.shellPerPoint);
     expect(r.data).toMatchObject({ score: 40, shell: 120, xp: 15, best: true });
-    expect(r.state.rf).toBe(s.rf);
-    expect(r.state.stats.rfWon).toBe(0);
     expect(r.state.inv.bait).toBe(s.inv.bait);
     expect(r.state.inv.pearl).toBe(s.inv.pearl);
   });

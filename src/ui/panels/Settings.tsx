@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { homeIsle } from "../../engine/voyages";
 import { exportSave, importSave, clearLocal } from "../../game/save";
-import { TRAITS, SINK } from "../../engine/config";
+import { TRAITS } from "../../engine/config";
 import { sound } from "../../game/sound";
 import { Panel, SimTag, useG } from "../common";
 import { music } from "../../game/music";
@@ -49,7 +49,7 @@ export function SettingsPanel({ onClose, onReplace }: { onClose: () => void; onR
           </div>
         )}
       </section>
-      <p className="fineprint"><SimTag /> Every RF balance, reward, prize pool and trade here is simulated for the Rare Friends Vibeathon. RF sinks split {SINK.pool * 100}% Season Pool / {SINK.creator * 100}% creator / {SINK.burn * 100}% burned.</p>
+      <p className="fineprint"><SimTag /> Every SHELL balance, reward and trade here is simulated. The game holds no RF.</p>
     </Panel>
   );
 }
@@ -70,13 +70,13 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         <p><b>Eat:</b> tap the hunger bar (or the flashing "Eat now" button) to eat your best food. Get food from the Farm, the Dock, the Market or cook at Home. Below 25 hunger your yields drop 25% and energy stops refilling.</p>
         <p><b>Rest:</b> tap the energy bar to drink or go to sleep at Home. Bigger homes restore more. <b>Mood:</b> tap it for a treat. Above 75 you get luck and bonus XP.</p>
         <h3>Earn and risk</h3>
-        <p><b>Earn:</b> chop, quarry, farm, fish, fill bounties, sell at the Market, and swap SHELL and RF at the Tide Pool.</p>
+        <p><b>Earn:</b> chop, quarry, farm, fish, fill bounties, sell at the Market, and sell island company shares at the Tide Pool.</p>
         <p><b>Risk:</b> Abyss Dive (cash out before the shark), Tide Mines (dig safe tiles), double or nothing, raids, the Kraken world boss and the Tide Wheel. Every game shows its odds before you play.</p>
-        <p><b>Voyages:</b> at the Voyage Pier, send your Friend away for 15 minutes to 12 hours. Long voyages have low odds but can bring back RF, Family Relics or simulated island company shares (FINX, URCH, GULL and more) that you can sell for SHELL. While your Friend is away it can't work.</p>
+        <p><b>Voyages:</b> at the Voyage Pier, send your Friend away for 15 minutes to 12 hours. Long voyages have low odds but can bring back SHELL hoards, Family Relics or simulated island company shares (FINX, URCH, GULL and more) that you can sell for SHELL. While your Friend is away it can't work.</p>
         <h3>Grow forever</h3>
-        <p>Level up by <b>Ascending</b> at the Coral Shrine (a chance roll that spends RF, never loses a level). Forge gear +1 to +10. Build from a Tent to a Sea Castle. Unlock 7 regions. At level 30 you can <b>Rebirth</b> for permanent XP and SHELL bonuses. Milestones and daily streak rewards arrive on their own.</p>
-        <h3>Where RF goes</h3>
-        <p>Every RF you spend splits <b>70%</b> into the weekly Season Prize Pool, <b>25%</b> to the creator and <b>5%</b> is burned forever. The top 10 of each week split the pool. All balances are simulated.</p>
+        <p>Level up by <b>Ascending</b> at the Coral Shrine (a chance roll that spends SHELL, never loses a level). Forge gear +1 to +10. Build from a Tent to a Sea Castle. Unlock 7 regions. At level 30 you can <b>Rebirth</b> for permanent XP and SHELL bonuses. Milestones and daily streak rewards arrive on their own.</p>
+        <h3>Where SHELL goes</h3>
+        <p>SHELL you spend on upgrades and the market raises your Prosperity (up to +30% SHELL from sales and bounties) and your weekly season score. All balances are simulated.</p>
         <p><b>Your Friend:</b> {trait.family} family, trait <b>{trait.name}</b>: {trait.blurb} It gets a new hat and title every 10 levels.</p>
         <p><b>Rivals:</b> your island is solo. Rival islands, residents and Kraken hunters are simulated.</p>
       </div>

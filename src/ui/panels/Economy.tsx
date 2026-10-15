@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { animate } from "animejs";
-import { ITEMS, SHOP, SINK, WHEEL, WHEEL_COST, ZONES, type ItemId, type ZoneId } from "../../engine/config";
-import { POOL, poolPrice, quote, type SwapDir } from "../../engine/amm";
+import { ITEMS, SHOP, WHEEL, ZONES, type ItemId, type ZoneId } from "../../engine/config";
+import { STOCKS, STOCK_IDS, STOCK_SELL_FEE, stockPrice, type StockId } from "../../engine/voyages";
 import { sellPrice } from "../../engine/actions";
 import { discounted, missing, prosperityPct } from "../../engine/state";
 import { eventActive } from "../../engine/systems";
-import { CostList, Panel, SimTag, Tabs, mmss, n0, rf, useG } from "../common";
+import { CostList, Panel, SimTag, Tabs, mmss, n0, useG } from "../common";
 import { Icon } from "../Icon";
 
 export function MarketPanel({ onClose }: { onClose: () => void }) {
@@ -24,10 +24,9 @@ export function MarketPanel({ onClose }: { onClose: () => void }) {
               <span className="big-icon"><Icon id={o.id} size={32} /></span>
               <span className="grow"><b>{ITEMS[o.id].name}</b><small>have {s.inv[o.id]}</small><CostList cost={o.price} s={s} /></span>
               <button type="button" className="btn" disabled={!!missing(s, o.price)} onClick={() => act({ type: "buy", item: o.id })}>Buy</button>
-              {!o.price.rf && <button type="button" className="btn ghost" onClick={() => act({ type: "buy", item: o.id, qty: 5 })}>×5</button>}
+              <button type="button" className="btn ghost" onClick={() => act({ type: "buy", item: o.id, qty: 5 })}>×5</button>
             </div>
           ))}
-          <p className="fineprint">RF purchases (Charms, Luck Scrolls) are RF sinks: {SINK.pool * 100}% Season Pool · {SINK.creator * 100}% creator · {SINK.burn * 100}% burned.</p>
         </div>
       ) : (
         <div className="list">
@@ -49,65 +48,61 @@ export function MarketPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Spark({ data }: { data: number[] }) {
+function Spark({ data, label }: { data: number[]; label: string }) {
   const w = 300, h = 80;
   if (data.length < 2) return <svg viewBox={`0 0 ${w} ${h}`} className="spark" />;
   const lo = Math.min(...data), hi = Math.max(...data), span = hi - lo || 1;
   const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - 6 - ((v - lo) / span) * (h - 12)}`).join(" ");
   const up = data[data.length - 1] >= data[0];
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="spark" role="img" aria-label={`SHELL per RF price chart, from ${data[0]} to ${data[data.length - 1]}`}>
+    <svg viewBox={`0 0 ${w} ${h}`} className="spark" role="img" aria-label={`${label} price chart, from ${data[0]} to ${data[data.length - 1]} SHELL`}>
       <polyline points={`0,${h} ${pts} ${w},${h}`} fill={up ? "rgba(124,242,154,.18)" : "rgba(255,93,143,.18)"} stroke="none" />
       <polyline points={pts} fill="none" stroke={up ? "#2ec27e" : "#ff5d8f"} strokeWidth="2.5" strokeLinejoin="round" />
     </svg>
   );
 }
 
+const HOUR = 3_600_000;
+
+/** The Tide Pool trades the simulated island company shares that voyages bring home, for SHELL only. */
 export function PoolPanel({ onClose }: { onClose: () => void }) {
-  const { s, act } = useG();
-  const [dir, setDir] = useState<SwapDir>("shellToRf");
-  const [amount, setAmount] = useState(300);
-  const inUnits = dir === "shellToRf" ? amount : Math.round(amount * 100);
-  const q = useMemo(() => quote(s.pool, dir, inUnits), [s.pool, dir, inUnits]);
-  const price = poolPrice(s.pool);
-  const bal = dir === "shellToRf" ? s.shell : s.rf / 100;
+  const { s, act, now } = useG();
+  const [pick, setPick] = useState<StockId>(STOCK_IDS[0]);
+  const price = stockPrice(pick, now);
+  const prev = stockPrice(pick, now - HOUR);
+  const hour = Math.floor(now / HOUR);
+  const history = useMemo(() => Array.from({ length: 48 }, (_, i) => stockPrice(pick, (hour - 47 + i) * HOUR)), [pick, hour]);
   return (
-    <Panel title="Tide Pool · $SHELL / $RAREFRIENDS" icon="wave" onClose={onClose} wide>
+    <Panel title="Tide Pool · island shares" icon="wave" onClose={onClose} wide>
+      <div className="seg wrap">
+        {STOCK_IDS.map(id => <button key={id} type="button" className={pick === id ? "on" : ""} onClick={() => setPick(id)}>{id}</button>)}
+      </div>
       <div className="pool-head">
-        <div><span className="muted">Price</span><b className="big-num">{price.toFixed(1)}</b><span className="muted">SHELL per RF</span></div>
-        <div><span className="muted">Reserves</span><b>{n0(s.pool.shell)} · {rf(s.pool.rf)} RF</b></div>
-        <div><span className="muted">Island volume</span><b>{rf(s.world.volumeRf)} RF</b></div>
+        <div><span className="muted">{STOCKS[pick].name}</span><b className="big-num">{n0(price)}</b><span className="muted">SHELL per share</span></div>
+        <div><span className="muted">Last hour</span><b className={price >= prev ? "good" : "bad"}>{price >= prev ? "▲" : "▼"} {Math.abs(((price - prev) / prev) * 100).toFixed(1)}%</b></div>
+        <div><span className="muted">You hold</span><b>{s.stocks[pick] ?? 0}</b></div>
       </div>
-      <Spark data={s.pool.history} />
-      <div className="swap">
-        <div className="seg">
-          <button type="button" className={dir === "shellToRf" ? "on" : ""} onClick={() => { setDir("shellToRf"); setAmount(300); }}><Icon id="shell" size={18} /> Sell SHELL for RF</button>
-          <button type="button" className={dir === "rfToShell" ? "on" : ""} onClick={() => { setDir("rfToShell"); setAmount(1); }}><Icon id="rf" size={18} /> Buy SHELL with RF</button>
-        </div>
-        <label className="stake-input">
-          <span>Pay</span>
-          <input type="number" inputMode="decimal" min={0} step={dir === "shellToRf" ? 10 : 0.1} value={amount} onChange={e => setAmount(Math.max(0, Number(e.target.value)))} />
-          <span>{dir === "shellToRf" ? "SHELL" : "RF"}</span>
-        </label>
-        <div className="quick">
-          {[0.1, 0.25, 0.5, 1].map(f => <button key={f} type="button" onClick={() => setAmount(dir === "shellToRf" ? Math.floor(bal * f) : Math.floor(bal * f * 100) / 100)}>{f * 100}%</button>)}
-        </div>
-        {q ? (
-          <div className="quote">
-            <p>You receive <b>{dir === "shellToRf" ? `${rf(q.out)} RF` : `${n0(q.out)} SHELL`}</b></p>
-            <p className="muted">Fee {rf(q.fee)} RF (3%) → {SINK.pool * 100}% Season Pool · {SINK.creator * 100}% creator · {SINK.burn * 100}% burned · Price impact {(q.impact * 100).toFixed(2)}%</p>
-          </div>
-        ) : <p className="muted">Enter an amount (max {POOL.maxShareOfReserve * 100}% of the pool per swap).</p>}
-        <button type="button" className="btn primary big" disabled={!q || (dir === "shellToRf" ? s.shell < inUnits : s.rf < inUnits)}
-          onClick={() => q && act({ type: "swap", dir, amount: inUnits, minOut: Math.floor(q.out * 0.99) })}>Swap</button>
+      <Spark data={history} label={STOCKS[pick].name} />
+      <p className="muted">Shares come back from the Shipwreck Salvage Run at the Voyage Pier. Prices update every hour and are the same for every player.</p>
+      <div className="list">
+        {STOCK_IDS.map(id => {
+          const held = s.stocks[id] ?? 0;
+          return (
+            <div key={id} className="list-row">
+              <span className="ticker">{id}</span>
+              <span className="grow"><b>{STOCKS[id].name}</b><small>{n0(stockPrice(id, now))} SHELL / share · you hold {held}</small></span>
+              <button type="button" className="btn" disabled={held <= 0} onClick={() => act({ type: "sellStock", id, shares: held })}>Sell all</button>
+            </div>
+          );
+        })}
       </div>
-      <p className="fineprint"><SimTag /> A constant-product (x·y=k) pool pairing the game's $SHELL with $RAREFRIENDS. Simulated traders move the price every ~30s. On-chain, this is the "pair it with $RAREFRIENDS to get a market" step of the Rare Friends roadmap, and fees are creator revenue as assets trade.</p>
+      <p className="fineprint"><SimTag /> Island company shares are simulated game collectibles from fictional NEMO sea companies. They are not securities and have no real value. Selling pays SHELL minus a {STOCK_SELL_FEE * 100}% fee.</p>
     </Panel>
   );
 }
 
 const WHEEL_COLORS = ["#ee6f22", "#6cc6e6", "#f5c542", "#b48ae0", "#ff6f73", "#86c95e", "#f6a9bb", "#fff1a8"];
-const WHEEL_ICONS = ["shell", "shell", "ore", "charm", "rf", "pearl", "rf", "chest"];
+const WHEEL_ICONS = ["shell", "shell", "ore", "charm", "coin", "pearl", "coin", "chest"];
 
 /** Pixel wheel: a 72px canvas pie (weighted slices) redrawn at the current angle and upscaled crisply. */
 function drawWheel(c: HTMLCanvasElement, angleDeg: number, weights: number[]) {
@@ -144,9 +139,9 @@ export function WheelPanel({ onClose }: { onClose: () => void }) {
   const weights = WHEEL.map(p => p.weight);
   const free = s.wheelFreeAt <= now;
   useEffect(() => { if (cv.current) drawWheel(cv.current, angle.current, WHEEL.map(p => p.weight)); }, []);
-  const spin = (isFree: boolean) => {
+  const spin = () => {
     if (spinning) return;
-    const r = act({ type: "spin", free: isFree });
+    const r = act({ type: "spin", free: true });
     if (!r.ok) return;
     const idx = r.data!.index as number;
     const before = WHEEL.slice(0, idx).reduce((n, p) => n + p.weight, 0);
@@ -167,14 +162,13 @@ export function WheelPanel({ onClose }: { onClose: () => void }) {
       </div>
       <div className="result-slot" aria-live="polite">{result && <p className="result-pop"><Icon id={WHEEL_ICONS[result.idx]} size={32} /> {result.label}!</p>}</div>
       <div className="btn-row">
-        <button type="button" className="btn primary big" disabled={!free || spinning} onClick={() => spin(true)}>{free ? "Free spin" : `Free spin in ${mmss(s.wheelFreeAt - now)}`}</button>
-        <button type="button" className="btn big" disabled={s.rf < WHEEL_COST || spinning} onClick={() => spin(false)}>Spin for {rf(WHEEL_COST)} RF</button>
+        <button type="button" className="btn primary big" disabled={!free || spinning} onClick={spin}>{free ? "Free spin" : `Free spin in ${mmss(s.wheelFreeAt - now)}`}</button>
       </div>
       <table className="odds-table">
         <thead><tr><th>Prize</th><th>Chance</th></tr></thead>
         <tbody>{WHEEL.map((p, i) => <tr key={p.id}><td><span className="swatch" style={{ background: WHEEL_COLORS[i] }} /><Icon id={WHEEL_ICONS[i]} size={20} /> {p.label}</td><td>{(p.weight / total * 100).toFixed(1)}%</td></tr>)}</tbody>
       </table>
-      <p className="fineprint"><SimTag /> Paid spins are an RF sink. Expected RF-only return is 47% of the spin; total expected value is about 94% counting items at market value.</p>
+      <p className="fineprint"><SimTag /> One free spin every 8 hours. Every prize is SHELL or items.</p>
     </Panel>
   );
 }
@@ -190,7 +184,7 @@ export function UnlockPanel({ zone, onClose }: { zone: ZoneId; onClose: () => vo
       <CostList cost={cost} s={s} />
       <button type="button" className="btn primary big" disabled={!!missing(s, cost)} onClick={() => { const r = act({ type: "unlockZone", zone }); if (r.ok) onClose(); }}>Unlock {z.name}</button>
       {missing(s, cost) && <p className="warn">{missing(s, cost)}</p>}
-      <p className="fineprint">Tip: {zone === "cove" ? "Chop wood in the Palm Grove and sell it at the Market." : "Swap SHELL for RF at the Tide Pool, gather materials, and claim bounties."}</p>
+      <p className="fineprint">Tip: {zone === "cove" ? "Chop wood in the Palm Grove and sell it at the Market." : "Sell at the Market, gather materials, and claim bounties."}</p>
     </Panel>
   );
 }

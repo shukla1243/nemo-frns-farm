@@ -1,7 +1,7 @@
 /**
  * Economy simulation: scripted bots play NEMO FRNS FARM for hours of game time.
  * Verifies invariants (no NaN, no negative balances), that progression is reachable,
- * and that RF is net-burned (sinks exceed faucets), the core Token Activity claim.
+ * and that SHELL keeps flowing into sinks.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -39,10 +39,10 @@ function simulate(seed: number, hours: number, style: Style) {
     if (s.xp >= xpToNext(s.level) && !missing(s, ascendCost(s.level))) { act({ type: "ascend", charm: s.inv.charm > 0 }); continue; }
     if (s.home < HOMES.length - 1 && !missing(s, HOMES[s.home + 1].cost)) { act({ type: "buildHome" }); continue; }
     const zone = ZONE_ORDER.find(z => !s.zones[z]);
-    if (zone && !missing(s, ZONES[zone].cost) && s.rf > (ZONES[zone].cost.rf ?? 0) + 300) { act({ type: "unlockZone", zone }); continue; }
+    if (zone && !missing(s, ZONES[zone].cost) && s.shell > (ZONES[zone].cost.shell ?? 0) + 450) { act({ type: "unlockZone", zone }); continue; }
     if (s.plots.length < MAX_PLOTS && s.shell > 600 && !missing(s, plotCost(s.plots.length))) { act({ type: "buyPlot" }); continue; }
     if (s.zones.forge && step % 40 === 0) {
-      const gear = (["blade", "pick", "rod"] as const).find(g => s.gear[g] < 6 && !missing(s, forgeCost(s.gear[g] + 1)) && s.rf > 800);
+      const gear = (["blade", "pick", "rod"] as const).find(g => s.gear[g] < 6 && !missing(s, forgeCost(s.gear[g] + 1)) && s.shell > 2000);
       if (gear) { act({ type: "forge", gear }); continue; }
     }
     // Farm
@@ -78,7 +78,7 @@ function simulate(seed: number, hours: number, style: Style) {
     const r = step % 7;
     if (r === 0 && s.zones.abyss && s.shell > 200) {
       const stake = style === "degen" ? Math.floor(s.shell * 0.2) : Math.max(DIVE.minShell, Math.floor(s.shell * 0.05));
-      const started = act({ type: "diveStart", stake, currency: "shell" });
+      const started = act({ type: "diveStart", stake });
       if (started.ok) {
         const target = style === "degen" ? 3 : 1.6;
         now += Math.ceil(diveTimeFor(target)) + 10;
@@ -88,7 +88,7 @@ function simulate(seed: number, hours: number, style: Style) {
       continue;
     }
     if (r === 1 && s.zones.mines && s.shell > 150) {
-      const started = act({ type: "minesStart", stake: Math.max(10, Math.floor(s.shell * 0.05)), currency: "shell", traps: 3 });
+      const started = act({ type: "minesStart", stake: Math.max(10, Math.floor(s.shell * 0.05)), traps: 3 });
       if (started.ok) {
         for (let k = 0; k < 4 && s.run; k++) {
           const run = s.run as { revealed: number[] };
@@ -112,11 +112,9 @@ function simulate(seed: number, hours: number, style: Style) {
       continue;
     }
     if (r === 4 && s.zones.cove) { act({ type: "gather", kind: "quarry" }); continue; }
-    if (r === 5 && step % 3 === 0 && s.shell > 2000 && style === "grinder") { act({ type: "swap", dir: "shellToRf", amount: 400 }); continue; }
-    if (r === 6 && style === "degen" && s.rf > 500 && step % 5 === 0) { act({ type: "spin" }); continue; }
     act({ type: "gather", kind: "chop" });
     // Invariants every step
-    for (const [k, v] of Object.entries({ rf: s.rf, shell: s.shell, hunger: s.hunger, energy: s.energy, mood: s.mood })) {
+    for (const [k, v] of Object.entries({ shell: s.shell, hunger: s.hunger, energy: s.energy, mood: s.mood })) {
       if (!Number.isFinite(v)) throw new Error(`${k} became ${v} at step ${step}`);
     }
   }
@@ -127,38 +125,35 @@ function summary(s: GameState) {
   return {
     level: s.level, home: HOMES[s.home].name, zones: Object.values(s.zones).filter(Boolean).length,
     gear: `${s.gear.rod}/${s.gear.pick}/${s.gear.blade}`,
-    rf: +(s.rf / 100).toFixed(2), rfBurned: +(s.stats.burned / 100).toFixed(2), rfWon: +(s.stats.rfWon / 100).toFixed(2),
-    shell: Math.floor(s.shell), shellEarned: s.stats.shellEarned, raids: `${s.stats.raidsWon}W/${s.stats.raidsLost}L`,
+    shell: Math.floor(s.shell), shellEarned: s.stats.shellEarned, shellSunk: s.stats.shellSunk, raids: `${s.stats.raidsWon}W/${s.stats.raidsLost}L`,
     ascends: `${s.stats.ascends}/${s.stats.ascends + s.stats.ascendFails}`, forges: `${s.stats.forges - s.stats.forgeFails}/${s.stats.forges}`,
     bestDive: s.stats.bestDive, achievements: s.achievements.length,
   };
 }
 
 describe("economy simulation", () => {
-  it("grinders progress steadily and RF is net-burned", () => {
+  it("grinders progress steadily and SHELL flows into sinks", () => {
     const rows = [];
     const sims = [1, 2, 3, 4].map(seed => ({ seed, ...simulate(seed, 4, "grinder") }));
     for (const { seed, s } of sims) rows.push({ seed, style: "grinder", hours: 4, ...summary(s) });
     console.table(rows);
     for (const { s } of sims) {
-      expect(s.rf).toBeGreaterThanOrEqual(0);
       expect(s.shell).toBeGreaterThanOrEqual(0);
       expect(s.level).toBeGreaterThanOrEqual(6);
       expect(s.home).toBeGreaterThanOrEqual(1);
-      expect(s.stats.burned).toBeGreaterThan(s.stats.rfWon);
+      expect(s.stats.shellSunk).toBeGreaterThan(0);
       for (const n of Object.values(s.inv)) expect(n).toBeGreaterThanOrEqual(0);
     }
     console.table(rows);
   }, 120_000);
 
-  it("degens swing harder but still burn RF", () => {
+  it("degens swing harder but still sink SHELL", () => {
     const rows = [];
     for (const seed of [11, 12, 13]) {
       const { s } = simulate(seed, 4, "degen");
       rows.push({ seed, style: "degen", hours: 4, ...summary(s) });
-      expect(s.rf).toBeGreaterThanOrEqual(0);
       expect(s.shell).toBeGreaterThanOrEqual(0);
-      expect(s.stats.burned).toBeGreaterThan(0);
+      expect(s.stats.shellSunk).toBeGreaterThan(0);
     }
     console.table(rows);
   }, 120_000);

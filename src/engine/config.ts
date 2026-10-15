@@ -1,9 +1,8 @@
 /**
  * Every tunable number in NEMO FRNS FARM lives here.
- * RF amounts are integer centi-RF (1 RF = 100). All balances are SIMULATED.
+ * SHELL is the only in-game currency. Former RF prices and prizes were converted at 1 RF = 150 SHELL.
+ * All balances are SIMULATED.
  */
-
-export const RF = 100;
 
 export type GearId = "rod" | "pick" | "blade";
 export type ZoneId = "beach" | "grove" | "cove" | "mines" | "abyss" | "forge" | "harbor" | "reef";
@@ -73,13 +72,13 @@ export const NEEDS = {
 };
 
 // ---------- Home ----------
-export type Cost = { rf?: number; shell?: number; items?: Partial<Record<ItemId, number>> };
+export type Cost = { shell?: number; items?: Partial<Record<ItemId, number>> };
 export const HOMES: { name: string; cost: Cost; defense: number; sleep: number; vault: number; perk: string }[] = [
   { name: "Beach Tent", cost: {}, defense: 5, sleep: 0.35, vault: 0, perk: "Crabs may raid you while you sleep." },
-  { name: "Driftwood Hut", cost: { rf: 2 * RF, shell: 100, items: { wood: 30, stone: 10 } }, defense: 20, sleep: 0.6, vault: 0.2, perk: "Unlocks the kitchen." },
-  { name: "Coral Cottage", cost: { rf: 6 * RF, shell: 400, items: { wood: 60, stone: 40, coral: 20 } }, defense: 45, sleep: 0.8, vault: 0.35, perk: "Storm shelter protects your crops." },
-  { name: "Pearl Villa", cost: { rf: 15 * RF, shell: 1200, items: { wood: 120, stone: 100, coral: 50, pearl: 5 } }, defense: 80, sleep: 1, vault: 0.5, perk: "Sleeping restores mood." },
-  { name: "Sea Castle", cost: { rf: 40 * RF, shell: 4000, items: { wood: 200, stone: 200, coral: 120, pearl: 20, glass: 20 } }, defense: 130, sleep: 1, vault: 0.65, perk: "Well Rested: +10% yields after sleep." },
+  { name: "Driftwood Hut", cost: { shell: 400, items: { wood: 30, stone: 10 } }, defense: 20, sleep: 0.6, vault: 0.2, perk: "Unlocks the kitchen." },
+  { name: "Coral Cottage", cost: { shell: 1300, items: { wood: 60, stone: 40, coral: 20 } }, defense: 45, sleep: 0.8, vault: 0.35, perk: "Storm shelter protects your crops." },
+  { name: "Pearl Villa", cost: { shell: 3450, items: { wood: 120, stone: 100, coral: 50, pearl: 5 } }, defense: 80, sleep: 1, vault: 0.5, perk: "Sleeping restores mood." },
+  { name: "Sea Castle", cost: { shell: 10000, items: { wood: 200, stone: 200, coral: 120, pearl: 20, glass: 20 } }, defense: 130, sleep: 1, vault: 0.65, perk: "Well Rested: +10% yields after sleep." },
 ];
 export const SLEEP_MS = 15_000;
 export const TENT_THIEF_CHANCE = 0.2;
@@ -97,7 +96,7 @@ export const START_PLOTS = 2;
 export const MAX_PLOTS = 9;
 export function plotCost(index: number): Cost {
   const n = index - START_PLOTS + 1; // 1 for the third plot
-  return { shell: Math.round(60 * n ** 1.5), rf: 30 * n };
+  return { shell: Math.round(60 * n ** 1.5) + 45 * n };
 }
 
 // ---------- Gathering ----------
@@ -125,8 +124,8 @@ export const SHOP: { id: ItemId; price: Cost; qty: number }[] = [
   { id: "bread", price: { shell: 12 }, qty: 1 },
   { id: "energyDrink", price: { shell: 70 }, qty: 1 },
   { id: "trap", price: { shell: 120, items: { wood: 5, ore: 2 } }, qty: 1 },
-  { id: "charm", price: { rf: 150 }, qty: 1 },
-  { id: "blessing", price: { rf: 100 }, qty: 1 },
+  { id: "charm", price: { shell: 225 }, qty: 1 },
+  { id: "blessing", price: { shell: 150 }, qty: 1 },
 ];
 export const MARKET_TIDE_MS = 120_000;
 export const MARKET_TIDE_RANGE: [number, number] = [0.7, 1.4];
@@ -137,12 +136,12 @@ export const ENERGY_DRINK = { energy: 40, mood: -3 };
 export const ZONES: Record<ZoneId, { name: string; blurb: string; cost: Cost }> = {
   beach: { name: "Home Beach", blurb: "Your home, farm, market and dock.", cost: {} },
   grove: { name: "Palm Grove", blurb: "Chop driftwood palms.", cost: {} },
-  cove: { name: "Rock Cove", blurb: "Quarry stone, sea glass and ore.", cost: { shell: 100, rf: 50 } },
-  mines: { name: "Tide Mines", blurb: "Minesweeper dig for ore. Traps take everything.", cost: { shell: 250, rf: 100, items: { wood: 20 } } },
-  harbor: { name: "Rival Harbor", blurb: "Raid other Friends. Defend your vault.", cost: { shell: 400, rf: 200, items: { wood: 30, stone: 20 } } },
-  abyss: { name: "Abyss Gate", blurb: "Crash dive: cash out before the abyss bites.", cost: { shell: 500, rf: 200, items: { stone: 40 } } },
-  forge: { name: "Volcano Forge", blurb: "Upgrade gear. Every hammer strike is a gamble.", cost: { shell: 800, rf: 300, items: { stone: 60, ore: 20 } } },
-  reef: { name: "Kraken Reef", blurb: "World boss. You and simulated hunters fight, top hitters split the pool.", cost: { shell: 1200, rf: 500, items: { coral: 30 } } },
+  cove: { name: "Rock Cove", blurb: "Quarry stone, sea glass and ore.", cost: { shell: 175 } },
+  mines: { name: "Tide Mines", blurb: "Minesweeper dig for ore. Traps take everything.", cost: { shell: 400, items: { wood: 20 } } },
+  harbor: { name: "Rival Harbor", blurb: "Raid rival crews. Defend your vault.", cost: { shell: 700, items: { wood: 30, stone: 20 } } },
+  abyss: { name: "Abyss Gate", blurb: "Crash dive: cash out before the abyss bites.", cost: { shell: 800, items: { stone: 40 } } },
+  forge: { name: "Volcano Forge", blurb: "Upgrade gear. Every hammer strike is a gamble.", cost: { shell: 1250, items: { stone: 60, ore: 20 } } },
+  reef: { name: "Kraken Reef", blurb: "World boss. You and simulated hunters fight, top hitters split the pool.", cost: { shell: 1950, items: { coral: 30 } } },
 };
 export const ZONE_ORDER: ZoneId[] = ["beach", "grove", "cove", "mines", "harbor", "abyss", "forge", "reef"];
 
@@ -154,7 +153,7 @@ export function ascendCost(level: number): Cost {
   if (level >= 5) items.coral = Math.ceil(level / 2);
   if (level >= 10) items.pearl = Math.floor(level / 10);
   if (level >= 15) items.glass = Math.floor(level / 3);
-  return { rf: 50 + 40 * level, shell: 30 * level, items };
+  return { shell: 75 + 90 * level, items };
 }
 export const ASCEND = { base: 98, perLevel: 2.5, floor: 30, pityStep: 6, blessing: 12, happy: 5 };
 export const TITLES = ["Hatchling", "Reef Scout", "Tide Runner", "Coral Knight", "Abyss Walker", "Ocean Legend"];
@@ -167,7 +166,7 @@ export const FORGE_PITY_STEP = 3;
 export function forgeCost(target: number): Cost {
   const items: Partial<Record<ItemId, number>> = { ore: 4 * target };
   if (target >= 7) items.pearl = target - 6;
-  return { rf: Math.round(20 * target ** 1.7), shell: 25 * target, items };
+  return { shell: Math.round(30 * target ** 1.7) + 25 * target, items };
 }
 export const GEAR: Record<GearId, { name: string; icon: string; effect: string }> = {
   rod: { name: "Reef Rod", icon: "rod", effect: "Wider catch zone, rarer fish." },
@@ -189,7 +188,7 @@ export const FISH_ZONE_PER_ROD = 0.018;
 /** Until the first fish is landed the catch zone is at least this wide, so a new player's first cast is an easy win. */
 export const FISH_FIRST_CATCH_ZONE = 0.45;
 
-// ---------- Crab Dash (skill arcade, SHELL only, never RF) ----------
+// ---------- Crab Dash (skill arcade, SHELL only) ----------
 export const CRAB = {
   energy: 6, roundMs: 25_000, shellPerPoint: 3, maxScore: 120,
   /** A finish is accepted from roundMs minus this, so clock drift can't void a fair round. */
@@ -200,13 +199,13 @@ export const CRAB = {
 // ---------- Abyss Dive (crash) ----------
 export const DIVE = {
   energy: 10, edge: 0.04, edgePerBlade: 0.002, growth: 0.11, maxMultiplier: 1000,
-  minShell: 10, minRf: 10, maxShellFraction: 1, lootEvery: 1,
+  minShell: 10, maxShellFraction: 1, lootEvery: 1,
 };
 export const diveMultiplierAt = (ms: number) => Math.min(DIVE.maxMultiplier, Math.floor(100 * Math.exp(DIVE.growth * ms / 1000)) / 100);
 export const diveTimeFor = (multiplier: number) => Math.log(multiplier) / DIVE.growth * 1000;
 
 // ---------- Tide Mines ----------
-export const MINES = { size: 25, trapOptions: [1, 3, 5, 10, 20], energy: 8, edge: 0.03, minShell: 10, minRf: 10 };
+export const MINES = { size: 25, trapOptions: [1, 3, 5, 10, 20], energy: 8, edge: 0.03, minShell: 10 };
 
 // ---------- Double or nothing ----------
 export const FLIP = { winChance: 0.48, maxFlips: 5 };
@@ -218,21 +217,20 @@ export const RIVAL_RAID_MIN_SHELL = 80;
 export const RIVAL_RAID_LOSS = 0.15;
 
 // ---------- Kraken world boss ----------
-export const BOSS = { periodMs: 20 * 60_000, activeMs: 12 * 60_000, hp: 60_000, energy: 10, poolRf: 30 * RF, counterChance: 0.15, simShare: 0.8, cooldownMs: 3_000 };
+export const BOSS = { periodMs: 20 * 60_000, activeMs: 12 * 60_000, hp: 60_000, energy: 10, poolShell: 4500, counterChance: 0.15, simShare: 0.8, cooldownMs: 3_000 };
 
 // ---------- Tide Wheel ----------
-type WheelPrize = { id: string; label: string; weight: number; shell?: number; rf?: number; items?: Partial<Record<ItemId, number>>; jackpot?: boolean };
-export const WHEEL_COST = 1 * RF;
+type WheelPrize = { id: string; label: string; weight: number; shell?: number; items?: Partial<Record<ItemId, number>>; jackpot?: boolean };
 export const WHEEL_FREE_MS = 8 * 60 * 60_000;
 export const WHEEL: WheelPrize[] = [
   { id: "shell40", label: "40 SHELL", weight: 3300, shell: 40 },
   { id: "shell90", label: "90 SHELL", weight: 2100, shell: 90 },
   { id: "mats", label: "Ore x6 + Coral x3", weight: 1800, items: { ore: 6, coral: 3 } },
   { id: "charm", label: "Protection Charm", weight: 700, items: { charm: 1 } },
-  { id: "rf1", label: "1 RF", weight: 1000, rf: 100 },
+  { id: "shell150", label: "150 SHELL", weight: 1000, shell: 150 },
   { id: "pearl", label: "Pearl x2", weight: 600, items: { pearl: 2 } },
-  { id: "rf3", label: "3 RF", weight: 400, rf: 300 },
-  { id: "jackpot", label: "JACKPOT 25 RF", weight: 100, rf: 2500, jackpot: true },
+  { id: "shell450", label: "450 SHELL", weight: 400, shell: 450 },
+  { id: "jackpot", label: "JACKPOT 3,750 SHELL", weight: 100, shell: 3750, jackpot: true },
 ];
 
 // ---------- Rivals (simulated) ----------
@@ -243,8 +241,8 @@ export const RIVAL_NAMES: { name: string; color: string }[] = [
   { name: "Gill Gates", color: "#8a8f99" }, { name: "Tidepool Tia", color: "#d65fa8" },
 ];
 
-// ---------- Prosperity (burn to earn) ----------
-export const PROSPERITY = { rfPerPercent: 5 * RF, cap: 30 }; // +1% SHELL yields per 5 RF burned, max +30%
+// ---------- Prosperity (spend to earn) ----------
+export const PROSPERITY = { shellPerPercent: 750, cap: 30 }; // +1% SHELL yields per 750 SHELL spent, max +30%
 
 // ---------- World events ----------
 export type EventId = "meteor" | "storm" | "boom" | "goldtide" | "frenzy";
@@ -273,7 +271,7 @@ export const TRAITS: { id: TraitId; family: string; name: string; blurb: string 
 ];
 export const traitFor = (family: number): TraitId => TRAITS[((family % TRAITS.length) + TRAITS.length) % TRAITS.length].id;
 
-export const START = { rf: 20 * RF, shell: 120, items: { kelpSeed: 4, bait: 5, bread: 2 } as Partial<Record<ItemId, number>> };
+export const START = { shell: 3120, items: { kelpSeed: 4, bait: 5, bread: 2 } as Partial<Record<ItemId, number>> };
 export const AUTOSAVE_MS = 10_000;
 
 /** Islanders hand out one small gift per real day each. */
@@ -291,25 +289,19 @@ export const dayNumber = (now: number) => Math.floor(now / 86_400_000);
 
 /** Rebirth (prestige): restart at level 1 with permanent bonuses. Endless by design. */
 export const REBIRTH = { minLevel: 30, xpBonus: 0.1, shellBonus: 0.05 };
-export const rebirthCost = (rebirths: number) => (10 + 10 * rebirths) * RF;
+export const rebirthCost = (rebirths: number) => 1500 + 1500 * rebirths;
 
 /** Daily streak: rewards grow for 7 days, then the cycle repeats at full strength. */
 export const streakReward = (count: number) => {
   const day = ((count - 1) % 7) + 1;
-  return { shell: 40 * day, rf: day === 7 ? 1 * RF : 0, items: day === 7 ? { charm: 1 } as Partial<Record<ItemId, number>> : day % 2 === 0 ? { bait: 5 } as Partial<Record<ItemId, number>> : {} };
+  return { shell: 40 * day + (day === 7 ? 150 : 0), items: day === 7 ? { charm: 1 } as Partial<Record<ItemId, number>> : day % 2 === 0 ? { bait: 5 } as Partial<Record<ItemId, number>> : {} };
 };
 
-// ---------- RF sink split & Seasons (spend-to-earn loop) ----------
-/** Every RF the game takes in is split: 70% Season Prize Pool, 25% creator treasury, 5% burned forever. */
-export const SINK = { pool: 0.7, creator: 0.25, burn: 0.05 };
+// ---------- Seasons (weekly score and Season Journey) ----------
 export const SEASON = {
   ms: 7 * 86_400_000,
   offsetMs: 4 * 86_400_000, // seasons roll over Monday 00:00 UTC
-  payouts: [0.3, 0.2, 0.12, 0.08, 0.06, 0.05, 0.05, 0.05, 0.05, 0.04], // top-10 shares of the pool
-  rollover: 0.1, // 10% of the pool seeds the next season
-  simBaseRf: 300 * RF, // simulated island residents' contributions
-  simPerDayRf: 60 * RF,
-  rfScore: 20, // season points per 1 RF spent
+  shellPerPoint: 7.5, // one season point per 7.5 SHELL spent
 };
 export const seasonIdAt = (now: number) => Math.floor((now - SEASON.offsetMs) / SEASON.ms);
 export const seasonStartOf = (id: number) => id * SEASON.ms + SEASON.offsetMs;

@@ -10,7 +10,7 @@ import { stationSprite } from "../world/World";
 import { sound } from "../game/sound";
 import { music } from "../game/music";
 import { Icon, SpriteImg } from "./Icon";
-import { mmss, n0, rf, useG } from "./common";
+import { mmss, n0, useG } from "./common";
 
 export type Toast = { id: number; text: string; tone: string; icon?: string };
 
@@ -114,7 +114,6 @@ export function Hud({ portraitUrl, near, onAction, toasts, unread, guide, onGuid
           </div>
         </div>
         <div className="wallets">
-          <span className="coin frame-dark" title="Simulated $RAREFRIENDS"><Icon id="rf" size={22} /><Ticker value={s.rf} format={rf} /><small>RF</small></span>
           <span className="coin frame-dark" title="$SHELL, the island token"><Icon id="shell" size={22} /><Ticker value={s.shell} format={n0} /></span>
           <span className="sim-flag">SIMULATED</span>
         </div>

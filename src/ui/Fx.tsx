@@ -6,9 +6,9 @@ export type FxKind = "confetti" | "shake" | "burn" | "levelup" | "jackpot";
 
 const SETS: Record<Exclude<FxKind, "shake">, string[]> = {
   confetti: ["star", "shell", "spark", "clownfish", "pearl", "coin"],
-  burn: ["fire", "fire", "spark", "rf"],
+  burn: ["fire", "fire", "spark", "shell"],
   levelup: ["star", "spark", "star", "trophy"],
-  jackpot: ["rf", "coin", "rf", "pearl", "star", "chest"],
+  jackpot: ["shell", "coin", "shell", "pearl", "star", "chest"],
 };
 
 /** Pixel-icon particle bursts + banners, choreographed with anime.js. Skipped under reduced motion. */

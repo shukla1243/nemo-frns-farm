@@ -1,10 +1,9 @@
 import {
   BOSS, CROPS, EVENTS, EVENT_INTERVAL, HOMES, MARKET_TIDE_MS, MARKET_TIDE_RANGE, NEEDS, RAID, RIVAL_RAID_INTERVAL,
-  RIVAL_RAID_LOSS, RIVAL_RAID_MIN_SHELL, SLEEP_MS, STORM_WITHER_CHANCE, TENT_THIEF_CHANCE, SEASON, SINK, RESIDENT_NAMES, dayNumber, seasonIdAt, seasonStartOf, streakReward, type EventId, type ItemId,
+  RIVAL_RAID_LOSS, RIVAL_RAID_MIN_SHELL, SLEEP_MS, STORM_WITHER_CHANCE, TENT_THIEF_CHANCE, SEASON, RESIDENT_NAMES, dayNumber, seasonIdAt, seasonStartOf, streakReward, type EventId, type ItemId,
 } from "./config";
 import { createRng, hashSeed, type Rng } from "./rng";
-import { botTrades } from "./amm";
-import { clamp, clampNeeds, defense, hasTrait, log, maxEnergy } from "./state";
+import { clamp, clampNeeds, defense, hasTrait, log, maxEnergy, seasonScore } from "./state";
 import type { GameEvent, GameState } from "./types";
 
 /** Boss status for a given epoch. `others` = damage by other online players (from the network). */
@@ -43,9 +42,8 @@ export function tick(s: GameState, now: number, events: GameEvent[]): void {
     s.streak = { day: today, count: s.streak.day === today - 1 ? s.streak.count + 1 : 1 };
     const r = streakReward(s.streak.count);
     s.shell += r.shell; s.stats.shellEarned += r.shell;
-    if (r.rf) { s.rf += r.rf; s.stats.rfWon += r.rf; }
     for (const [id, n] of Object.entries(r.items)) if (n) s.inv[id as ItemId] += n;
-    log(s, events, `Day ${s.streak.count} streak! +${r.shell} SHELL${r.rf ? " +1 RF and a Protection Charm" : ""}. Come back tomorrow to keep it going.`, "good", { cue: "reward", icon: "star" }, now);
+    log(s, events, `Day ${s.streak.count} streak! +${r.shell} SHELL${r.items.charm ? " and a Protection Charm" : ""}. Come back tomorrow to keep it going.`, "good", { cue: "reward", icon: "star" }, now);
   }
 
   // --- Voyage return (automatic announcement) ---
@@ -82,18 +80,12 @@ export function tick(s: GameState, now: number, events: GameEvent[]): void {
     s.nextTideAt = now + MARKET_TIDE_MS;
   }
 
-  // --- Tide Pool simulated traders ---
-  const market = botTrades(s.pool, now, rng);
-  s.world.seasonPool += Math.floor(market.fees * SINK.pool); s.world.creatorFees += Math.floor(market.fees * SINK.creator); s.world.burned += Math.floor(market.fees * SINK.burn);
-
   // --- Season rollover ---
   const sid = seasonIdAt(now);
   if (sid !== s.season.id) {
-    const pool = seasonPoolTotal(s, seasonStartOf(s.season.id) + SEASON.ms - 1, s.season.id);
-    s.lastSeason = { id: s.season.id, score: s.season.xp + Math.floor(s.season.sunk / 100 * SEASON.rfScore), sunk: s.season.sunk, pool, claimed: false };
+    s.lastSeason = { id: s.season.id, score: seasonScore(s), sunk: s.season.sunk };
     s.season = { id: sid, xp: 0, sunk: 0, pass: 0 };
-    s.world.seasonPool = Math.floor(s.world.seasonPool * SEASON.rollover);
-    log(s, events, "A new Season has begun! Top 10 of last season can claim their prize at the Bounty Board.", "epic", { cue: "anticipation" }, now);
+    log(s, events, "A new Season has begun! Your Season Journey starts fresh at the Bounty Board.", "epic", { cue: "anticipation" }, now);
   }
 
   // --- World events ---
@@ -125,7 +117,7 @@ export function tick(s: GameState, now: number, events: GameEvent[]): void {
   for (const r of s.rivals) {
     r.vault += dt * (0.25 + r.level * 0.04);
     if (rng.chance(Math.min(1, dt / 240))) {
-      r.level++; r.power += 5 + rng.int(0, 4); r.defense += 3 + rng.int(0, 5); r.burned += 40 + r.level * 10;
+      r.level++; r.power += 5 + rng.int(0, 4); r.defense += 3 + rng.int(0, 5); r.sunk += (40 + r.level * 10) * 150;
     }
     // Keep rivals in the player's league so the harbor stays interesting.
     if (r.level < s.level - 4) { r.level = s.level - 4 + rng.int(0, 2); r.power = 10 + r.level * 5 + rng.int(0, 15); r.defense = 5 + r.level * 4 + rng.int(0, 20); }
@@ -197,18 +189,6 @@ export function wakeUp(s: GameState, events: GameEvent[], rng: Rng, now: number,
 export const eventActive = (s: GameState, id: EventId, now: number) => !!s.event && s.event.id === id && now >= s.event.startsAt && now < s.event.endsAt;
 
 // ---------- Seasons ----------
-/**
- * Season Prize Pool (centi-RF): simulated island residents' spending + this player's 70% share
- * of their own RF sinks + (optionally) online players' reported contributions.
- */
-export function seasonPoolTotal(s: GameState, now: number, seasonId = s.season.id, onlineSunk = 0) {
-  const start = seasonStartOf(seasonId);
-  const days = Math.max(0, Math.min(7, (now - start) / 86_400_000));
-  const sim = SEASON.simBaseRf + Math.floor(SEASON.simPerDayRf * days);
-  const own = seasonId === s.season.id ? s.world.seasonPool : 0;
-  return sim + own + Math.floor(onlineSunk * SINK.pool);
-}
-
 export type SeasonEntry = { id: string; name: string; score: number; you?: boolean; online?: boolean };
 /** Deterministic simulated residents (same for every client in a season) whose scores grow through the week. */
 function seasonResidents(seasonId: number, now: number): SeasonEntry[] {
@@ -223,7 +203,7 @@ function seasonResidents(seasonId: number, now: number): SeasonEntry[] {
   });
 }
 export function seasonBoard(s: GameState, now: number, online: SeasonEntry[] = [], seasonId = s.season.id, yourScore?: number) {
-  const you: SeasonEntry = { id: "you", name: s.name, score: yourScore ?? (s.season.xp + Math.floor(s.season.sunk / 100 * SEASON.rfScore)), you: true };
+  const you: SeasonEntry = { id: "you", name: s.name, score: yourScore ?? seasonScore(s), you: true };
   const endOrNow = seasonId === s.season.id ? now : seasonStartOf(seasonId) + SEASON.ms;
   return [...seasonResidents(seasonId, endOrNow), ...online.filter(o => o.id !== s.friendId), you].sort((a, b) => b.score - a.score);
 }

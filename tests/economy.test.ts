@@ -1,119 +1,30 @@
 import { describe, expect, it } from "vitest";
 import {
-  POOL, RF, SEASON, SINK, applySwap, botTrades, chapterAt, createPool, createRng, createState, dispatch, poolPrice, quote, seasonBoard, seasonIdAt, seasonPoolTotal,
-  seasonStartOf, dayNumber, rebirthCost, threshold, rankName, TRACKS, REBIRTH, type GameState, type SwapDir,
+  SEASON, chapterAt, createState, dispatch, seasonBoard, seasonIdAt, seasonScore,
+  seasonStartOf, dayNumber, rebirthCost, threshold, rankName, TRACKS, REBIRTH, type GameState,
 } from "../src/engine";
 
 const T0 = Date.UTC(2026, 8, 24, 12);
 const fresh = (): GameState => ({ ...createState({ friendId: "7", name: "Friend #7", family: 2, guest: false, now: T0, seed: 99 }), streak: { day: dayNumber(T0), count: 1 } });
 
-describe("Tide Pool AMM", () => {
-  it("keeps x*y non-decreasing (fees stay out of k) and quotes match execution", () => {
-    const p = createPool(T0);
-    const k0 = p.shell * p.rf;
-    const q = quote(p, "shellToRf", 3000)!;
-    applySwap(p, "shellToRf", 3000, q);
-    expect(p.shell * p.rf).toBeLessThanOrEqual(k0 * 1.001);
-    expect(p.shell * (p.rf + q.fee)).toBeGreaterThanOrEqual(k0 * 0.999);
-  });
-  it("round-tripping loses value to fees (no arbitrage)", () => {
-    const p = createPool(T0);
-    const q1 = quote(p, "rfToShell", 1000)!; applySwap(p, "rfToShell", 1000, q1);
-    const q2 = quote(p, "shellToRf", q1.out)!;
-    expect(q2.out).toBeLessThan(1000 * 0.95);
-  });
-  it("rejects swaps above 30% of reserves", () => {
-    const p = createPool(T0);
-    expect(quote(p, "shellToRf", POOL.initShell)).toBeNull();
-  });
-  it("swap action routes the 3% fee through the sink split", () => {
-    const s = fresh(); s.shell = 10_000;
-    const r = dispatch(s, { type: "swap", dir: "shellToRf", amount: 1500 }, T0);
-    expect(r.ok).toBe(true);
-    expect(r.state.stats.burned).toBeGreaterThan(0);
-    expect(r.state.stats.toPool + r.state.stats.creatorFees + r.state.stats.trueBurn).toBe(r.state.stats.burned);
-    expect(r.state.rf).toBeGreaterThan(s.rf);
-  });
-  it("simulated traders keep the price near its anchor over a day", () => {
-    let s = fresh();
-    for (let h = 1; h <= 24; h++) s = dispatch(s, { type: "tick" }, T0 + h * 3600_000 / 60).state;
-    const price = poolPrice(s.pool);
-    expect(price).toBeGreaterThan(POOL.anchor * 0.6);
-    expect(price).toBeLessThan(POOL.anchor * 1.6);
-  });
-  it("charges at least 1 base unit of fee on every swap, rounding up", () => {
-    const p = createPool(T0);
-    for (const amount of [1, 2, 5, 20, 33, 50, 99]) {
-      const a = quote(p, "rfToShell", amount);
-      if (a) expect(a.fee, `rfToShell ${amount}`).toBe(Math.max(1, Math.ceil(amount * POOL.feeBps / 10_000)));
-      const b = quote(p, "shellToRf", amount);
-      if (b) expect(b.fee, `shellToRf ${amount}`).toBeGreaterThanOrEqual(1);
-    }
-    expect(quote(p, "rfToShell", 50)!.fee).toBe(2);
-  });
-  it("repeated tiny swaps cannot farm the bots' mean reversion", () => {
-    // A farmer trades against every bot-driven deviation in the smallest possible chunks, for a week.
-    const p = createPool(T0), rng = createRng(4242);
-    const bag = { shell: 20_000, rf: 100 * RF };
-    const value = () => bag.shell + (bag.rf / 100) * POOL.anchor;
-    const start = value();
-    let trades = 0, fees = 0;
-    for (let t = 1; t <= 7 * 24 * 120; t++) {
-      botTrades(p, T0 + t * 30_000, rng);
-      for (let i = 0; i < 20; i++) {
-        const dir: SwapDir = poolPrice(p) > POOL.anchor ? "rfToShell" : "shellToRf";
-        let amount = 1;
-        while (!quote(p, dir, amount)) amount++; // the smallest swap the pool accepts
-        const q = quote(p, dir, amount)!;
-        if ((dir === "rfToShell" ? bag.rf : bag.shell) < amount) break;
-        applySwap(p, dir, amount, q);
-        if (dir === "rfToShell") { bag.rf -= amount; bag.shell += q.out; } else { bag.shell -= amount; bag.rf += q.out; }
-        trades++; fees += q.fee;
-      }
-    }
-    expect(trades).toBeGreaterThan(10_000);
-    expect(fees).toBeGreaterThanOrEqual(trades);
-    expect(value()).toBeLessThan(start);
-  });
-});
-
-describe("RF sink split & seasons", () => {
-  it("every RF spent splits 70/25/5 exactly", () => {
-    const s = fresh(); s.rf = 100 * RF;
-    const r = dispatch(s, { type: "spin" }, T0);
-    const st = r.state.stats;
-    expect(st.burned).toBe(100);
-    expect(st.toPool).toBe(Math.floor(100 * SINK.pool));
-    expect(st.trueBurn).toBe(Math.floor(100 * SINK.burn));
-    expect(st.creatorFees).toBe(100 - st.toPool - st.trueBurn);
-    expect(r.state.season.sunk).toBe(100);
-  });
-  it("season rolls over on Monday and top-10 can claim once", () => {
+describe("seasons", () => {
+  it("season rolls over on Monday and records last season's score", () => {
     const s = fresh();
     s.season.xp = 50_000; // guarantee a top rank
     const next = seasonStartOf(s.season.id) + SEASON.ms + 1000;
     const rolled = dispatch(s, { type: "tick" }, next).state;
     expect(rolled.season.id).toBe(seasonIdAt(next));
+    expect(rolled.season.pass).toBe(0);
     expect(rolled.lastSeason?.score).toBeGreaterThan(0);
     const board = seasonBoard(rolled, next, [], rolled.lastSeason!.id, rolled.lastSeason!.score);
-    const rank = board.findIndex(e => e.you) + 1;
-    expect(rank).toBe(1);
-    const claim = dispatch(rolled, { type: "seasonClaim", rank, pool: rolled.lastSeason!.pool }, next + 10);
-    expect(claim.ok).toBe(true);
-    expect(claim.state.rf).toBeGreaterThan(rolled.rf);
-    expect(dispatch(claim.state, { type: "seasonClaim", rank, pool: 1 }, next + 20).ok).toBe(false);
+    expect(board.findIndex(e => e.you) + 1).toBe(1);
   });
-  it("season pool grows with simulated residents and player sinks", () => {
-    const s = fresh();
-    const a = seasonPoolTotal(s, T0);
-    s.world.seasonPool += 700;
-    expect(seasonPoolTotal(s, T0)).toBe(a + 700);
-    expect(seasonPoolTotal(s, T0 + 86_400_000)).toBeGreaterThan(a);
-  });
-  it("ranks outside the top 10 cannot claim", () => {
-    const s = fresh();
-    s.lastSeason = { id: s.season.id - 1, score: 1, sunk: 0, pool: 1000, claimed: false };
-    expect(dispatch(s, { type: "seasonClaim", rank: 11, pool: 1000 }, T0).ok).toBe(false);
+  it("season score counts SHELL spent at 7.5 SHELL per point", () => {
+    const s = fresh(); s.shell = 10_000;
+    const r = dispatch(s, { type: "buy", item: "charm" }, T0);
+    expect(r.ok).toBe(true);
+    expect(r.state.season.sunk).toBe(225);
+    expect(seasonScore(r.state) - seasonScore(s)).toBe(30);
   });
 });
 
@@ -170,9 +81,9 @@ describe("endless systems", () => {
     expect(rankName(20)).toBe("Mythic 5");
     expect(TRACKS.length).toBe(15);
   });
-  it("rebirth resets level, keeps progress, costs RF and grants permanent bonuses", () => {
+  it("rebirth resets level, keeps progress, costs SHELL and grants permanent bonuses", () => {
     const s = fresh();
-    s.level = 29; s.rf = 100 * RF; s.home = 3; s.gear.blade = 5;
+    s.level = 29; s.shell = 20_000; s.home = 3; s.gear.blade = 5;
     expect(dispatch(s, { type: "rebirth" }, T0).ok).toBe(false);
     s.level = REBIRTH.minLevel;
     const r = dispatch(s, { type: "rebirth" }, T0);
@@ -181,7 +92,7 @@ describe("endless systems", () => {
     expect(r.state.rebirths).toBe(1);
     expect(r.state.home).toBe(3);
     expect(r.state.gear.blade).toBe(5);
-    expect(r.state.stats.burned).toBe(rebirthCost(0));
+    expect(r.state.stats.shellSunk).toBe(rebirthCost(0));
     const xpBefore = r.state.xp;
     const g = dispatch(r.state, { type: "gather", kind: "chop" }, T0 + 5000);
     expect(g.state.xp - xpBefore).toBe(Math.round(3 * 1.1 * 1.1)); // happy after rebirth + 10% rebirth bonus

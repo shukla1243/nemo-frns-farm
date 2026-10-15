@@ -72,7 +72,7 @@ export function Gate({ onEnter }: { onEnter: (id: Identity) => void }) {
         <h1 className="logo">NEMO<span>FRNS FARM</span></h1>
         <p className="tagline">Raise your Rare Friend, grow a pixel island, and risk it all against rival islands.</p>
         <ul className="gate-pills" aria-label="Features">
-          <li className="frame-paper"><Icon id="home" size={22} />Build & expand</li><li className="frame-paper"><Icon id="rod" size={22} />Fish, mine, dive</li><li className="frame-paper"><Icon id="sword" size={22} />Raid rival islands</li><li className="frame-paper"><Icon id="angler" size={22} />World boss</li><li className="frame-paper"><Icon id="trophy" size={22} />Weekly prize pool</li>
+          <li className="frame-paper"><Icon id="home" size={22} />Build & expand</li><li className="frame-paper"><Icon id="rod" size={22} />Fish, mine, dive</li><li className="frame-paper"><Icon id="sword" size={22} />Raid rival islands</li><li className="frame-paper"><Icon id="angler" size={22} />World boss</li><li className="frame-paper"><Icon id="trophy" size={22} />Weekly seasons</li>
         </ul>
 
         {!samples && !snap.account && (
@@ -109,7 +109,7 @@ export function Gate({ onEnter }: { onEnter: (id: Identity) => void }) {
 
         {status && friends !== null && <p className="status"><span className="spinner" /> {status}</p>}
         {error && <p className="error" role="alert">{error}</p>}
-        <p className="fineprint">All RF, $SHELL, rewards and prize pools are <b>SIMULATED</b> for the Rare Friends Vibeathon. Connecting never asks for a transaction.</p>
+        <p className="fineprint">All $SHELL balances and rewards are <b>SIMULATED</b> for the Rare Friends Vibeathon. Connecting never asks for a transaction.</p>
       </section>
     </main>
   );

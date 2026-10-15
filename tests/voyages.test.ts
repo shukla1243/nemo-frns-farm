@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RF, VOYAGE_CHAPTER, createRng, createState, dayNumber, dispatch, type GameState } from "../src/engine";
+import { VOYAGE_CHAPTER, createRng, createState, dayNumber, dispatch, type GameState } from "../src/engine";
 import { STOCK_IDS, STOCK_SELL_FEE, VOYAGES, rollVoyage, stockPrice, voyageBonus, voyageOdds, type StockId } from "../src/engine/voyages";
 import { migrate } from "../src/game/save";
 
@@ -7,8 +7,9 @@ const T0 = Date.UTC(2026, 8, 24, 12);
 const fresh = (): GameState => {
   const s = createState({ friendId: "7", name: "Friend #7", family: 2, guest: false, now: T0, seed: 99 });
   s.streak = { day: dayNumber(T0), count: 1 };
-  s.level = 15; s.rf = 50 * RF; s.shell = 5000; s.hunger = 100; s.energy = 100;
+  s.level = 15; s.shell = 5000; s.hunger = 100; s.energy = 100;
   s.inv.bread = 20; s.story = VOYAGE_CHAPTER;
+  s.achievements.push("lvl10"); // its SHELL reward would blur balance checks
   return s;
 };
 
@@ -61,14 +62,14 @@ describe("voyages", () => {
       expect(voyageOdds(s, v).every(o => o.weight >= 0)).toBe(true);
     }
   });
-  it("RF voyages lose RF on average even at the maximum bonus (a real sink)", () => {
+  it("long voyages return less SHELL than they cost, even at the maximum bonus (a real sink)", () => {
     const s = fresh(); s.level = 99; s.rebirths = 20; s.mood = 100;
-    for (const v of VOYAGES.filter(x => x.costRf > 0)) {
+    for (const v of VOYAGES.filter(x => x.id !== "scout")) { // the Tide Scout is the small safe trip
       const rng = createRng(1234);
-      let rf = 0;
+      let shell = 0;
       const n = 20_000;
-      for (let i = 0; i < n; i++) rf += rollVoyage(s, v, rng).rf;
-      expect(rf / n).toBeLessThan(v.costRf);
+      for (let i = 0; i < n; i++) shell += rollVoyage(s, v, rng).shell;
+      expect(shell / n).toBeLessThan(v.costShell);
     }
   });
   it("stock prices are deterministic per hour and selling charges the fee", () => {
@@ -93,7 +94,7 @@ describe("voyages", () => {
   it("a save drops unknown stock tickers, including a pending voyage prize", () => {
     const s = fresh() as GameState & { stocks: Record<string, number> };
     s.stocks.OLD1 = 2; s.stocks.KELP = 1;
-    s.voyage = { id: "reef", startedAt: T0, endsAt: T0 + 1, result: { outcome: "bag", label: "", shell: 0, rf: 0, items: {}, stock: { id: "OLD1" as StockId, shares: 1 }, relic: false, lost: false }, announced: false };
+    s.voyage = { id: "reef", startedAt: T0, endsAt: T0 + 1, result: { outcome: "bag", label: "", shell: 0, items: {}, stock: { id: "OLD1" as StockId, shares: 1 }, relic: false, lost: false }, announced: false };
     const back = migrate(JSON.parse(JSON.stringify(s)));
     expect(Object.keys(back.stocks).sort()).toEqual([...STOCK_IDS].sort());
     expect(back.stocks.KELP).toBe(1);

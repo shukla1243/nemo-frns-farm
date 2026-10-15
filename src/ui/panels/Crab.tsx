@@ -8,7 +8,7 @@ import { pauseRound, resumeRound, type Kind, type Round } from "../crabRound";
 import { Icon } from "../Icon";
 
 // ---------------- Crab Dash (skill arcade) ----------------
-// Presentation only: the engine clamps the score and pays SHELL, never RF.
+// Presentation only: the engine clamps the score and pays SHELL.
 const COLS = 4, ROWS = 3, CELL = 64, PX = 2;
 const W = COLS * CELL, H = ROWS * CELL;
 const GOLD_CHANCE = 0.08, TRAP_CHANCE = 0.14;
@@ -210,7 +210,7 @@ export function CrabPanel({ onClose }: { onClose: () => void }) {
           <tr><td><Icon id="clamTrap" size={18} /> Snap clam or empty sand</td><td>Combo drops one step</td></tr>
         </tbody>
       </table>
-      <p className="fineprint"><SimTag /> Pure skill, no stake. Every {HITS_PER_STEP} catches in a row raise the combo, up to x{MAX_MULT}. Each point pays {CRAB.shellPerPoint} SHELL (score capped at {CRAB.maxScore}). {CRAB.baitAt}+ points adds 1 bait, {CRAB.pearlAt}+ adds 1 pearl. Crab Dash never pays RF.</p>
+      <p className="fineprint"><SimTag /> Pure skill, no stake. Every {HITS_PER_STEP} catches in a row raise the combo, up to x{MAX_MULT}. Each point pays {CRAB.shellPerPoint} SHELL (score capped at {CRAB.maxScore}). {CRAB.baitAt}+ points adds 1 bait, {CRAB.pearlAt}+ adds 1 pearl.</p>
     </Panel>
   );
 }

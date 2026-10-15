@@ -108,12 +108,6 @@ const MAPS: Record<string, readonly string[] | { map: readonly string[]; swap: R
 
 /** Round icons drawn with the painter. */
 const PAINTED: Record<string, () => Sprite> = {
-  rf: () => {
-    const p = new Painter(16, 16);
-    p.ellipse(8, 8, 7, 7, "l").ellipse(8, 8, 6, 6, "u").ellipse(7, 7, 4, 4, "U");
-    p.draw(fromMap(["..o..", ".oOo.", ".oOo.", "oOUOo", "oOUOo", ".ooo."]), 6, 5);
-    return p.done();
-  },
   charm: () => {
     const p = new Painter(14, 14);
     p.ellipse(7, 7, 6, 6, "B").ellipse(7, 7, 4, 4, "e").ellipse(7, 7, 2, 2, "c").px(7, 7, "n").px(6, 6, "e");

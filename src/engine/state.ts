@@ -1,22 +1,21 @@
 import {
   HOMES, ITEM_IDS, NEEDS, PROSPERITY, RIVAL_NAMES, START, START_PLOTS, TRAP_DEFENSE, ZONE_ORDER,
-  traitFor, xpToNext, MAX_LEVEL, RIVAL_RAID_INTERVAL, EVENT_INTERVAL, MARKET_TIDE_MS, BOSS, ITEMS, SINK, SEASON, REBIRTH, seasonIdAt,
+  traitFor, xpToNext, MAX_LEVEL, RIVAL_RAID_INTERVAL, EVENT_INTERVAL, MARKET_TIDE_MS, BOSS, ITEMS, SEASON, REBIRTH, seasonIdAt,
   type Cost, type ItemId, type TraitId, type ZoneId,
 } from "./config";
 import { createRng, type Rng } from "./rng";
 import type { GameEvent, GameState, Rival, Stats, Tone } from "./types";
 import { newQuest } from "./quests";
-import { createPool } from "./amm";
 import { STOCK_IDS, type StockId } from "./voyages";
 
 export const emptyStocks = () => Object.fromEntries(STOCK_IDS.map(id => [id, 0])) as Record<StockId, number>;
 
 export const emptyStats = (): Stats => ({
-  burned: 0, rfWon: 0, rfLost: 0, shellEarned: 0, shellSpent: 0,
+  shellSunk: 0, shellEarned: 0, shellSpent: 0,
   fish: 0, harvests: 0, gathered: 0, dives: 0, bestDive: 0,
   minesCashouts: 0, bestMinesTiles: 0, raidsWon: 0, raidsLost: 0, defended: 0, raidedBy: 0,
   bossDamage: 0, bossKills: 0, ascends: 0, ascendFails: 0, forges: 0, forgeFails: 0,
-  spins: 0, jackpots: 0, swaps: 0, voyages: 0, voyageWins: 0, creatorFees: 0, toPool: 0, trueBurn: 0, seasonWins: 0, seasonRf: 0, flipsWon: 0, flipsLost: 0, cooked: 0, goldnemo: 0,
+  spins: 0, jackpots: 0, voyages: 0, voyageWins: 0, flipsWon: 0, flipsLost: 0, cooked: 0, goldnemo: 0,
   crabRuns: 0, crabBest: 0,
 });
 
@@ -26,7 +25,7 @@ function createRivals(rng: Rng, now: number): Rival[] {
     return {
       id: `bot-${i}`, name: r.name, color: r.color, level,
       power: 10 + level * 5 + rng.int(0, 10), defense: 5 + level * 4 + rng.int(0, 15),
-      vault: 60 + level * 40 + rng.int(0, 80), burned: level * 60 + rng.int(0, 200), bot: true, lastRaidedAt: 0,
+      vault: 60 + level * 40 + rng.int(0, 80), sunk: (level * 60 + rng.int(0, 200)) * 150, bot: true, lastRaidedAt: 0,
     };
   });
 }
@@ -39,7 +38,7 @@ export function createState(opts: { friendId: string; name: string; family: numb
   const state: GameState = {
     v: 1, friendId: opts.friendId, name: opts.name, family: opts.family, trait: traitFor(opts.family), guest: opts.guest,
     createdAt: opts.now, lastTick: opts.now, lastActive: opts.now, seed: 0,
-    rf: START.rf, shell: START.shell, inv,
+    shell: START.shell, inv,
     hunger: 80, energy: 100, mood: 70,
     level: 1, xp: 0, ascendPity: 0,
     gear: { rod: 0, pick: 0, blade: 0 }, forgePity: { rod: 0, pick: 0, blade: 0 },
@@ -54,7 +53,6 @@ export function createState(opts: { friendId: string; name: string; family: numb
     marketTide: 1, nextTideAt: opts.now + MARKET_TIDE_MS,
     wheelFreeAt: opts.now,
     boss: { epoch: Math.floor(opts.now / BOSS.periodMs), damage: 0, claimed: false },
-    pool: createPool(opts.now), world: { burned: 0, creatorFees: 0, volumeRf: 0, seasonPool: 0 },
     season: { id: seasonIdAt(opts.now), xp: 0, sunk: 0, pass: 0 }, lastSeason: null,
     story: 0, npcGifts: {}, rebirths: 0, milestones: {}, streak: { day: 0, count: 0 }, voyage: null, stocks: emptyStocks(), relics: 0, stats: emptyStats(), log: [],
   };
@@ -75,7 +73,7 @@ const isGrumpy = (s: GameState) => s.mood < NEEDS.grumpyAt;
 export const luck = (s: GameState, now: number) => (isHappy(s) ? 0.05 : 0) - (isGrumpy(s) ? 0.1 : 0) + (buffActive(s, "wellfed", now) ? 0.05 : 0) + (hasTrait(s, "shiny") ? 0.05 : 0);
 export const power = (s: GameState) => Math.round((10 + s.level * 5 + s.gear.blade * 6) * (hasTrait(s, "titan") ? 1.25 : 1) * (isHappy(s) ? 1.05 : 1) * (isGrumpy(s) ? 0.9 : 1));
 export const defense = (s: GameState) => HOMES[s.home].defense + s.inv.trap * TRAP_DEFENSE + s.level * 3;
-export const prosperityPct = (s: GameState) => Math.min(PROSPERITY.cap, Math.floor(s.stats.burned / PROSPERITY.rfPerPercent));
+export const prosperityPct = (s: GameState) => Math.min(PROSPERITY.cap, Math.floor(s.stats.shellSunk / PROSPERITY.shellPerPercent));
 /** Multiplier on gathered/harvested quantities. */
 export function yieldMult(s: GameState, now: number) {
   let m = 1;
@@ -84,7 +82,7 @@ export function yieldMult(s: GameState, now: number) {
   if (buffActive(s, "rested", now)) m += 0.1;
   return m;
 }
-/** Multiplier on SHELL earned from selling and quests: burn-to-earn prosperity. */
+/** Multiplier on SHELL earned from selling and quests: spend-to-earn prosperity. */
 export const shellMult = (s: GameState) => (1 + prosperityPct(s) / 100) * (1 + s.rebirths * REBIRTH.shellBonus);
 
 // ---------- Mutating helpers (operate on a draft) ----------
@@ -100,7 +98,6 @@ export function discounted(s: GameState, cost: Cost, kind: "build" | "other" = "
 }
 
 export function missing(s: GameState, cost: Cost): string | null {
-  if (cost.rf && s.rf < cost.rf) return `Need ${(cost.rf / 100).toFixed(2)} RF`;
   if (cost.shell && s.shell < cost.shell) return `Need ${cost.shell} SHELL`;
   for (const [id, n] of Object.entries(cost.items ?? {})) {
     if (n && s.inv[id as ItemId] < n) return `Need ${n} ${ITEMS[id as ItemId].name}`;
@@ -108,23 +105,11 @@ export function missing(s: GameState, cost: Cost): string | null {
   return null;
 }
 
-/**
- * RF sink: 70% Season Prize Pool, 25% creator treasury, 5% burned forever.
- * The caller has already removed the RF from the player's balance.
- */
-export function sink(s: GameState, amount: number) {
-  if (amount <= 0) return;
-  const pool = Math.floor(amount * SINK.pool), burn = Math.floor(amount * SINK.burn), creator = amount - pool - burn;
-  s.stats.burned += amount; s.stats.toPool += pool; s.stats.creatorFees += creator; s.stats.trueBurn += burn;
-  s.world.seasonPool += pool; s.world.creatorFees += creator; s.world.burned += burn;
-  s.season.sunk += amount;
-}
-export const seasonScore = (s: GameState) => s.season.xp + Math.floor(s.season.sunk / 100 * SEASON.rfScore);
+export const seasonScore = (s: GameState) => s.season.xp + Math.floor(s.season.sunk / SEASON.shellPerPoint);
 
-/** Pay a cost. RF paid goes through the sink split. */
+/** Pay a cost. SHELL paid counts as sunk into the island (prosperity and season score). */
 export function pay(s: GameState, cost: Cost) {
-  if (cost.rf) { s.rf -= cost.rf; sink(s, cost.rf); }
-  if (cost.shell) { s.shell -= cost.shell; s.stats.shellSpent += cost.shell; }
+  if (cost.shell) { s.shell -= cost.shell; s.stats.shellSpent += cost.shell; s.stats.shellSunk += cost.shell; s.season.sunk += cost.shell; }
   for (const [id, n] of Object.entries(cost.items ?? {})) if (n) s.inv[id as ItemId] -= n;
 }
 
@@ -132,19 +117,6 @@ export function giveShell(s: GameState, amount: number) {
   const n = Math.max(0, Math.floor(amount));
   s.shell += n; s.stats.shellEarned += n;
   return n;
-}
-export function giveRf(s: GameState, amount: number) {
-  const n = Math.max(0, Math.floor(amount));
-  s.rf += n; s.stats.rfWon += n;
-  return n;
-}
-/** RF lost in a risk game flows through the sink split (70% returns to players via seasons). */
-export function loseRf(s: GameState, amount: number) {
-  s.rf -= amount; s.stats.rfLost += amount; sink(s, amount);
-}
-/** An RF stake already removed from the balance was lost. */
-export function forfeitRf(s: GameState, amount: number) {
-  s.stats.rfLost += amount; sink(s, amount);
 }
 
 export function addXp(s: GameState, events: GameEvent[], amount: number) {

@@ -15,11 +15,11 @@ const GAMES: Card[] = [
   { station: "crabs", blurb: "Whack-a-crab arcade. Tap crabs for SHELL and beat your best. No stake.", risk: "Skill" },
   { station: "mines", blurb: "Minesweeper dig. Every safe tile raises the multiplier, a trap takes it all.", risk: "High" },
   { station: "abyss", blurb: "Crash dive. Cash out before the shark bites. Up to 1000x.", risk: "High" },
-  { station: "wheel", blurb: "Prize wheel with a 25 RF jackpot. One free spin every 8 hours.", risk: "Luck" },
+  { station: "wheel", blurb: "Prize wheel with a 3,750 SHELL jackpot. One free spin every 8 hours.", risk: "Luck" },
   { station: "harbor", blurb: "Raid simulated rival crews for their SHELL vaults.", risk: "Raid" },
   { station: "reef", blurb: "World boss every 20 minutes. Hit it alongside simulated hunters.", risk: "Boss" },
   { station: "forge", blurb: "Upgrade gear +1 to +10. Odds fall as the level rises.", risk: "Gamble" },
-  { station: "pier", blurb: "Timed voyages of 15 min to 12 h. Relics, RF and island company shares.", risk: "Idle" },
+  { station: "pier", blurb: "Timed voyages of 15 min to 12 h. Relics, SHELL hoards and island company shares.", risk: "Idle" },
 ];
 const LIFE: Card[] = [
   { station: "home", blurb: "Sleep to refill energy, cook meals, and upgrade from Tent to Sea Castle." },
@@ -27,7 +27,7 @@ const LIFE: Card[] = [
   { station: "chop", blurb: "Chop driftwood for building. The first job on the island." },
   { station: "quarry", blurb: "Quarry stone, sea glass, ore and coral." },
   { station: "market", blurb: "Buy seeds, bait, food and charms. Sell what you gather." },
-  { station: "pool", blurb: "Swap SHELL and RF in a live two-sided pool." },
+  { station: "pool", blurb: "Sell island company shares at hourly prices." },
   { station: "shrine", blurb: "Level up (Ascend) and Rebirth for permanent bonuses." },
   { station: "board", blurb: "Bounties, the weekly Season prize, milestones and leaderboards." },
 ];

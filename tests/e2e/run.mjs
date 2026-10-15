@@ -1,7 +1,7 @@
 /**
  * End-to-end browser check (Playwright). Serves the e2e test build (dist-e2e, built with --mode e2e,
  * the only build that contains the sample Friends fixture) and plays a sample Friend on desktop and
- * phone viewports: title → Friend → story → walk → chop → panels → farm → swap → wheel → fishing →
+ * phone viewports: title → Friend → story → walk → chop → panels → farm → share market → wheel → fishing →
  * NPC dialogue → map fast travel. Fails on page errors and layout overflow.
  *   npm run test:e2e
  */
@@ -119,7 +119,7 @@ async function scenario(name, viewport, mobile) {
   check(await page.getByText("Chapter 2 of 15").isVisible(), `${name}: story advances to chapter 2`);
   await page.getByRole("button", { name: "Close" }).click();
 
-  // Back home: farm, pool swap, wheel, fishing, NPC.
+  // Back home: farm, share market, wheel, fishing, NPC.
   await travel("Home Beach");
   check(await visit(1990, 1340, "Farm"), `${name}: walk to the Farm`);
   await page.getByRole("button", { name: "Plant", exact: true }).first().click();
@@ -128,11 +128,8 @@ async function scenario(name, viewport, mobile) {
   await page.getByRole("button", { name: "Close" }).click();
 
   check(await visit(1680, 1540, /Tide Pool/), `${name}: walk to the Tide Pool`);
-  const rfBefore = await page.locator(".coin").first().innerText();
-  await page.locator(".swap input").fill("100");
-  await page.getByRole("button", { name: /^Swap$/ }).click();
-  await page.waitForTimeout(900);
-  check((await page.locator(".coin").first().innerText()) !== rfBefore, `${name}: swap changed the RF balance`);
+  await page.getByRole("button", { name: "KELP", exact: true }).click();
+  check(await page.getByRole("img", { name: /Kelpsoft Systems price chart/ }).isVisible(), `${name}: the share market charts a company`);
   await page.getByRole("button", { name: "Close" }).click();
 
   check(await visit(1150, 1250, "Tide Wheel"), `${name}: walk to the Tide Wheel`);

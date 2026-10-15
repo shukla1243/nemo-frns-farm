@@ -3,7 +3,7 @@ import { FORGE_PITY_STEP, GEAR, ITEMS, MAX_GEAR, forgeCost, type GearId, type It
 import { forgeChance } from "../../engine/actions";
 import { missing } from "../../engine/state";
 import { actOf, chapterAt } from "../../engine/story";
-import { CostList, Panel, SimTag, rf, useG } from "../common";
+import { CostList, Panel, SimTag, n0, useG } from "../common";
 import { Icon } from "../Icon";
 
 export function ForgePanel({ onClose }: { onClose: () => void }) {
@@ -37,13 +37,13 @@ export function ForgePanel({ onClose }: { onClose: () => void }) {
           <CostList cost={cost} s={s} />
           <label className="check"><input type="checkbox" checked={blessing} disabled={s.inv.blessing < 1} onChange={e => setBlessing(e.target.checked)} /> Luck Scroll +10% · have {s.inv.blessing}</label>
           <label className="check"><input type="checkbox" checked={charm} disabled={s.inv.charm < 1} onChange={e => setCharm(e.target.checked)} /> Protection Charm (save ½ materials on fail) · have {s.inv.charm}</label>
-          <button type="button" className="btn hot big" disabled={!!missing(s, cost)} onClick={strike}>Strike: spend {rf(cost.rf ?? 0)} RF</button>
+          <button type="button" className="btn hot big" disabled={!!missing(s, cost)} onClick={strike}>Strike: spend {n0(cost.shell ?? 0)} SHELL</button>
           {missing(s, cost) && <p className="warn">{missing(s, cost)}</p>}
         </>
       ) : <p className="good">Legendary +10. Nothing left to forge.</p>}
-      <table className="odds-table"><thead><tr><th>Target</th><th>Chance</th><th>RF</th></tr></thead>
-        <tbody>{Array.from({ length: MAX_GEAR }, (_, i) => <tr key={i} className={i === lvl ? "cur" : ""}><td>+{i + 1}</td><td>{[100, 95, 88, 78, 66, 55, 44, 33, 22, 12][i]}%</td><td>{rf(forgeCost(i + 1).rf ?? 0)}</td></tr>)}</tbody></table>
-      <p className="fineprint"><SimTag /> Failures never downgrade gear; each failure adds +{FORGE_PITY_STEP}% pity until success. RF spent → 70% Season Pool.</p>
+      <table className="odds-table"><thead><tr><th>Target</th><th>Chance</th><th>SHELL</th></tr></thead>
+        <tbody>{Array.from({ length: MAX_GEAR }, (_, i) => <tr key={i} className={i === lvl ? "cur" : ""}><td>+{i + 1}</td><td>{[100, 95, 88, 78, 66, 55, 44, 33, 22, 12][i]}%</td><td>{n0(forgeCost(i + 1).shell ?? 0)}</td></tr>)}</tbody></table>
+      <p className="fineprint"><SimTag /> Failures never downgrade gear; each failure adds +{FORGE_PITY_STEP}% pity until success.</p>
     </Panel>
   );
 }
@@ -65,7 +65,7 @@ export function StoryPanel({ onClose }: { onClose: () => void }) {
         <p className="lead">{ch.text}</p>
         <p><b>Goal:</b> {ch.goal}</p>
         <p className="muted">{ch.hint}</p>
-        <div className="reward-row"><span className="muted">Reward</span>{ch.reward.shell ? <span className="cost"><Icon id="shell" size={16} /> {ch.reward.shell} SHELL</span> : null}{ch.reward.rf ? <span className="cost"><Icon id="rf" size={16} /> {rf(ch.reward.rf)} RF</span> : null}{Object.entries(ch.reward.items ?? {}).map(([k, v]) => <span key={k} className="cost"><Icon id={k} size={16} /> {v} {ITEMS[k as ItemId].name}</span>)}</div>
+        <div className="reward-row"><span className="muted">Reward</span>{ch.reward.shell ? <span className="cost"><Icon id="shell" size={16} /> {ch.reward.shell} SHELL</span> : null}{Object.entries(ch.reward.items ?? {}).map(([k, v]) => <span key={k} className="cost"><Icon id={k} size={16} /> {v} {ITEMS[k as ItemId].name}</span>)}</div>
         <button type="button" className="btn primary big" disabled={!ch.done(s)} onClick={() => act({ type: "storyClaim" })}>{ch.done(s) ? "Complete chapter" : "In progress…"}</button>
       </div>
       <ol className="chapters">{list.map(i => <li key={i} className={i < s.story ? "done" : i === s.story ? "cur" : ""}><Icon id={i < s.story ? "check" : i === s.story ? "star" : "lock"} size={18} /> {chapterAt(i).title}</li>)}</ol>

@@ -2,20 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import { DIVE, FISH_ENERGY, FISH_TABLE, FLIP, ITEMS, MINES, diveMultiplierAt, type FishId } from "../../engine/config";
 import { diveEdge, minesMultiplier } from "../../engine/actions";
 import type { DiveRun, MinesRun } from "../../engine/types";
-import { Panel, SimTag, StakePicker, n0, rf, useG } from "../common";
+import { Panel, SimTag, StakePicker, n0, useG } from "../common";
 import { Icon } from "../Icon";
 
 function FlipOffer() {
   const { s, act } = useG();
   const w = s.lastWin;
   if (!w || w.amount <= 0) return null;
-  const amt = w.currency === "rf" ? `${rf(w.amount)} RF` : `${n0(w.amount)} SHELL`;
+  const amt = `${n0(w.amount)} SHELL`;
   const chance = (FLIP.winChance + (s.trait === "chaos" ? 0.02 : 0)) * 100;
   return (
     <div className="flip">
       <p><b>Double or nothing?</b> Risk your {amt} win · {chance.toFixed(0)}% to double · flip {w.flips + 1}/{FLIP.maxFlips}</p>
       <div className="btn-row">
-        <button type="button" className="btn hot" disabled={w.flips >= FLIP.maxFlips} onClick={() => act({ type: "flip" })}>FLIP → {w.currency === "rf" ? rf(w.amount * 2) : n0(w.amount * 2)}</button>
+        <button type="button" className="btn hot" disabled={w.flips >= FLIP.maxFlips} onClick={() => act({ type: "flip" })}>FLIP → {n0(w.amount * 2)}</button>
         <button type="button" className="btn" onClick={() => act({ type: "keepWin" })}>Bank it</button>
       </div>
     </div>
@@ -121,7 +121,6 @@ export function DockPanel({ onClose }: { onClose: () => void }) {
 // ---------------- Tide Mines ----------------
 export function MinesPanel({ onClose }: { onClose: () => void }) {
   const { s, act } = useG();
-  const [currency, setCurrency] = useState<"shell" | "rf">("shell");
   const [stake, setStake] = useState(50);
   const [traps, setTraps] = useState(3);
   const [boom, setBoom] = useState<number[] | null>(null);
@@ -129,7 +128,7 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
   const safe = run ? run.revealed.length : 0;
   const mult = run ? minesMultiplier(run.trapCount, safe) : 1;
   const nextMult = run ? minesMultiplier(run.trapCount, safe + 1) : minesMultiplier(traps, 1);
-  const start = () => { setBoom(null); act({ type: "minesStart", stake, currency, traps }); };
+  const start = () => { setBoom(null); act({ type: "minesStart", stake, traps }); };
   const reveal = (i: number) => {
     const r = act({ type: "minesReveal", index: i });
     if (r.data?.trap) setBoom(r.data.traps as number[]);
@@ -143,7 +142,7 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
     <Panel title="Tide Mines" icon="pick" onClose={onClose}>
       {!run && (
         <>
-          <StakePicker currency={currency} setCurrency={setCurrency} stake={stake} setStake={setStake} s={s} minShell={MINES.minShell} minRf={MINES.minRf} />
+          <StakePicker stake={stake} setStake={setStake} s={s} min={MINES.minShell} />
           <div className="seg">{MINES.trapOptions.map(t => <button key={t} type="button" className={traps === t ? "on" : ""} onClick={() => setTraps(t)}><Icon id="skull" size={16} /> {t}</button>)}</div>
           <p className="muted">First safe tile pays {minesMultiplier(traps, 1).toFixed(2)}x · 5 tiles {minesMultiplier(traps, Math.min(5, 25 - traps)).toFixed(2)}x · Energy {MINES.energy}</p>
           <button type="button" className="btn primary big" onClick={start}>Start digging</button>
@@ -151,7 +150,7 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
       )}
       {run && (
         <div className="mines-hud">
-          <span>Current <b>{mult.toFixed(2)}x</b> → {n0(Math.floor(run.stake * mult))} {run.currency === "rf" ? "cRF" : "SHELL"}</span>
+          <span>Current <b>{mult.toFixed(2)}x</b> → {n0(Math.floor(run.stake * mult))} SHELL</span>
           <span>Next tile <b>{nextMult.toFixed(2)}x</b></span>
           <span className="loot">Loot {loot.length ? loot.map(([k, v]) => <span key={k}><Icon id={k} size={18} />{v}</span>) : "none yet"}</span>
         </div>
@@ -171,7 +170,7 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
       </div>
       {run && <button type="button" className="btn hot big" disabled={safe === 0} onClick={cashout}>Cash out {mult.toFixed(2)}x</button>}
       <FlipOffer />
-      <p className="fineprint"><SimTag /> Fair odds minus a {MINES.edge * 100}% edge: multiplier = 0.97 × C(25,k)/C(25−traps,k). A trap loses the stake and dug loot. RF lost flows to the Season Pool.</p>
+      <p className="fineprint"><SimTag /> Fair odds minus a {MINES.edge * 100}% edge: multiplier = 0.97 × C(25,k)/C(25−traps,k). A trap loses the stake and dug loot.</p>
     </Panel>
   );
 }
@@ -179,7 +178,6 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
 // ---------------- Abyss Dive (crash) ----------------
 export function AbyssPanel({ onClose }: { onClose: () => void }) {
   const { s, act, reducedMotion } = useG();
-  const [currency, setCurrency] = useState<"shell" | "rf">("shell");
   const [stake, setStake] = useState(50);
   const [auto, setAuto] = useState(0);
   const [mult, setMult] = useState(1);
@@ -215,7 +213,7 @@ export function AbyssPanel({ onClose }: { onClose: () => void }) {
     return () => cancelAnimationFrame(raf);
   }, [run?.startedAt]);
 
-  const start = () => { setLast(null); setMult(1); act({ type: "diveStart", stake, currency }); };
+  const start = () => { setLast(null); setMult(1); act({ type: "diveStart", stake }); };
   const cashout = () => {
     if (done.current) return;
     done.current = true;
@@ -232,19 +230,19 @@ export function AbyssPanel({ onClose }: { onClose: () => void }) {
       <div className={`abyss ${run ? "diving" : ""} ${last?.crashed ? "crashed" : ""}`} style={{ ["--depth" as string]: depth }}>
         <div className="abyss-mult">{run ? `${mult.toFixed(2)}x` : last ? (last.crashed ? `${last.at.toFixed(2)}x` : `${last.at.toFixed(2)}x`) : "1.00x"}</div>
         <div className="diver" style={{ top: `${10 + depth * 70}%`, transition: reducedMotion ? "none" : undefined }}><Icon id="sub" size={48} /></div>
-        {run && <div className="abyss-stake">{run.currency === "rf" ? `${rf(run.stake)} RF` : `${n0(run.stake)} SHELL`} → {run.currency === "rf" ? `${rf(Math.floor(run.stake * mult))} RF` : `${n0(Math.floor(run.stake * mult))} SHELL`}</div>}
+        {run && <div className="abyss-stake">{n0(run.stake)} SHELL → {n0(Math.floor(run.stake * mult))} SHELL</div>}
       </div>
       {run ? (
         <button type="button" className="btn hot big" onClick={cashout}>CASH OUT {mult.toFixed(2)}x</button>
       ) : (
         <>
-          <StakePicker currency={currency} setCurrency={setCurrency} stake={stake} setStake={setStake} s={s} minShell={DIVE.minShell} minRf={DIVE.minRf} />
+          <StakePicker stake={stake} setStake={setStake} s={s} min={DIVE.minShell} />
           <label className="stake-input"><span>Auto cash-out</span><input type="number" min={0} step={0.1} value={auto || ""} placeholder="off" onChange={e => setAuto(Number(e.target.value))} /><span>x</span></label>
           <button type="button" className="btn primary big" onClick={start}>DIVE ({DIVE.energy} energy)</button>
         </>
       )}
       <FlipOffer />
-      <p className="fineprint"><SimTag /> Crash point = (1 − edge)/U, edge {edge.toFixed(1)}% (Coral Blade lowers it to 2%). Every full 1x of depth you survive adds a loot roll (coral, sea glass, pearl), and Bone Divers find more. RF lost flows to the Season Pool.</p>
+      <p className="fineprint"><SimTag /> Crash point = (1 − edge)/U, edge {edge.toFixed(1)}% (Coral Blade lowers it to 2%). Every full 1x of depth you survive adds a loot roll (coral, sea glass, pearl), and Bone Divers find more.</p>
     </Panel>
   );
 }

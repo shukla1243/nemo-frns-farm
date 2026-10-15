@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACT_ONE_LEN, ACT_TWO_LEN, PASS, RF, VOYAGE_CHAPTER, chapterAt, createState, dayNumber, dispatch, passClaimable, seasonIdAt, voyagesOpen, type GameState } from "../src/engine";
+import { ACT_ONE_LEN, ACT_TWO_LEN, PASS, VOYAGE_CHAPTER, chapterAt, createState, dayNumber, dispatch, passClaimable, seasonIdAt, voyagesOpen, type GameState } from "../src/engine";
 import { exportSave, importSave } from "../src/game/save";
 import { guide } from "../src/world/guide";
 import { STATIONS, UNLOCK_SIGNS } from "../src/world/map";
@@ -40,13 +40,13 @@ describe("story guide", () => {
     expect(guide(s)).toMatchObject({ kind: "goal", station: { id: "unlock:cove" } });
   });
   it("never goes blank while the Friend is on a voyage", () => {
-    const s = fresh(); s.story = VOYAGE_CHAPTER; s.level = 5; s.inv.bread = 5; s.shell = 500; s.hunger = 100;
+    const s = fresh(); s.story = VOYAGE_CHAPTER + 1; s.level = 2; s.inv.bread = 5; s.shell = 500; s.hunger = 100;
     const r = dispatch(s, { type: "voyageStart", id: "scout" }, T0);
     expect(r.ok).toBe(true);
     const g = guide(r.state);
     expect(g).toMatchObject({ kind: "voyage", station: { id: "pier" }, endsAt: T0 + 15 * 60_000 });
     // A finished chapter is still claimable while away.
-    r.state.stats.swaps = 1;
+    r.state.level = 3;
     expect(guide(r.state)).toEqual({ kind: "claim" });
   });
 });
@@ -87,8 +87,8 @@ describe("Season Journey", () => {
     expect(next.season.id).not.toBe(seasonIdAt(T0));
     expect(next.season.pass).toBe(0);
   });
-  it("pays only 3 RF across the whole track", () => {
-    expect(PASS.reduce((n, t) => n + (t.rf ?? 0), 0)).toBe(3 * RF);
+  it("pays SHELL and items only", () => {
+    expect(PASS.every(t => Object.keys(t).every(k => ["score", "shell", "items"].includes(k)))).toBe(true);
   });
   it("old saves without the journey field load at tier 0", () => {
     const s = fresh();
@@ -101,7 +101,7 @@ describe("Season Journey", () => {
 describe("no dead ends", () => {
   it("a starving, broke Friend with no food can always forage, on a cooldown", () => {
     const s = fresh();
-    s.hunger = 0; s.shell = 0; s.rf = 0;
+    s.hunger = 0; s.shell = 0;
     for (const id of ["bread", "kelp", "carrot", "coconut", "sardine", "berry"] as const) s.inv[id] = 0;
     expect(dispatch(s, { type: "gather", kind: "chop" }, T0).ok).toBe(false);
     const r = dispatch(s, { type: "forage" }, T0);
@@ -128,7 +128,7 @@ describe("welcome back report", () => {
   it("says where the Friend is: on a voyage, back from one, or at home", () => {
     const s = fresh();
     expect(welcomeBack(s, T0).friend).toEqual({ kind: "home" });
-    s.voyage = { id: "scout", startedAt: T0 - 1000, endsAt: T0 + 60_000, result: { outcome: "empty", label: "", shell: 0, rf: 0, items: {}, stock: null, relic: false, lost: false }, announced: false };
+    s.voyage = { id: "scout", startedAt: T0 - 1000, endsAt: T0 + 60_000, result: { outcome: "empty", label: "", shell: 0, items: {}, stock: null, relic: false, lost: false }, announced: false };
     expect(welcomeBack(s, T0).friend).toEqual({ kind: "voyage", endsAt: T0 + 60_000 });
     expect(welcomeBack(s, T0 + 60_000).friend).toEqual({ kind: "back" });
   });

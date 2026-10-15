@@ -249,9 +249,6 @@ button.item:hover:not(:disabled) { filter: brightness(1.05); }
 .pool-head > div { display: grid; padding: 0 6px; border-style: solid; border-width: calc(var(--f-slot-s) * var(--fs, 1px)); border-image: var(--f-slot) var(--f-slot-s) fill / calc(var(--f-slot-s) * var(--fs, 1px)) stretch; }
 .big-num { font: 700 30px/1.1 var(--font); color: var(--orange);  text-shadow: 2px 2px 0 var(--ink); }
 .spark { width: 100%; height: 96px; margin: 10px 0; display: block; background: #1e3f5f; box-shadow: 0 0 0 3px var(--ink); shape-rendering: crispEdges; }
-.swap { display: grid; gap: 8px; }
-.quote { padding: 0 6px; border-style: solid; border-width: calc(var(--f-paper-s) * var(--fs, 1px)); border-image: var(--f-paper) var(--f-paper-s) fill / calc(var(--f-paper-s) * var(--fs, 1px)) stretch; }
-.quote p { margin: 4px 0; }
 
 /* Wheel */
 .wheel-wrap { position: relative; width: min(260px, 70vw); margin: 6px auto 8px; }
@@ -477,8 +474,8 @@ canvas.wheel { width: 100%; aspect-ratio: 1; image-rendering: pixelated; }
 .result-pop { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
 .swatch { display: inline-block; width: 12px; height: 12px; margin-right: 6px; box-shadow: 0 0 0 2px var(--ink); vertical-align: -1px; }
 .odds-table td { vertical-align: middle; }
-.stake, .swap { grid-template-columns: minmax(0, 1fr); }
-.stake > *, .swap > *, .seg button, .quick button { min-width: 0; }
+.stake { grid-template-columns: minmax(0, 1fr); }
+.stake > *, .seg button, .quick button { min-width: 0; }
 .stake-input input { width: 100%; }
 
 /* ---------------- Round 3: play hub, voyages, inbox, quick actions ---------------- */

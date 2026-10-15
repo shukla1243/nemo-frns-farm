@@ -94,7 +94,7 @@ export function Game({ identity, initial, welcome, since }: { identity: Identity
       grant: () => {
         const next = structuredClone(stateRef.current);
         for (const z of Object.keys(next.zones)) next.zones[z as ZoneId] = true;
-        next.rf += 50_000; next.shell += 50_000; next.level = 12; next.home = 2;
+        next.shell += 100_000; next.level = 12; next.home = 2;
         for (const k of Object.keys(next.inv)) next.inv[k as ItemId] += 30;
         stateRef.current = next; setS(next);
       },

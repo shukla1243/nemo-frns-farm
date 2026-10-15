@@ -2,7 +2,6 @@
  * Automatic lifetime milestones. Every track has infinite tiers; the moment a stat passes the next
  * threshold the reward is granted automatically (checked after every action and tick).
  */
-import { RF } from "./config";
 import type { GameEvent, GameState } from "./types";
 
 type Track = { id: string; name: string; unit: string; base: number; value: (s: GameState) => number };
@@ -21,7 +20,7 @@ export const TRACKS: Track[] = [
   { id: "forges", name: "Smith", unit: "forge strikes", base: 5, value: s => s.stats.forges },
   { id: "spins", name: "Gambler", unit: "wheel spins", base: 5, value: s => s.stats.spins },
   { id: "voyages", name: "Voyager", unit: "voyages sailed", base: 3, value: s => s.stats.voyages },
-  { id: "spent", name: "Patron", unit: "RF spent", base: 10 * RF, value: s => s.stats.burned },
+  { id: "spent", name: "Patron", unit: "SHELL spent", base: 1500, value: s => s.stats.shellSunk },
   { id: "earned", name: "Tycoon", unit: "SHELL earned", base: 1000, value: s => s.stats.shellEarned },
 ];
 
@@ -39,9 +38,9 @@ export function rankName(tier: number) {
   return r === RANKS.length - 1 ? `${RANKS[r]} ${tier - 15}` : `${RANKS[r]} ${"I".repeat(Math.min(3, step))}`;
 }
 
-/** Reward for reaching `tier` (1-based). Grows with tier; every third tier also pays RF. */
+/** Reward for reaching `tier` (1-based). Grows with tier; every third tier pays a bonus. */
 export function milestoneReward(tier: number) {
-  return { shell: Math.round(25 * tier ** 1.6), xp: 10 * tier, rf: tier % 3 === 0 ? 25 * tier : 0 };
+  return { shell: Math.round(25 * tier ** 1.6) + (tier % 3 === 0 ? Math.round(37.5 * tier) : 0), xp: 10 * tier };
 }
 
 export function checkMilestones(s: GameState, events: GameEvent[], now: number) {
@@ -52,9 +51,8 @@ export function checkMilestones(s: GameState, events: GameEvent[], now: number) 
       tier++;
       const r = milestoneReward(tier);
       s.shell += r.shell; s.stats.shellEarned += r.shell;
-      if (r.rf) { s.rf += r.rf; s.stats.rfWon += r.rf; }
       s.season.xp += r.xp;
-      const text = `Milestone: ${t.name} ${rankName(tier)} (${fmt(t, threshold(t.base, tier - 1))} ${t.unit}). +${r.shell} SHELL${r.rf ? ` +${(r.rf / RF).toFixed(2)} RF` : ""}`;
+      const text = `Milestone: ${t.name} ${rankName(tier)} (${fmt(threshold(t.base, tier - 1))} ${t.unit}). +${r.shell} SHELL`;
       events.push({ tone: "epic", text, cue: "reveal-rare", fx: "confetti", icon: "trophy" });
       s.log.unshift({ t: now, text, tone: "epic" });
     }
@@ -62,8 +60,8 @@ export function checkMilestones(s: GameState, events: GameEvent[], now: number) 
   }
 }
 
-const fmt = (t: Track, v: number) => (t.id === "spent" ? (v / RF).toLocaleString() : v.toLocaleString());
+const fmt = (v: number) => v.toLocaleString();
 export const trackProgress = (s: GameState, t: Track) => {
   const tier = s.milestones[t.id] ?? 0;
-  return { tier, value: t.value(s), next: threshold(t.base, tier), prev: tier ? threshold(t.base, tier - 1) : 0, fmt: (v: number) => fmt(t, v) };
+  return { tier, value: t.value(s), next: threshold(t.base, tier), prev: tier ? threshold(t.base, tier - 1) : 0, fmt };
 };
