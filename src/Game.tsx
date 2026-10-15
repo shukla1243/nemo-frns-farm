@@ -31,6 +31,8 @@ import { Fx, type FxKind } from "./ui/Fx";
 let toastSeq = 0;
 /** How often the island is fetched from the server while the game is visible and not paused. */
 const SYNC_MS = 20_000;
+const TOAST_STEP_MS = 200;
+type Shown = Toast & { left: number };
 
 export function Game({ ready, paused }: { ready: Ready<LoadResult>; paused: boolean }) {
   const { game, server: loaded } = ready;
@@ -44,7 +46,7 @@ export function Game({ ready, paused }: { ready: Ready<LoadResult>; paused: bool
   const [now, setNow] = useState(loaded.now);
   const [panel, setPanel] = useState<PanelId | null>(loaded.welcome === "new" ? "story" : loaded.since ? "report" : null);
   const [near, setNear] = useState<Station | null>(null);
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<Shown[]>([]);
   const [fx, setFx] = useState<{ kind: FxKind; id: number } | null>(null);
   const portraitUrl = useMemo(() => portrait(art, 56), [art]);
   const [prefs, setPrefsState] = useState<Prefs>(loaded.prefs);
@@ -56,20 +58,23 @@ export function Game({ ready, paused }: { ready: Ready<LoadResult>; paused: bool
   const [shaking, setShaking] = useState(false);
   const shakeTimer = useRef(0);
 
+  // Toasts show three at a time; their time on screen only counts down while the game runs.
   const queue = useRef<Toast[]>([]);
-  const showNext = useCallback(() => {
-    setToasts(cur => {
-      if (cur.length >= 3 || !queue.current.length) return cur;
-      const t = queue.current.shift()!;
-      setTimeout(() => { setToasts(x => x.filter(y => y.id !== t.id)); showNext(); }, t.tone === "epic" ? 4200 : 3000);
-      return [...cur, t];
-    });
+  const fill = useCallback((cur: Shown[]) => {
+    const out = [...cur];
+    while (out.length < 3 && queue.current.length) { const t = queue.current.shift()!; out.push({ ...t, left: t.tone === "epic" ? 4200 : 3000 }); }
+    return out;
   }, []);
   const pushToast = useCallback((text: string, tone: string, icon?: string) => {
     queue.current.push({ id: ++toastSeq, text, tone, icon });
     if (queue.current.length > 12) queue.current.splice(0, queue.current.length - 12);
-    showNext();
-  }, [showNext]);
+    setToasts(fill);
+  }, [fill]);
+  useEffect(() => {
+    if (paused) return;
+    const t = setInterval(() => setToasts(cur => (cur.length ? fill(cur.map(x => ({ ...x, left: x.left - TOAST_STEP_MS })).filter(x => x.left > 0)) : cur)), TOAST_STEP_MS);
+    return () => clearInterval(t);
+  }, [paused, fill]);
 
   const onEvents = useCallback((events: readonly GameEvent[]) => {
     for (const e of events) {

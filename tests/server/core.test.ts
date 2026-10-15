@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import server, { type ActResult, type LoadResult, type PrefsResult, type SyncResult } from "../../server/index";
 import { ConflictExhausted, createWorld, type FakeFriend } from "./fakeCtx";
-import type { GameState } from "../../src/engine";
+import { createState, type GameState } from "../../src/engine";
 
 const T0 = Date.UTC(2026, 9, 16, 9);
 const skeleton: FakeFriend = { id: "117713", generation: 1, familyId: 0 };
@@ -97,6 +97,20 @@ describe("act", () => {
     expect(r.events.at(-1)?.text).toBe("Invalid request.");
   });
 
+  it("keeps the hooked fish secret and judges the reel itself", () => {
+    const cast = call<ActResult>("act", { a: { type: "fishCast" } });
+    expect(cast.ok).toBe(true);
+    const run = cast.view.run as unknown as Record<string, unknown>;
+    expect(run).toMatchObject({ kind: "fish" });
+    expect(run).not.toHaveProperty("fish");
+    expect(typeof run.biteAt).toBe("number");
+    expect(stored()!.game.run).toHaveProperty("fish");
+    expect(() => call("act", { a: { type: "fishReel", hit: true } })).toThrow(/^Invalid request/);
+    const reel = call<ActResult>("act", { a: { type: "fishReel" } });
+    expect(reel.data).toMatchObject({ caught: false });
+    expect(reel.view.run).toBeNull();
+  });
+
   it("needs a loaded island", () => {
     world = createWorld({ now: T0 });
     expect(() => call("act", { a: { type: "gather", kind: "chop" } })).toThrow(/Reload/);
@@ -154,5 +168,52 @@ describe("prefs", () => {
     for (const input of [null, { muted: "yes" }, { inboxSeenAt: 5 }, { inboxSeen: false }, { music: 1 }]) {
       expect(() => call("prefs", input), JSON.stringify(input)).toThrow(/Invalid/);
     }
+  });
+});
+
+describe("stored schema", () => {
+  const island = () => JSON.parse(JSON.stringify(createState({ friendId: skeleton.id, name: "Friend #117713", family: 0, guest: false, now: T0 - 3_600_000, seed: 3 }))) as Record<string, unknown> & GameState;
+  const put = (value: unknown) => world.put(`friend:${skeleton.id}`, "state", value as never);
+
+  it("fills fields a schema 3 record is missing with new-island defaults and keeps the rest", () => {
+    const g = island();
+    g.shell = 1234;
+    delete (g as Partial<GameState>).relics;
+    delete (g.stats as Partial<GameState["stats"]>).crabBest;
+    delete (g.inv as Partial<GameState["inv"]>).wood;
+    put({ schema: 3, game: g });
+    const r = call<LoadResult>("load");
+    expect(r.view.shell).toBeGreaterThanOrEqual(1234);
+    expect(r.view.relics).toBe(0);
+    expect(r.view.stats.crabBest).toBe(0);
+    expect(r.view.inv.wood).toBe(0);
+    expect(r.view.createdAt).toBe(T0 - 3_600_000);
+  });
+
+  it("migrates an older schema and stores it as schema 3", () => {
+    const g = island();
+    g.level = 4;
+    delete (g as Partial<GameState>).tradableStocks;
+    put({ schema: 2, game: g });
+    const r = call<LoadResult>("load");
+    expect(r.view.level).toBe(4);
+    expect(r.view.tradableStocks).toBeTypeOf("object");
+    expect(stored()!.schema).toBe(3);
+  });
+
+  it("migrates an unwrapped island from before the schema field", () => {
+    const g = island();
+    g.home = 2;
+    put(g);
+    const r = call<LoadResult>("load");
+    expect(r.view.home).toBe(2);
+    expect(stored()).toMatchObject({ schema: 3, game: { home: 2 } });
+  });
+
+  it("refuses an island saved by a newer version without touching it", () => {
+    put({ schema: 4, game: island() });
+    expect(() => call("load")).toThrow(/newer version/);
+    expect(() => call("act", { a: { type: "gather", kind: "chop" } })).toThrow(/newer version/);
+    expect(stored()!.schema).toBe(4);
   });
 });

@@ -129,7 +129,11 @@ function simulate(seed: number, hours: number, style: Style) {
     if (r === 3) {
       if (s.inv.bait < 1) act({ type: "buy", item: "bait", qty: 3 });
       const c = act({ type: "fishCast" });
-      if (c.ok) act({ type: "fishReel", hit: (step * 31) % 10 < 7 });
+      if (c.ok) {
+        // Reel some time into the bite window; the server judges the hook position.
+        now = (s.run as unknown as { biteAt: number }).biteAt + 250 + ((step * 31) % 40) * 100;
+        act({ type: "fishReel" });
+      }
       continue;
     }
     if (r === 4 && s.zones.cove) { act({ type: "gather", kind: "quarry" }); continue; }

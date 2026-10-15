@@ -1,5 +1,5 @@
 import {
-  ASCEND, BOSS, CRAB, CROPS, DIVE, ENERGY_DRINK, FISH_ENERGY, FISH_FIRST_CATCH_ZONE, FISH_TABLE, FISH_ZONE_BASE, FISH_ZONE_PER_ROD, FLIP, FORGE_CHANCE,
+  ASCEND, BOSS, CRAB, CROPS, DIVE, ENERGY_DRINK, FISH_ENERGY, FISH_FIRST_CATCH_ZONE, FISH_REEL, FISH_TABLE, FISH_ZONE_BASE, FISH_ZONE_PER_ROD, FLIP, FORGE_CHANCE,
   FORGE_PITY_STEP, GATHER, GEAR, GOLDEN_CROP_CHANCE, HOMES, ITEMS, MAX_GEAR, MAX_LEVEL, MAX_PLOTS, MINES, RAID, RECIPES,
   FISH_GOODS, QUARRY_FINDS, SHOP, WELL_FED_MS, WHEEL, WHEEL_FREE_MS, ZONES, ascendCost, diveMultiplierAt, forgeCost, plotCost,
   titleFor, xpToNext, type CropId, type GearId, type ItemId, type MealId, type ZoneId,
@@ -12,6 +12,7 @@ import {
 import { bossStatus, cropReady, eventActive, growMs, startSleep, tick, wakeUp } from "./systems";
 import { NPC_GIFTS, REBIRTH, dayNumber, rebirthCost } from "./config";
 import { chapterAt } from "./story";
+import { reelHit, reelSpeed } from "./fishing";
 import { checkMilestones } from "./milestones";
 import { claimPass, passClaimable } from "./pass";
 import { STOCKS, STOCK_SELL_FEE, VOYAGES, VOYAGE_CHAPTER, foodCount, homeIsle, rollVoyage, stockPrice, voyageGateText, voyageOdds, voyagesOpen, type StockId, type VoyageId } from "./voyages";
@@ -41,7 +42,7 @@ export type Action =
   | { type: "minesReveal"; index: number }
   | { type: "minesCashout" }
   | { type: "fishCast" }
-  | { type: "fishReel"; hit: boolean }
+  | { type: "fishReel" }
   | { type: "crabStart" }
   | { type: "crabFinish"; score: number }
   | { type: "crabQuit" }
@@ -122,7 +123,6 @@ function checkPayload(a: Action) {
     case "diveStart": int(a.stake, 1, MAX); break;
     case "minesStart": int(a.stake, 1, MAX); int(a.traps, 1, MINES.size - 1); break;
     case "minesReveal": int(a.index, 0, MINES.size - 1); break;
-    case "fishReel": if (typeof a.hit !== "boolean") bad(); break;
     case "crabFinish": if (typeof a.score !== "number" || !Number.isFinite(a.score)) bad(); break;
     case "raid": if (typeof a.rivalId !== "string") bad(); break;
     case "claimQuest": int(a.id, 0, MAX); break;
@@ -509,15 +509,24 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const boost = s.gear.rod * 0.08 + luck(s, now);
       const golden = eventActive(s, "goldtide", now);
       const fish = weighted(rng, FISH_TABLE.map((f, i) => ({ ...f, weight: f.weight * Math.max(0.2, 1 + boost * i) * (golden && i >= 2 ? 2 : 1) })));
-      s.run = { kind: "fish", fish: fish.id, zone: fishZone(s, fish.difficulty), castAt: now };
-      events.push({ tone: "info", text: "Cast! Wait for the bite…", cue: "action-start", quiet: true });
-      return { zone: (s.run as { zone: number }).zone, difficulty: fish.difficulty };
+      const zone = fishZone(s, fish.difficulty);
+      s.run = {
+        kind: "fish", fish: fish.id, zone, zoneStart: Math.round(rng.next() * (1 - zone) * 1000) / 1000, speed: reelSpeed(fish.difficulty),
+        biteAt: now + FISH_REEL.biteMinMs + rng.int(0, FISH_REEL.biteSpreadMs), castAt: now,
+      };
+      events.push({ tone: "info", text: "Cast! Wait for the bite...", cue: "action-start", quiet: true });
+      return;
     }
     case "fishReel": {
       const run = s.run; if (!run || run.kind !== "fish") fail("Cast first.");
       const r = run as Extract<typeof run, { kind: "fish" }>;
       s.run = null;
-      if (!a.hit) { s.mood -= 2; log(s, events, "It got away…", "bad", { cue: "select", quiet: true }, now); return { caught: false, fish: r.fish }; }
+      if (!reelHit(r, now)) {
+        s.mood -= 2;
+        const text = now < r.biteAt ? "Too early! The fish swam off." : now > r.biteAt + FISH_REEL.windowMs + FISH_REEL.lagMaxMs ? "Too slow. It got away!" : "It slipped off the hook...";
+        log(s, events, text, "bad", { cue: "select", quiet: true }, now);
+        return { caught: false, text };
+      }
       const def = FISH_TABLE.find(f => f.id === r.fish)!;
       s.inv[r.fish]++;
       s.stats.fish++;

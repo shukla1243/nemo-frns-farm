@@ -208,19 +208,12 @@ describe("double or nothing", () => {
 });
 
 describe("fishing", () => {
-  it("needs bait; a hit lands a fish", () => {
+  it("needs bait", () => {
     const s = fresh(); s.inv.bait = 0;
     expect(run(s, { type: "fishCast" }).ok).toBe(false);
     const cast = run(fresh(), { type: "fishCast" });
     expect(cast.ok).toBe(true);
     expect(cast.state.inv.bait).toBe(4);
-    const reel = run(cast.state, { type: "fishReel", hit: true });
-    expect(reel.data!.caught).toBe(true);
-    expect(reel.state.stats.fish).toBe(1);
-    // The Dock panel shows the catch inline, so the event stays in the log without a toast behind the panel.
-    expect(reel.events.find(e => /Caught/.test(e.text))?.quiet).toBe(true);
-    const miss = run(cast.state, { type: "fishReel", hit: false });
-    expect(miss.data!.caught).toBe(false);
   });
   it("a new Friend starts with 5 bait and an easier first catch", () => {
     expect(fresh().inv.bait).toBe(5);

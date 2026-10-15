@@ -13,7 +13,7 @@ const FIELDS: Record<string, Record<string, unknown>> = {
   clearPlot: { plot: 0 }, buyPlot: {}, gather: { kind: "chop" }, cook: { meal: "sushi" }, unlockZone: { zone: "cove" },
   ascend: { blessing: false, charm: false }, forge: { gear: "rod", blessing: false, charm: false },
   diveStart: { stake: 50 }, diveCashout: {}, minesStart: { stake: 50, traps: 3 }, minesReveal: { index: 0 }, minesCashout: {},
-  fishCast: {}, fishReel: { hit: true }, crabStart: {}, crabFinish: { score: 10 }, crabQuit: {}, flip: {}, keepWin: {},
+  fishCast: {}, fishReel: {}, crabStart: {}, crabFinish: { score: 10 }, crabQuit: {}, flip: {}, keepWin: {},
   raid: { rivalId: "bot-0" }, bossAttack: {}, bossClaim: {}, spin: { free: true }, claimQuest: { id: 1 }, passClaim: {},
   forage: {}, storyClaim: {}, npcGift: { npc: "salt" }, rebirth: {}, voyageStart: { id: "scout" }, voyageClaim: {},
   voyageRecall: {}, sellStock: { id: "FINX", shares: 1 },

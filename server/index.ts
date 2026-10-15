@@ -1,7 +1,7 @@
 /** NEMO FRNS FARM server rules: the island lives in this Friend's records and the engine runs here. */
 import { check, defineGame, GameError, type Json, type JsonInput } from "@rarefriends/friendsdk/server";
 import type { GameEvent, GameState } from "../src/engine";
-import { newGame, readGame, readPrefs, saveGame, savePrefs, step, type Prefs } from "./state";
+import { newGame, readGame, readPrefs, saveGame, savePrefs, step, view, type Prefs } from "./state";
 import { parseAction } from "./validate";
 
 /** Time away after which the client shows the welcome-back report. */
@@ -24,11 +24,11 @@ export default defineGame({
       if (!prev) {
         const game = newGame(ctx);
         saveGame(ctx, game);
-        return { view: game, now: ctx.now, prefs, events: [], welcome: "new", since: null };
+        return { view: view(game), now: ctx.now, prefs, events: [], welcome: "new", since: null };
       }
       const r = step(ctx, prev, { type: "tick" });
       saveGame(ctx, r.state);
-      return { view: r.state, now: ctx.now, prefs, events: r.events, welcome: null, since: ctx.now - prev.lastTick > AWAY_MS ? prev.lastTick : null };
+      return { view: view(r.state), now: ctx.now, prefs, events: r.events, welcome: null, since: ctx.now - prev.lastTick > AWAY_MS ? prev.lastTick : null };
     },
 
     act(ctx, input): ActResult {
@@ -38,7 +38,7 @@ export default defineGame({
       if (!prev) throw new GameError("Reload the game to continue.");
       const r = step(ctx, prev, action);
       saveGame(ctx, r.state);
-      return { ok: r.ok, view: r.state, now: ctx.now, events: r.events, data: (r.data ?? null) as ActResult["data"] };
+      return { ok: r.ok, view: view(r.state), now: ctx.now, events: r.events, data: (r.data ?? null) as ActResult["data"] };
     },
 
     sync(ctx, input): SyncResult {
@@ -47,7 +47,7 @@ export default defineGame({
       if (!prev) throw new GameError("Reload the game to continue.");
       const r = step(ctx, prev, { type: "tick" });
       saveGame(ctx, r.state);
-      return { view: r.state, now: ctx.now, events: r.events };
+      return { view: view(r.state), now: ctx.now, events: r.events };
     },
 
     prefs(ctx, input): PrefsResult {

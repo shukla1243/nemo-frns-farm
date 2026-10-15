@@ -111,6 +111,8 @@ export function createWorld(options: { now: number }) {
       return run(friend, ctx => handler(ctx, parsed)) as T;
     },
     record<T = Json>(owner: string, key: string): T | null { return (tableOf(owner).get(key)?.value as T) ?? null; },
+    /** Write a record directly, as an earlier version of the game would have left it. */
+    put(owner: string, key: string, value: JsonInput) { write(owner, key, value); },
     setRandom(fn: (max: number) => number) { random = fn; },
     beforeCommits(times: number, fn: (write: (owner: string, key: string, value: JsonInput) => void) => void) { beforeCommit = { fn, times }; },
     advance(ms: number) { state.now += ms; },

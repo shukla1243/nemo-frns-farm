@@ -11,7 +11,8 @@ export type Rival = {
 /** `tStake` is the tradable part of the stake (see `tradable`). */
 export type DiveRun = { kind: "dive"; stake: number; tStake: number; startedAt: number };
 export type MinesRun = { kind: "mines"; stake: number; tStake: number; revealed: number[]; trapCount: number; loot: Partial<Record<ItemId, number>>; safeHint: number | null };
-type FishRun = { kind: "fish"; fish: FishId; zone: number; castAt: number };
+/** The server keeps `fish` to itself; the client sees the zone, the bite time and the hook speed it draws. */
+type FishRun = { kind: "fish"; fish: FishId; zone: number; zoneStart: number; speed: number; biteAt: number; castAt: number };
 type CrabRun = { kind: "crab"; startedAt: number };
 type ActiveRun = DiveRun | MinesRun | FishRun | CrabRun;
 

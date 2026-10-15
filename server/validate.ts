@@ -16,7 +16,7 @@ const ACTIONS: Readonly<Record<Exclude<Action["type"], "tick">, Fields>> = {
   ascend: { optional: ["blessing", "charm"] }, forge: { required: ["gear"], optional: ["blessing", "charm"] },
   diveStart: { required: ["stake"] }, diveCashout: {},
   minesStart: { required: ["stake", "traps"] }, minesReveal: { required: ["index"] }, minesCashout: {},
-  fishCast: {}, fishReel: { required: ["hit"] },
+  fishCast: {}, fishReel: {},
   crabStart: {}, crabFinish: { required: ["score"] }, crabQuit: {},
   flip: {}, keepWin: {}, raid: { required: ["rivalId"] }, bossAttack: {}, bossClaim: {},
   spin: { required: ["free"] }, claimQuest: { required: ["id"] }, passClaim: {}, forage: {}, storyClaim: {},

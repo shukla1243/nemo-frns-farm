@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { DIVE, FISH_ENERGY, FISH_TABLE, FLIP, ITEMS, MINES, diveMultiplierAt, type FishId } from "../../engine/config";
+import { DIVE, FISH_ENERGY, FISH_REEL, FISH_TABLE, FLIP, ITEMS, MINES, diveMultiplierAt, type FishId } from "../../engine/config";
+import { markerAt } from "../../engine/fishing";
 import { diveEdge, minesMultiplier, minesRunMultiplier } from "../../engine/actions";
 import type { DiveRun, MinesRun } from "../../engine/types";
 import { Panel, SimTag, StakePicker, n0, useG } from "../common";
@@ -23,72 +24,66 @@ function FlipOffer() {
 }
 
 // ---------------- Fishing ----------------
-type FishPhase = { k: "idle" } | { k: "wait"; until: number } | { k: "reel"; zoneStart: number; zone: number; speed: number; started: number } | { k: "done"; text: string; fish?: FishId; xp?: number };
+type Hook = { zone: number; zoneStart: number; speed: number; biteAt: number };
+type FishPhase = { k: "idle" } | { k: "wait" | "reel"; hook: Hook } | { k: "busy" } | { k: "done"; text: string; fish?: FishId; xp?: number };
 
+/**
+ * The server rolls the bite time, the green zone and the hook speed at the cast, and judges the reel against server
+ * time, so this panel only draws what the server already decided.
+ */
 export function DockPanel({ onClose }: { onClose: () => void }) {
-  const { s, act, reducedMotion } = useG();
-  const [phase, setPhase] = useState<FishPhase>({ k: "idle" });
+  const { s, act, clock, paused } = useG();
+  const [result, setResult] = useState<FishPhase | null>(null);
   const [marker, setMarker] = useState(0);
-  const raf = useRef(0);
-  const markerRef = useRef(0);
-  const runRef = useRef(s.run);
-  runRef.current = s.run;
+  const [, setFrame] = useState(0);
+  const hook = s.run?.kind === "fish" ? (s.run as unknown as Hook) : null;
+  const phase: FishPhase = result ?? (hook ? { k: clock() < hook.biteAt ? "wait" : "reel", hook } : { k: "idle" });
+  const live = phase.k === "wait" || phase.k === "reel";
 
+  // Draw the hook from server time. Frozen while the host pauses: nothing is drawn and nothing is sent.
   useEffect(() => {
-    if (phase.k === "wait") {
-      const t = setTimeout(() => {
-        const cur = runRef.current;
-        const run = cur && cur.kind === "fish" ? cur : null;
-        const zone = run?.zone ?? 0.25;
-        const diff = FISH_TABLE.find(f => f.id === run?.fish)?.difficulty ?? 0;
-        setPhase({ k: "reel", zone, zoneStart: Math.random() * (1 - zone), speed: (0.9 + diff * 2.2) * (reducedMotion ? 0.6 : 1), started: performance.now() });
-      }, phase.until - Date.now());
-      return () => clearTimeout(t);
-    }
-    if (phase.k === "reel") {
-      const loop = (t: number) => {
-        const e = (t - phase.started) / 1000;
-        const m = (Math.sin(e * phase.speed * Math.PI) + 1) / 2; // ping-pong 0..1
-        markerRef.current = m; setMarker(m);
-        if (e > 4.5) { void act({ type: "fishReel", hit: false }); setPhase({ k: "done", text: "Too slow. It got away!" }); return; }
-        raf.current = requestAnimationFrame(loop);
-      };
-      raf.current = requestAnimationFrame(loop);
-      return () => cancelAnimationFrame(raf.current);
-    }
-  }, [phase, act, reducedMotion]);
+    if (!hook || result || paused) return;
+    let raf = 0;
+    const loop = () => {
+      const t = clock();
+      if (t >= hook.biteAt) setMarker(markerAt(hook, t));
+      setFrame(f => f + 1);
+      if (t > hook.biteAt + FISH_REEL.windowMs) { void reel(); return; }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  });
 
   const cast = async () => {
+    setResult({ k: "busy" });
     const r = await act({ type: "fishCast" });
-    if (r.ok) setPhase({ k: "wait", until: Date.now() + 900 + Math.random() * 1600 });
+    setResult(r.ok ? null : { k: "idle" });
   };
   const reel = async () => {
-    if (phase.k !== "reel") return;
-    cancelAnimationFrame(raf.current);
-    const m = markerRef.current;
-    const hit = m >= phase.zoneStart && m <= phase.zoneStart + phase.zone;
-    setPhase({ k: "done", text: "Reeling in..." });
-    const r = await act({ type: "fishReel", hit });
-    const fish = r.data?.fish as FishId | undefined;
-    setPhase({ k: "done", text: hit && fish ? `Caught a ${ITEMS[fish].name}!` : "It slipped off the hook…", fish: hit ? fish : undefined, xp: r.data?.xp as number | undefined });
+    if (!hook || result || paused) return;
+    setResult({ k: "busy" });
+    const r = await act({ type: "fishReel" });
+    const fish = r.data?.caught ? (r.data.fish as FishId) : undefined;
+    setResult({ k: "done", text: fish ? `Caught a ${ITEMS[fish].name}!` : (r.data?.text as string | undefined) ?? "It slipped off the hook...", fish, xp: r.data?.xp as number | undefined });
   };
   useEffect(() => {
-    const key = (e: KeyboardEvent) => { if (e.key === " " || e.key === "Enter") { if (phase.k === "reel") { e.preventDefault(); void reel(); } } };
+    const key = (e: KeyboardEvent) => { if ((e.key === " " || e.key === "Enter") && phase.k === "reel") { e.preventDefault(); void reel(); } };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   });
 
   return (
-    <Panel title="Fishing Dock" icon="rod" onClose={() => { if (phase.k === "reel" || phase.k === "wait") act({ type: "fishReel", hit: false }); onClose(); }}>
+    <Panel title="Fishing Dock" icon="rod" onClose={() => { if (live) void act({ type: "fishReel" }); onClose(); }}>
       <p className="muted">Bait: <b>{s.inv.bait}</b> · Energy per cast: {FISH_ENERGY} · Rod +{s.gear.rod}</p>
       <div className={`fishing ${phase.k}`}>
         {phase.k === "idle" && <p className="lead">Cast your line into the reef.</p>}
-        {phase.k === "wait" && <p className="lead bob">… waiting for a bite …</p>}
+        {(phase.k === "wait" || phase.k === "busy") && <p className="lead bob">... waiting for a bite ...</p>}
         {phase.k === "reel" && (
           <>
             <p className="lead">BITE! Tap REEL when the hook is in the green!</p>
             <div className="reel-bar">
-              <div className="reel-zone" style={{ left: `${phase.zoneStart * 100}%`, width: `${phase.zone * 100}%` }} />
+              <div className="reel-zone" style={{ left: `${phase.hook.zoneStart * 100}%`, width: `${phase.hook.zone * 100}%` }} />
               <div className="reel-marker" style={{ left: `${marker * 100}%` }} />
             </div>
             <button type="button" className="btn hot big" onClick={reel}>REEL!</button>
@@ -104,7 +99,7 @@ export function DockPanel({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </div>
-      {(phase.k === "idle" || phase.k === "done") && (
+      {(phase.k === "idle" || phase.k === "done") && !hook && (
         <div className="btn-row">
           <button type="button" className="btn primary big" disabled={s.inv.bait < 1} onClick={cast}>Cast</button>
           <button type="button" className="btn" onClick={() => act({ type: "buy", item: "bait", qty: 5 })}>Buy 5 bait · 30 SHELL</button>
@@ -178,7 +173,7 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
 
 // ---------------- Abyss Dive (crash) ----------------
 export function AbyssPanel({ onClose }: { onClose: () => void }) {
-  const { s, act, clock, reducedMotion } = useG();
+  const { s, act, clock, paused, reducedMotion } = useG();
   const [stake, setStake] = useState(50);
   const [auto, setAuto] = useState(0);
   const [mult, setMult] = useState(1);
@@ -187,8 +182,9 @@ export function AbyssPanel({ onClose }: { onClose: () => void }) {
   const runRef = useRef(run); runRef.current = run;
   const done = useRef(false);
 
+  // The depth meter and auto cash-out run on server time; while the host pauses they freeze and send nothing.
   useEffect(() => {
-    if (!run) return;
+    if (!run || paused) return;
     done.current = false;
     let raf = 0;
     const loop = () => {
@@ -207,11 +203,11 @@ export function AbyssPanel({ onClose }: { onClose: () => void }) {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [run?.startedAt]);
+  }, [run?.startedAt, paused]);
 
   const start = () => { setLast(null); setMult(1); void act({ type: "diveStart", stake }); };
   const cashout = async () => {
-    if (done.current) return;
+    if (done.current || paused) return;
     done.current = true;
     const r = await act({ type: "diveCashout" });
     if (r.ok) {

@@ -136,7 +136,7 @@ export const SHOP: { id: ItemId; price: Cost; qty: number }[] = [
 export const MARKET_TIDE_MS = 120_000;
 export const MARKET_TIDE_RANGE: [number, number] = [0.7, 1.4];
 export const ENERGY_DRINK = { energy: 40, mood: -3 };
-/** Fish and meals cooked from fish. Fishing is client-reported (fishReel {hit}), so their sales are not tradable. */
+/** Fish and meals cooked from fish. A reel is judged on server time but a timing skill game near network latency, so their sales are not tradable. */
 export const FISH_GOODS: readonly ItemId[] = ["sardine", "clownfish", "tuna", "angler", "goldnemo", "sushi", "stew", "feast"];
 
 
@@ -195,6 +195,12 @@ export const FISH_ZONE_BASE = 0.26; // fraction of the reel bar that is "catch"
 export const FISH_ZONE_PER_ROD = 0.018;
 /** Until the first fish is landed the catch zone is at least this wide, so a new player's first cast is an easy win. */
 export const FISH_FIRST_CATCH_ZONE = 0.45;
+/**
+ * Reel timing, decided on the server. The bite comes biteMinMs to biteMinMs + biteSpreadMs after the cast; the hook
+ * then swings for windowMs. A reel counts when the hook was in the green at any moment between lagMaxMs and
+ * lagMinMs before the server received it (the time the request was on its way), checked every stepMs.
+ */
+export const FISH_REEL = { biteMinMs: 900, biteSpreadMs: 1600, windowMs: 4500, lagMinMs: 40, lagMaxMs: 200, stepMs: 5 };
 
 // ---------- Crab Dash (skill arcade, SHELL only) ----------
 export const CRAB = {
