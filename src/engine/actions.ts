@@ -66,7 +66,7 @@ export type Result = { state: GameState; events: GameEvent[]; ok: boolean; data?
 class Reject extends Error {}
 const fail = (message: string): never => { throw new Reject(message); };
 
-/** JSON deep copy: game state is plain JSON, and the Nakama runtime has no structuredClone. */
+/** JSON deep copy: game state is plain JSON, and the Nakama runtime has no structured clone global. */
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
 export function dispatch(prev: GameState, action: Action, now: number): Result {
