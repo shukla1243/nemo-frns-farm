@@ -200,12 +200,15 @@ export const CRAB = {
 export const DIVE = {
   energy: 10, edge: 0.04, edgePerBlade: 0.002, growth: 0.11, maxMultiplier: 1000,
   minShell: 10, maxShellFraction: 1, lootEvery: 1,
+  /** Each loot roll lands with chance stake / lootStake (capped at 1), so loot never beats the edge at any stake. */
+  lootStake: 4000,
 };
 export const diveMultiplierAt = (ms: number) => Math.min(DIVE.maxMultiplier, Math.floor(100 * Math.exp(DIVE.growth * ms / 1000)) / 100);
 export const diveTimeFor = (multiplier: number) => Math.log(multiplier) / DIVE.growth * 1000;
 
 // ---------- Tide Mines ----------
-export const MINES = { size: 25, trapOptions: [1, 3, 5, 10, 20], energy: 8, edge: 0.03, minShell: 10 };
+/** Each dug tile drops loot with chance stake / lootStake (capped at 1), so loot never beats the edge at any stake. */
+export const MINES = { size: 25, trapOptions: [1, 3, 5, 10, 20], energy: 8, edge: 0.03, minShell: 10, lootStake: 10_000 };
 
 // ---------- Double or nothing ----------
 export const FLIP = { winChance: 0.48, maxFlips: 5 };

@@ -69,12 +69,15 @@ Scroll adds +10%. Failures never downgrade gear.
 
 **Abyss Dive (crash).** Rolled when you cash out: at multiplier m you survive with chance `(1 − edge) / m` and win
 `stake × m`. The edge is 4%, and the Coral Blade lowers it by 0.2% per level down to a 2% floor. Payback is 96% at
-base. Every full 1× of depth adds a loot roll.
+base. Every full 1× of depth adds a loot roll that lands with chance `stake / 4,000` (capped at 1), so loot never
+beats the edge at any stake.
 
 **Tide Mines.** A 5×5 grid with 1, 3, 5, 10 or 20 traps. Each dig is a trap with chance traps / hidden tiles. The
-multiplier after k safe tiles is `0.97 × Π (25−i)/(25−traps−i)`, for a payback of 97%.
+multiplier after k safe tiles is `0.97 × Π (25−i)/(25−traps−i)`, for a payback of 97%. Each safe dig drops loot with chance `stake / 10,000`. The
+Hollow Belly safe hint is left out of the odds: a hint run prices only the other tiles, on a 24-tile board.
 
-**Double or nothing.** 48% to double (50% for the Asymmetry family), up to 5 flips.
+**Double or nothing.** 48% to double (50% for the Asymmetry family), up to 5 flips. The win must still be in your
+wallet, and a loss takes all of it.
 
 **Fishing.** 6 SHELL bait and 5 energy. Base odds are 50% sardine, 26% clownfish, 15% tuna, 7% angler and **2% Golden
 Nemo**. The Reef Rod and luck shift the odds toward rare fish.

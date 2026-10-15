@@ -236,7 +236,7 @@ export function AbyssPanel({ onClose }: { onClose: () => void }) {
         </>
       )}
       <FlipOffer />
-      <p className="fineprint"><SimTag /> The abyss decides when you cash out: at multiplier m you survive with chance (1 − edge)/m, edge {edge.toFixed(1)}% (Coral Blade lowers it to 2%). Every full 1x of depth you survive adds a loot roll (coral, sea glass, pearl), and Bone Divers find more.</p>
+      <p className="fineprint"><SimTag /> The abyss decides when you cash out: at multiplier m you survive with chance (1 − edge)/m, edge {edge.toFixed(1)}% (Coral Blade lowers it to 2%). Every full 1x of depth you survive adds a loot roll (coral, sea glass, pearl) that lands with chance stake / {n0(DIVE.lootStake)}, and Bone Divers find more.</p>
     </Panel>
   );
 }

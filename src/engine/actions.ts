@@ -364,6 +364,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const loot: Partial<Record<ItemId, number>> = {};
       const rolls = Math.floor((mult - 1) / DIVE.lootEvery) * (eventActive(s, "frenzy", now) ? 2 : 1);
       for (let i = 0; i < rolls; i++) {
+        if (rng.next() >= Math.min(1, r.stake / DIVE.lootStake)) continue;
         const drop = weighted(rng, [{ id: "coral" as ItemId, weight: 55 }, { id: "glass" as ItemId, weight: 30 }, { id: "pearl" as ItemId, weight: 15 * (1 + luck(s, now)) }]);
         loot[drop.id] = (loot[drop.id] ?? 0) + (hasTrait(s, "bonediver") && rng.chance(0.3) ? 2 : 1);
       }
@@ -404,7 +405,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
         return { trap: true, traps: trapLayout(r, rng, a.index) };
       }
       r.revealed.push(a.index);
-      const drop = weighted(rng, [{ id: "stone", weight: 36 }, { id: "ore", weight: 30 + s.gear.pick * 3 }, { id: "coral", weight: 10 }, { id: "glass", weight: 8 }, { id: "none", weight: 16 }]);
+      const drop = rng.next() >= Math.min(1, r.stake / MINES.lootStake) ? { id: "none" } : weighted(rng, [{ id: "stone", weight: 36 }, { id: "ore", weight: 30 + s.gear.pick * 3 }, { id: "coral", weight: 10 }, { id: "glass", weight: 8 }, { id: "none", weight: 16 }]);
       if (drop.id !== "none") {
         const n = (drop.id === "ore" ? 1 + Math.floor(s.gear.pick / 4) : 1) * (drop.id === "ore" && eventActive(s, "meteor", now) ? 2 : 1);
         r.loot[drop.id as ItemId] = (r.loot[drop.id as ItemId] ?? 0) + n;
