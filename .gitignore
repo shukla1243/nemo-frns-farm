@@ -4,3 +4,4 @@ dist-e2e/
 artifacts/
 .vite/
 *.log
+.friendsdk/
