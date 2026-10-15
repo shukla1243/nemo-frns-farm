@@ -70,6 +70,8 @@ const fail = (message: string): never => { throw new Reject(message); };
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
 export function dispatch(prev: GameState, action: Action, now: number): Result {
+  // Payloads come from an untrusted client: anything malformed is rejected before it touches state.
+  if (!action || typeof action !== "object" || typeof action.type !== "string") return rejected(prev, now, [], "Invalid request.");
   const s: GameState = clone(prev);
   // Mix server time and the action into the seed, so the stored seed alone never predicts the next roll.
   s.seed = hashSeed(`${s.seed}:${now}:${action.type}`);
@@ -78,14 +80,10 @@ export function dispatch(prev: GameState, action: Action, now: number): Result {
   tick(s, now, events);
   const rng = createRng(s.seed);
   try {
+    checkPayload(action);
     data = apply(s, action, now, rng, events) ?? undefined;
   } catch (error) {
-    if (error instanceof Reject) {
-      // Discard partial mutations: re-derive the state from prev + time only.
-      const base: GameState = clone(prev);
-      tick(base, now, []);
-      return { state: base, events: [...events, { tone: "bad", text: error.message, cue: "select" }], ok: false };
-    }
+    if (error instanceof Reject) return rejected(prev, now, events, error.message);
     throw error;
   }
   s.seed = rng.state();
@@ -94,6 +92,44 @@ export function dispatch(prev: GameState, action: Action, now: number): Result {
   checkAchievements(s, events);
   checkMilestones(s, events, now);
   return { state: s, events, ok: true, data };
+}
+
+/** Discard partial mutations: re-derive the state from prev + time only. */
+function rejected(prev: GameState, now: number, events: GameEvent[], message: string): Result {
+  const base: GameState = clone(prev);
+  tick(base, now, []);
+  return { state: base, events: [...events, { tone: "bad", text: message, cue: "select" }], ok: false };
+}
+
+/** Shape checks for every field a client sends. Table keys must be own keys, numbers must be finite integers in range. */
+function checkPayload(a: Action) {
+  const bad = () => fail("Invalid request.");
+  const key = (table: object, k: unknown) => { if (typeof k !== "string" || !Object.hasOwn(table, k)) bad(); };
+  const int = (v: unknown, lo: number, hi: number) => { if (!Number.isInteger(v) || (v as number) < lo || (v as number) > hi) bad(); };
+  const flag = (v: unknown) => { if (v !== undefined && typeof v !== "boolean") bad(); };
+  const MAX = Number.MAX_SAFE_INTEGER;
+  switch (a.type) {
+    case "eat": key(ITEMS, a.item); break;
+    case "buy": key(ITEMS, a.item); if (a.qty !== undefined) int(a.qty, 1, 99); break;
+    case "sell": key(ITEMS, a.item); if (a.qty !== undefined) int(a.qty, 1, MAX); break;
+    case "plant": int(a.plot, 0, MAX_PLOTS - 1); key(CROPS, a.crop); break;
+    case "harvest": case "clearPlot": int(a.plot, 0, MAX_PLOTS - 1); break;
+    case "gather": key(GATHER, a.kind); break;
+    case "cook": key(RECIPES, a.meal); break;
+    case "unlockZone": key(ZONES, a.zone); break;
+    case "ascend": flag(a.blessing); flag(a.charm); break;
+    case "forge": key(GEAR, a.gear); flag(a.blessing); flag(a.charm); break;
+    case "diveStart": int(a.stake, 1, MAX); break;
+    case "minesStart": int(a.stake, 1, MAX); int(a.traps, 1, MINES.size - 1); break;
+    case "minesReveal": int(a.index, 0, MINES.size - 1); break;
+    case "fishReel": if (typeof a.hit !== "boolean") bad(); break;
+    case "crabFinish": if (typeof a.score !== "number" || !Number.isFinite(a.score)) bad(); break;
+    case "raid": if (typeof a.rivalId !== "string") bad(); break;
+    case "claimQuest": int(a.id, 0, MAX); break;
+    case "npcGift": key(NPC_GIFTS, a.npc); break;
+    case "voyageStart": if (!VOYAGES.some(v => v.id === a.id)) bad(); break;
+    case "sellStock": key(STOCKS, a.id); if (typeof a.shares !== "number" || !Number.isFinite(a.shares) || a.shares <= 0) bad(); break;
+  }
 }
 
 function requireAwake(s: GameState) { if (s.sleeping) fail("Your Friend is asleep. Wake them first."); }
@@ -172,7 +208,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     }
     case "eat": {
       requireAwake(s);
-      const food = ITEMS[a.item]?.food;
+      const food = ITEMS[a.item].food;
       if (!food) fail("That isn't edible.");
       if (s.inv[a.item] < 1) fail(`No ${ITEMS[a.item].name} left.`);
       if (s.hunger >= 99) fail("Your Friend is full!");
@@ -316,7 +352,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     case "buy": {
       requireAwake(s);
       const offer = SHOP.find(o => o.id === a.item); if (!offer) fail("Not for sale.");
-      const qty = clamp(Math.floor(a.qty ?? 1), 1, 99);
+      const qty = a.qty ?? 1;
       const cost = { shell: (offer!.price.shell ?? 0) * qty, items: Object.fromEntries(Object.entries(offer!.price.items ?? {}).map(([k, v]) => [k, (v ?? 0) * qty])) };
       const need = missing(s, cost); if (need) fail(need);
       pay(s, cost);
@@ -327,7 +363,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     case "sell": {
       requireAwake(s);
       if (!ITEMS[a.item].sell) fail("The market won't buy that.");
-      const qty = clamp(Math.floor(a.qty ?? 1), 1, s.inv[a.item]);
+      const qty = Math.min(a.qty ?? 1, s.inv[a.item]);
       if (s.inv[a.item] < 1) fail("You have none.");
       s.inv[a.item] -= qty;
       const got = giveShell(s, sellPrice(s, a.item, now) * qty * shellMult(s));
@@ -394,7 +430,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     case "minesReveal": {
       const run = s.run; if (!run || run.kind !== "mines") fail("No mines run.");
       const r = run as Extract<typeof run, { kind: "mines" }>;
-      if (a.index < 0 || a.index >= MINES.size || r.revealed.includes(a.index)) fail("Pick another tile.");
+      if (r.revealed.includes(a.index)) fail("Pick another tile.");
       // Rolled per reveal: no trap has been hit yet, so every trap is among the unrevealed tiles other than the safe hint.
       const hintHidden = r.safeHint !== null && !r.revealed.includes(r.safeHint);
       const open = MINES.size - r.revealed.length - (hintHidden ? 1 : 0);
@@ -741,7 +777,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       requireAwake(s);
       const held = s.stocks[a.id] ?? 0;
       const shares = Math.min(held, Math.round(a.shares * 1000) / 1000);
-      if (!STOCKS[a.id] || shares <= 0) fail("No shares to sell.");
+      if (shares <= 0) fail("No shares to sell.");
       const gross = stockPrice(a.id, now) * shares;
       const got = giveShell(s, gross * (1 - STOCK_SELL_FEE));
       s.stocks[a.id] = Math.round((held - shares) * 1000) / 1000;

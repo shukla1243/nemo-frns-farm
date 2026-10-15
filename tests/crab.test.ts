@@ -59,11 +59,10 @@ describe("crab dash", () => {
     expect(mid.data!.score).toBe(60);
     expect(mid.state.inv.bait - fresh().inv.bait).toBe(1);
     expect(mid.state.inv.pearl).toBe(0);
-    for (const score of [-5, Number.NaN]) {
-      const low = dispatch(started(), { type: "crabFinish", score }, END);
-      expect(low.data!.score).toBe(0);
-      expect(low.data!.shell).toBe(0);
-    }
+    const low = dispatch(started(), { type: "crabFinish", score: -5 }, END);
+    expect(low.data!.score).toBe(0);
+    expect(low.data!.shell).toBe(0);
+    expect(dispatch(started(), { type: "crabFinish", score: Number.NaN }, END).ok).toBe(false);
   });
   it("tracks runs and the personal best", () => {
     let s = dispatch(started(), { type: "crabFinish", score: 30 }, END).state;
