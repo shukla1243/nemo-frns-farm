@@ -29,7 +29,7 @@ export function ForgePanel({ onClose }: { onClose: () => void }) {
       <p className="muted">{GEAR[gear].effect}</p>
       <div className={`anvil ${flash ?? ""}`}>
         <span className="anvil-gear"><Icon id={gear} size={56} /></span>
-        <span className="anvil-lvl">+{lvl}{cost ? ` → +${lvl + 1}` : " MAX"}</span>
+        <span className="anvil-lvl">+{lvl}{cost ? ` to +${lvl + 1}` : " MAX"}</span>
       </div>
       {cost ? (
         <>

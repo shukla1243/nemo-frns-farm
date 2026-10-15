@@ -58,7 +58,7 @@ export function ReefPanel({ onClose }: { onClose: () => void }) {
       </div>
       <div className="btn-row">
         <button type="button" className="btn hot big" disabled={!b.active || b.defeated || cd > 0 || s.energy < BOSS.energy} onClick={() => act({ type: "bossAttack" })}>Attack ({BOSS.energy} energy){cd > 0 ? ` ${Math.ceil(cd / 1000)}s` : ""}</button>
-        <button type="button" className="btn primary big" disabled={!b.defeated || claimed || own <= 0} onClick={() => act({ type: "bossClaim" })}>{claimed ? "Claimed ✓" : "Claim share"}</button>
+        <button type="button" className="btn primary big" disabled={!b.defeated || claimed || own <= 0} onClick={() => act({ type: "bossClaim" })}>{claimed ? "Claimed" : "Claim share"}</button>
       </div>
       <p className="fineprint"><SimTag /> Every {BOSS.periodMs / 60000} min the Kraken rises for {BOSS.activeMs / 60000} min with {n0(BOSS.hp)} HP shared with simulated rivals. Hitters split a {n0(BOSS.poolShell)} SHELL pool by damage share. 15% chance of a tentacle slam (−10 energy). Damage = power × 3 ± 20%, 15% crit x2.</p>
     </Panel>

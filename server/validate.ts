@@ -22,7 +22,7 @@ const ACTIONS: Readonly<Record<Exclude<Action["type"], "tick">, Fields>> = {
   spin: { required: ["free"] }, claimQuest: { required: ["id"] }, passClaim: {}, forage: {}, storyClaim: {},
   npcGift: { required: ["npc"] }, rebirth: {},
   voyageStart: { required: ["id"] }, voyageClaim: {}, voyageRecall: {},
-  sellStock: { required: ["id", "shares"] },
+  sellStock: { required: ["id", "milli"] },
 };
 
 /** The `a` field of an `act` call as an engine action with only its own fields. */
@@ -33,5 +33,7 @@ export function parseAction(input: Json | undefined): Action {
   const fields = ACTIONS[type as keyof typeof ACTIONS];
   check.object(input, ["type", ...(fields.required ?? [])], fields.optional ?? [], "Invalid request.");
   if (type === "spin" && input.free !== true) throw new GameError("Invalid request.");
+  if (type === "raid") check.string(input.rivalId, 32, "rival");
+  if (type === "sellStock") check.int(input.milli, 1, Number.MAX_SAFE_INTEGER, "shares");
   return input as unknown as Action;
 }

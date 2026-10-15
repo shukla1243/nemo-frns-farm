@@ -91,9 +91,9 @@ describe("tradable SHELL", () => {
     }
     const held = { ...fresh(), shell: 0, tradable: 0 };
     held.stocks.FINX = 2;
-    expect(dispatch(held, { type: "sellStock", id: "FINX", shares: 2 }, T0 + 10).state.tradable).toBe(0);
+    expect(dispatch(held, { type: "sellStock", id: "FINX", milli: 2000 }, T0 + 10).state.tradable).toBe(0);
     held.tradableStocks.FINX = 2;
-    const sold = dispatch(held, { type: "sellStock", id: "FINX", shares: 2 }, T0 + 10).state;
+    const sold = dispatch(held, { type: "sellStock", id: "FINX", milli: 2000 }, T0 + 10).state;
     expect(sold.tradable).toBe(sold.shell);
   });
 });

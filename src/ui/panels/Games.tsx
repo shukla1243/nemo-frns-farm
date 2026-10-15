@@ -16,7 +16,7 @@ function FlipOffer() {
     <div className="flip">
       <p><b>Double or nothing?</b> Risk your {amt} win · {chance.toFixed(0)}% to double · flip {w.flips + 1}/{FLIP.maxFlips}</p>
       <div className="btn-row">
-        <button type="button" className="btn hot" disabled={w.flips >= FLIP.maxFlips} onClick={() => act({ type: "flip" })}>FLIP → {n0(w.amount * 2)}</button>
+        <button type="button" className="btn hot" disabled={w.flips >= FLIP.maxFlips} onClick={() => act({ type: "flip" })}>FLIP for {n0(w.amount * 2)}</button>
         <button type="button" className="btn" onClick={() => act({ type: "keepWin" })}>Bank it</button>
       </div>
     </div>
@@ -146,7 +146,7 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
       )}
       {run && (
         <div className="mines-hud">
-          <span>Current <b>{mult.toFixed(2)}x</b> → {n0(Math.floor(run.stake * mult))} SHELL</span>
+          <span>Current <b>{mult.toFixed(2)}x</b> = {n0(Math.floor(run.stake * mult))} SHELL</span>
           <span>Next tile <b>{nextMult.toFixed(2)}x</b></span>
           <span className="loot">Loot {loot.length ? loot.map(([k, v]) => <span key={k}><Icon id={k} size={18} />{v}</span>) : "none yet"}</span>
         </div>
@@ -222,7 +222,7 @@ export function AbyssPanel({ onClose }: { onClose: () => void }) {
       <div className={`abyss ${run ? "diving" : ""} ${last?.crashed ? "crashed" : ""}`} style={{ ["--depth" as string]: depth }}>
         <div className="abyss-mult">{run ? `${mult.toFixed(2)}x` : last ? (last.crashed ? `${last.at.toFixed(2)}x` : `${last.at.toFixed(2)}x`) : "1.00x"}</div>
         <div className="diver" style={{ top: `${10 + depth * 70}%`, transition: reducedMotion ? "none" : undefined }}><Icon id="sub" size={48} /></div>
-        {run && <div className="abyss-stake">{n0(run.stake)} SHELL → {n0(Math.floor(run.stake * mult))} SHELL</div>}
+        {run && <div className="abyss-stake">{n0(run.stake)} SHELL to {n0(Math.floor(run.stake * mult))} SHELL</div>}
       </div>
       {run ? (
         <button type="button" className="btn hot big" onClick={cashout}>CASH OUT {mult.toFixed(2)}x</button>

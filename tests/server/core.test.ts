@@ -91,6 +91,16 @@ describe("act", () => {
     expect(stored()!.game.shell).toBeLessThan(10_000);
   });
 
+  it("bounds strings and takes share counts as whole thousandths", () => {
+    expect(() => call("act", { a: { type: "raid", rivalId: "x".repeat(33) } })).toThrow(/Invalid/);
+    expect(() => call("act", { a: { type: "raid", rivalId: 7 } })).toThrow(/Invalid/);
+    expect(() => call("act", { a: { type: "sellStock", id: "FINX", shares: 1 } })).toThrow(/^Invalid request/);
+    for (const milli of [0.5, -1, 0, 1e18]) expect(() => call("act", { a: { type: "sellStock", id: "FINX", milli } }), String(milli)).toThrow(/Invalid/);
+    const r = call<ActResult>("act", { a: { type: "sellStock", id: "FINX", milli: 1500 } });
+    expect(r.ok).toBe(false);
+    expect(r.events.at(-1)?.text).toBe("No shares to sell.");
+  });
+
   it("clamps out-of-range fields through the engine's payload checks", () => {
     const r = call<ActResult>("act", { a: { type: "buy", item: "bait", qty: 1e6 } });
     expect(r.ok).toBe(false);

@@ -86,7 +86,7 @@ export function Hud({ portraitUrl, near, onAction, toasts, unread, guide, onGuid
         <button type="button" className="me frame-panel" onClick={() => open("shrine")} aria-label="Open Coral Shrine to level up">
           <span className="me-art frame-slot">{portraitUrl ? <img src={portraitUrl} alt="" /> : <Icon id="clownfish" size={32} />}</span>
           <span className="me-text">
-            <b>{s.name}{s.rebirths > 0 && <span className="rebirth"> ★{s.rebirths}</span>}</b>
+            <b>{s.name}{s.rebirths > 0 && <span className="rebirth"> <Icon id="star" size={14} />{s.rebirths}</span>}</b>
             <small>Lv {s.level} {titleFor(s.level)}</small>
             <span className="xp" aria-label={`Experience ${s.xp} of ${need}`}><i style={{ width: `${Math.min(100, (s.xp / need) * 100)}%` }} className={s.xp >= need ? "full" : ""} /></span>
           </span>

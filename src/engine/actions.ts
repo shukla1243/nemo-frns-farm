@@ -60,7 +60,8 @@ export type Action =
   | { type: "voyageStart"; id: VoyageId }
   | { type: "voyageClaim" }
   | { type: "voyageRecall" }
-  | { type: "sellStock"; id: StockId; shares: number };
+  /** `milli`: thousandths of a share, a whole number. */
+  | { type: "sellStock"; id: StockId; milli: number };
 
 export type Result = { state: GameState; events: GameEvent[]; ok: boolean; data?: Record<string, unknown> };
 
@@ -128,7 +129,7 @@ function checkPayload(a: Action) {
     case "claimQuest": int(a.id, 0, MAX); break;
     case "npcGift": key(NPC_GIFTS, a.npc); break;
     case "voyageStart": if (!VOYAGES.some(v => v.id === a.id)) bad(); break;
-    case "sellStock": key(STOCKS, a.id); if (typeof a.shares !== "number" || !Number.isFinite(a.shares) || a.shares <= 0) bad(); break;
+    case "sellStock": key(STOCKS, a.id); int(a.milli, 1, MAX); break;
   }
 }
 
@@ -797,7 +798,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     case "sellStock": {
       requireAwake(s);
       const held = s.stocks[a.id] ?? 0;
-      const shares = Math.min(held, Math.round(a.shares * 1000) / 1000);
+      const shares = Math.min(held, a.milli / 1000);
       if (shares <= 0) fail("No shares to sell.");
       const gross = stockPrice(a.id, now) * shares;
       const ratio = shareOf(s.tradableStocks[a.id], held);

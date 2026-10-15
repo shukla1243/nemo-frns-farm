@@ -480,7 +480,7 @@ export function World({ stateRef, art, clock, paused, blocked, reducedMotion, ap
       const saveCam = { camX, camY }; camX = cx; camY = cy;
       if (fontReady) {
         // The player's own tag goes on top; other tags and the guide move out of its way.
-        const youText = `${s.voyage ? "Sailing: " : ""}Lv${s.level} ${s.name}${s.rebirths ? ` ★${s.rebirths}` : ""}`;
+        const youText = `${s.voyage ? "Sailing: " : ""}Lv${s.level} ${s.name}${s.rebirths ? ` (reborn x${s.rebirths})` : ""}`;
         const yx = Math.round((pos.x / UNIT - camX) * S), yy = Math.round((pos.y / UNIT - 50 - camY) * S), yb = tagBox(youText);
         const you: Rect = { x: yx - yb.w / 2 - yb.b, y: yy - yb.h / 2 - yb.b, w: yb.w + yb.b * 2, h: yb.h + yb.b * 2 };
         const g = guide(s);

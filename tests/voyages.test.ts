@@ -74,11 +74,11 @@ describe("voyages", () => {
   it("stock prices are deterministic per hour and selling charges the fee", () => {
     expect(stockPrice("FINX", T0)).toBe(stockPrice("FINX", T0 + 60_000));
     const s = fresh(); s.stocks.FINX = 1.5;
-    const r = dispatch(s, { type: "sellStock", id: "FINX", shares: 1 }, T0);
+    const r = dispatch(s, { type: "sellStock", id: "FINX", milli: 1000 }, T0);
     expect(r.ok).toBe(true);
     expect(r.state.stocks.FINX).toBe(0.5);
     expect(r.state.shell - s.shell).toBeLessThanOrEqual(Math.ceil(stockPrice("FINX", T0) * (1 - STOCK_SELL_FEE) * 1.5));
-    expect(dispatch(s, { type: "sellStock", id: "URCH", shares: 1 }, T0).ok).toBe(false);
+    expect(dispatch(s, { type: "sellStock", id: "URCH", milli: 1000 }, T0).ok).toBe(false);
   });
   it("lists only fictional NEMO island companies", () => {
     expect(STOCK_IDS).toEqual(["FINX", "URCH", "CLAM", "KRLL", "KELP", "GULL", "DUBL"]);

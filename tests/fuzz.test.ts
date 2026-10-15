@@ -16,7 +16,7 @@ const FIELDS: Record<string, Record<string, unknown>> = {
   fishCast: {}, fishReel: {}, crabStart: {}, crabFinish: { score: 10 }, crabQuit: {}, flip: {}, keepWin: {},
   raid: { rivalId: "bot-0" }, bossAttack: {}, bossClaim: {}, spin: { free: true }, claimQuest: { id: 1 }, passClaim: {},
   forage: {}, storyClaim: {}, npcGift: { npc: "salt" }, rebirth: {}, voyageStart: { id: "scout" }, voyageClaim: {},
-  voyageRecall: {}, sellStock: { id: "FINX", shares: 1 },
+  voyageRecall: {}, sellStock: { id: "FINX", milli: 1000 },
 };
 const HOSTILE: unknown[] = [
   NaN, Infinity, -Infinity, -1, -0, 0, 1.5, 1e9, -1e9, Number.MAX_SAFE_INTEGER + 2,

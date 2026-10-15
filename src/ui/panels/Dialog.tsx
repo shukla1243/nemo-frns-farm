@@ -35,7 +35,7 @@ export function NpcDialog({ id, onClose }: { id: string; onClose: () => void }) 
         <div className="dialog-portrait frame-slot"><SpriteImg sprite={villager(npc, 0)} name={`npc-${npc.id}`} height={84} /></div>
         <div className="dialog-main">
           <div className="dialog-name"><b>{npc.name}</b><small>{npc.role}</small></div>
-          <p className="dialog-text" aria-live="polite" onClick={next}>{line.slice(0, n)}{typing && <span className="caret" aria-hidden>▌</span>}</p>
+          <p className="dialog-text" aria-live="polite" onClick={next}>{line.slice(0, n)}{typing && <span className="caret" aria-hidden>_</span>}</p>
           <div className="dialog-actions">
             {!last && <button type="button" className="pbtn" onClick={next}>{typing ? "Skip" : "Next"}</button>}
             {last && !typing && canGift && (

@@ -79,7 +79,7 @@ export function PoolPanel({ onClose }: { onClose: () => void }) {
       </div>
       <div className="pool-head">
         <div><span className="muted">{STOCKS[pick].name}</span><b className="big-num">{n0(price)}</b><span className="muted">SHELL per share</span></div>
-        <div><span className="muted">Last hour</span><b className={price >= prev ? "good" : "bad"}>{price >= prev ? "▲" : "▼"} {Math.abs(((price - prev) / prev) * 100).toFixed(1)}%</b></div>
+        <div><span className="muted">Last hour</span><b className={price >= prev ? "good" : "bad"}>{price >= prev ? "Up" : "Down"} {Math.abs(((price - prev) / prev) * 100).toFixed(1)}%</b></div>
         <div><span className="muted">You hold</span><b>{s.stocks[pick] ?? 0}</b></div>
       </div>
       <Spark data={history} label={STOCKS[pick].name} />
@@ -91,7 +91,7 @@ export function PoolPanel({ onClose }: { onClose: () => void }) {
             <div key={id} className="list-row">
               <span className="ticker">{id}</span>
               <span className="grow"><b>{STOCKS[id].name}</b><small>{n0(stockPrice(id, now))} SHELL / share · you hold {held}</small></span>
-              <button type="button" className="btn" disabled={held <= 0} onClick={() => act({ type: "sellStock", id, shares: held })}>Sell all</button>
+              <button type="button" className="btn" disabled={held <= 0} onClick={() => act({ type: "sellStock", id, milli: Math.round(held * 1000) })}>Sell all</button>
             </div>
           );
         })}

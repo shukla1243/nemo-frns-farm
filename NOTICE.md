@@ -12,7 +12,7 @@ Third-party components:
   Rare Friends, Apache License 2.0. Changed: trimmed to the cues and controls this game uses.
 - React, React DOM, Vite, Vitest and anime.js: MIT.
 - Fonts: Jersey 15 (Copyright 2023 The Soft Type Project Authors) and Nunito (Copyright 2014 The Nunito
-  Project Authors), SIL Open Font License 1.1. Latin subsets are bundled in `src/assets/fonts/` with their
-  license texts (`OFL-Jersey15.txt`, `OFL-Nunito.txt`).
+  Project Authors), SIL Open Font License 1.1. Latin subsets are bundled from `src/assets/fonts/`; their
+  license texts ship with the game in `public/fonts/` (`OFL-Jersey15.txt`, `OFL-Nunito.txt`).
 
 All $SHELL balances, rewards and trades are simulated.

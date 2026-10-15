@@ -71,7 +71,7 @@ export function Panel({ title, icon, onClose, children, wide }: { title: string;
       <div className={`panel ${wide ? "wide" : ""}`} role="dialog" aria-modal="true" aria-label={title} ref={ref} tabIndex={-1}>
         <header className="panel-head">
           <h2>{icon && <Icon id={icon} size={28} />}<span>{title}</span></h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close"><Icon id="close" size={20} /></button>
         </header>
         <div className="panel-body">{children}</div>
       </div>
@@ -99,11 +99,11 @@ export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: [T, st
   const nudge = (dir: 1 | -1) => { const el = ref.current; if (el) el.scrollBy({ left: dir * el.clientWidth * 0.7, behavior: document.documentElement.dataset.rm === "1" ? "auto" : "smooth" }); };
   return (
     <div className={`tabs-wrap ${more.left ? "more-left" : ""} ${more.right ? "more-right" : ""}`}>
-      {more.left && <button type="button" className="tabs-more left" aria-label="Scroll tabs left" onClick={() => nudge(-1)}>‹</button>}
+      {more.left && <button type="button" className="tabs-more left" aria-label="Scroll tabs left" onClick={() => nudge(-1)}>&lt;</button>}
       <div className="tabs" role="tablist" ref={ref}>
         {tabs.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={value === id} className={value === id ? "on" : ""} onClick={() => onChange(id)}>{label}</button>)}
       </div>
-      {more.right && <button type="button" className="tabs-more right" aria-label="Scroll tabs right" onClick={() => nudge(1)}>›</button>}
+      {more.right && <button type="button" className="tabs-more right" aria-label="Scroll tabs right" onClick={() => nudge(1)}>&gt;</button>}
     </div>
   );
 }

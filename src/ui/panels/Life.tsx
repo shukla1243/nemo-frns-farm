@@ -36,7 +36,7 @@ export function HomePanel({ onClose }: { onClose: () => void }) {
       {s.home === 0 && <p className="warn">Tent life: 20% chance crabs steal 10% of your SHELL while you sleep. Build a hut!</p>}
       {next ? (
         <section className="section">
-          <h3>Upgrade → {next.name}</h3>
+          <h3>Upgrade to {next.name}</h3>
           <p className="muted">{next.perk}</p>
           <CostList cost={cost!} s={s} />
           <button type="button" className="btn primary" disabled={!!missing(s, cost!)} onClick={() => act({ type: "buildHome" })}>Build {next.name}</button>
@@ -107,7 +107,7 @@ export function FarmPanel({ onClose }: { onClose: () => void }) {
       </div>
       {s.plots.length < MAX_PLOTS && (
         <section className="section">
-          <h3>Expand farm → plot #{s.plots.length + 1}</h3>
+          <h3>Expand farm: plot #{s.plots.length + 1}</h3>
           <CostList cost={plotCost(s.plots.length)} s={s} />
           <button type="button" className="btn" disabled={!!missing(s, plotCost(s.plots.length))} onClick={() => act({ type: "buyPlot" })}>Buy plot</button>
         </section>
@@ -162,7 +162,7 @@ export function ShrinePanel({ onClose }: { onClose: () => void }) {
       <p>{n0(s.xp)} / {n0(need)} XP · Power {power(s)} · Max energy {maxEnergy(s)} · Prosperity +{prosperityPct(s)}%</p>
       {s.level >= MAX_LEVEL ? <p className="good">Max level. Ocean Legend.</p> : (
         <section className="section">
-          <h3>Ascend to Lv {s.level + 1}{tierNext ? ` → ${TITLES[Math.min(TITLES.length - 1, Math.floor((s.level + 1) / 10))]}!` : ""}</h3>
+          <h3>Ascend to Lv {s.level + 1}{tierNext ? `: ${TITLES[Math.min(TITLES.length - 1, Math.floor((s.level + 1) / 10))]}!` : ""}</h3>
           <CostList cost={cost} s={s} />
           <div className="odds">
             <span className="odds-big">{chance.toFixed(0)}%</span>
