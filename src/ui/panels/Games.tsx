@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { DIVE, FISH_ENERGY, FISH_TABLE, FLIP, ITEMS, MINES, diveMultiplierAt, type FishId } from "../../engine/config";
-import { diveEdge, minesMultiplier } from "../../engine/actions";
+import { diveEdge, minesMultiplier, minesRunMultiplier } from "../../engine/actions";
 import type { DiveRun, MinesRun } from "../../engine/types";
 import { Panel, SimTag, StakePicker, n0, useG } from "../common";
 import { Icon } from "../Icon";
@@ -126,8 +126,8 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
   const [boom, setBoom] = useState<number[] | null>(null);
   const run = s.run?.kind === "mines" ? (s.run as MinesRun) : null;
   const safe = run ? run.revealed.length : 0;
-  const mult = run ? minesMultiplier(run.trapCount, safe) : 1;
-  const nextMult = run ? minesMultiplier(run.trapCount, safe + 1) : minesMultiplier(traps, 1);
+  const mult = run ? minesRunMultiplier(run) : 1;
+  const nextMult = run ? minesRunMultiplier(run, 1) : minesMultiplier(traps, 1);
   const start = () => { setBoom(null); act({ type: "minesStart", stake, traps }); };
   const reveal = (i: number) => {
     const r = act({ type: "minesReveal", index: i });

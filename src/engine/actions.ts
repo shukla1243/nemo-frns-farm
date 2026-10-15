@@ -132,10 +132,16 @@ function trapLayout(r: MinesRun, rng: Rng, hit?: number) {
 }
 
 export const diveEdge = (s: GameState) => Math.max(0.02, DIVE.edge - s.gear.blade * DIVE.edgePerBlade);
-export const minesMultiplier = (traps: number, safe: number, edge = MINES.edge) => {
+export const minesMultiplier = (traps: number, safe: number, edge = MINES.edge, size = MINES.size) => {
   let m = 1 - edge;
-  for (let i = 0; i < safe; i++) m *= (MINES.size - i) / (MINES.size - traps - i);
+  for (let i = 0; i < safe; i++) m *= (size - i) / (size - traps - i);
   return Math.floor(m * 100) / 100;
+};
+/** A run's multiplier. The Hollow Belly hint tile is known safe, so it is left out of the odds and never pays. */
+export const minesRunMultiplier = (r: MinesRun, extra = 0) => {
+  const hint = r.safeHint !== null;
+  const safe = r.revealed.filter(i => i !== r.safeHint).length + extra;
+  return minesMultiplier(r.trapCount, safe, MINES.edge, hint ? MINES.size - 1 : MINES.size);
 };
 const fishZone = (s: GameState, difficulty: number) => {
   const zone = clamp(FISH_ZONE_BASE + s.gear.rod * FISH_ZONE_PER_ROD + (hasTrait(s, "glider") ? 0.05 : 0) - difficulty * 0.3, 0.07, 0.6);
@@ -404,15 +410,15 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
         r.loot[drop.id as ItemId] = (r.loot[drop.id as ItemId] ?? 0) + n;
       }
       const safeTiles = MINES.size - r.trapCount;
-      events.push({ tone: "good", text: `Safe! ${minesMultiplier(r.trapCount, r.revealed.length).toFixed(2)}x`, cue: r.revealed.length > 5 ? "anticipation" : "select" });
+      events.push({ tone: "good", text: `Safe! ${minesRunMultiplier(r).toFixed(2)}x`, cue: r.revealed.length > 5 ? "anticipation" : "select" });
       if (r.revealed.length >= safeTiles) return apply(s, { type: "minesCashout" }, now, rng, events);
-      return { trap: false, mult: minesMultiplier(r.trapCount, r.revealed.length) };
+      return { trap: false, mult: minesRunMultiplier(r) };
     }
     case "minesCashout": {
       const run = s.run; if (!run || run.kind !== "mines") fail("No mines run.");
       const r = run as Extract<typeof run, { kind: "mines" }>;
       if (r.revealed.length === 0) fail("Dig at least one tile first.");
-      const mult = minesMultiplier(r.trapCount, r.revealed.length);
+      const mult = minesRunMultiplier(r);
       s.run = null;
       const win = giveShell(s, r.stake * mult);
       giveItems(s, r.loot);
