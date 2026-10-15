@@ -1,5 +1,6 @@
 import { HOMES, type ZoneId } from "./config";
 import type { Rng } from "./rng";
+import { giveShell } from "./state";
 import type { GameEvent, GameState, Quest, QuestKind } from "./types";
 
 const QUEST_DEFS: { kind: QuestKind; zone?: ZoneId; label: (n: number) => string; base: number; perLevel: number; shell: number }[] = [
@@ -66,7 +67,7 @@ export function checkAchievements(s: GameState, events: GameEvent[]) {
   for (const a of ACHIEVEMENTS) {
     if (s.achievements.includes(a.id) || !a.test(s)) continue;
     s.achievements.push(a.id);
-    s.shell += a.reward.shell; s.stats.shellEarned += a.reward.shell;
+    giveShell(s, a.reward.shell, "reward");
     const text = `Achievement: ${a.name}! +${a.reward.shell} SHELL`;
     events.push({ tone: "epic", text, cue: "reveal-rare", fx: "confetti" });
     s.log.unshift({ t: s.lastTick, text, tone: "epic" });

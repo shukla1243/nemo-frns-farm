@@ -46,6 +46,18 @@
 
 **Prosperity:** every 2,000 SHELL spent on purchases and upgrades adds +1% to SHELL from sales and bounties, up to +30%.
 
+## Tradable SHELL
+
+Only SHELL earned by real play is tradable (the planned Pearl Market takes nothing else). The engine tags every grant
+by source:
+
+- **Tradable:** sales of gathered, farmed and mined goods, bounties, story chapters, milestones, trophies, the daily
+  streak, islander gifts, raids, the Kraken and the free wheel.
+- **Not tradable:** sales of fish and fish meals and Crab Dash (both client-reported), refunds and returned stakes.
+- **Chance games and voyages** pay tradable SHELL only in proportion to the tradable part of the stake or voyage cost,
+  and a lost flip takes the tradable part of the win. Spending uses untracked SHELL first, and the tradable balance
+  never exceeds the SHELL balance.
+
 ## Seasons
 
 - Each season runs Monday 00:00 UTC to the next Monday.

@@ -18,7 +18,7 @@ describe("Abyss Dive rolls at cash-out", () => {
   it("stores no crash point", () => {
     const r = dispatch(fresh(), { type: "diveStart", stake: 100 }, T0);
     expect(r.ok).toBe(true);
-    expect(Object.keys(r.state.run!).sort()).toEqual(["kind", "stake", "startedAt"]);
+    expect(Object.keys(r.state.run!).sort()).toEqual(["kind", "stake", "startedAt", "tStake"]);
   });
   it("survival at multiplier m is (1 - edge) / m", () => {
     const N = 20_000;

@@ -54,7 +54,7 @@ export function migrate(raw: GameState): GameState {
   s.streak = raw.streak ?? { day: 0, count: 0 };
   // Older saves stored a pre-rolled voyage result; a pending voyage now keeps only its locked odds.
   const v = raw.voyage, def = v && VOYAGES.find(x => x.id === v.id);
-  s.voyage = v && def ? { id: v.id, startedAt: v.startedAt, endsAt: v.endsAt, odds: Array.isArray(v.odds) ? v.odds : voyageOdds(s, def).map(o => o.weight), announced: !!v.announced } : null;
+  s.voyage = v && def ? { id: v.id, startedAt: v.startedAt, endsAt: v.endsAt, odds: Array.isArray(v.odds) ? v.odds : voyageOdds(s, def).map(o => o.weight), tShare: 0, announced: !!v.announced } : null;
   // Tickers outside the current list (renamed companies) are dropped.
   s.stocks = emptyStocks();
   for (const id of STOCK_IDS) if (Number.isFinite(raw.stocks?.[id])) s.stocks[id] = raw.stocks[id];

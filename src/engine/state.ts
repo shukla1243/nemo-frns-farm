@@ -4,7 +4,7 @@ import {
   type Cost, type ItemId, type TraitId, type ZoneId,
 } from "./config";
 import { createRng, type Rng } from "./rng";
-import type { GameEvent, GameState, Rival, Stats, Tone } from "./types";
+import type { GameEvent, GameState, Rival, ShellSource, Stats, Tone } from "./types";
 import { newQuest } from "./quests";
 import { STOCK_IDS, type StockId } from "./voyages";
 
@@ -12,6 +12,7 @@ export const emptyStocks = () => Object.fromEntries(STOCK_IDS.map(id => [id, 0])
 
 export const emptyStats = (): Stats => ({
   shellSunk: 0, shellEarned: 0, shellSpent: 0,
+  earnedBy: { work: 0, reward: 0, chance: 0, fishing: 0, crab: 0, refund: 0 },
   fish: 0, harvests: 0, gathered: 0, dives: 0, bestDive: 0,
   minesCashouts: 0, bestMinesTiles: 0, raidsWon: 0, raidsLost: 0, defended: 0, raidedBy: 0,
   bossDamage: 0, bossKills: 0, ascends: 0, ascendFails: 0, forges: 0, forgeFails: 0,
@@ -38,7 +39,7 @@ export function createState(opts: { friendId: string; name: string; family: numb
   const state: GameState = {
     v: 1, friendId: opts.friendId, name: opts.name, family: opts.family, trait: traitFor(opts.family), guest: opts.guest,
     createdAt: opts.now, lastTick: opts.now, lastActive: opts.now, seed: 0,
-    shell: START.shell, inv,
+    shell: START.shell, tradable: 0, inv,
     hunger: 80, energy: 100, mood: 70,
     level: 1, xp: 0, ascendPity: 0,
     gear: { rod: 0, pick: 0, blade: 0 }, forgePity: { rod: 0, pick: 0, blade: 0 },
@@ -54,7 +55,7 @@ export function createState(opts: { friendId: string; name: string; family: numb
     wheelFreeAt: opts.now,
     boss: { epoch: Math.floor(opts.now / BOSS.periodMs), damage: 0, claimed: false },
     season: { id: seasonIdAt(opts.now), xp: 0, sunk: 0, pass: 0 }, lastSeason: null,
-    story: 0, npcGifts: {}, rebirths: 0, milestones: {}, streak: { day: 0, count: 0 }, voyage: null, stocks: emptyStocks(), relics: 0, stats: emptyStats(), log: [],
+    story: 0, npcGifts: {}, rebirths: 0, milestones: {}, streak: { day: 0, count: 0 }, voyage: null, stocks: emptyStocks(), tradableStocks: emptyStocks(), relics: 0, stats: emptyStats(), log: [],
   };
   state.seed = rng.state();
   for (let i = 0; i < 3; i++) state.quests.push(newQuest(state, rng));
@@ -107,15 +108,32 @@ export function missing(s: GameState, cost: Cost): string | null {
 
 export const seasonScore = (s: GameState) => s.season.xp + Math.floor(s.season.sunk / SEASON.shellPerPoint);
 
-/** Pay a cost. SHELL paid counts as sunk into the island (prosperity and season score). */
+/** Pay a cost. SHELL paid counts as sunk into the island (prosperity and season score). Returns the tradable SHELL used. */
 export function pay(s: GameState, cost: Cost) {
-  if (cost.shell) { s.shell -= cost.shell; s.stats.shellSpent += cost.shell; s.stats.shellSunk += cost.shell; s.season.sunk += cost.shell; }
+  let tradable = 0;
+  if (cost.shell) { tradable = takeShell(s, cost.shell); s.stats.shellSunk += cost.shell; s.season.sunk += cost.shell; }
   for (const [id, n] of Object.entries(cost.items ?? {})) if (n) s.inv[id as ItemId] -= n;
+  return tradable;
 }
 
-export function giveShell(s: GameState, amount: number) {
+/** Remove SHELL, untracked SHELL first. Returns how much tradable SHELL went with it. */
+export function takeShell(s: GameState, amount: number) {
+  const before = s.tradable;
+  s.shell -= amount; s.stats.shellSpent += amount;
+  if (s.tradable > s.shell) s.tradable = Math.max(0, s.shell);
+  return before - s.tradable;
+}
+
+/**
+ * Grant SHELL from a source. Work and rewards are tradable; chance payouts are tradable only by `share`, the
+ * tradable part of the stake that won them. Refunds return spent SHELL and are not earnings.
+ */
+export function giveShell(s: GameState, amount: number, source: ShellSource, share = source === "work" || source === "reward" ? 1 : 0) {
   const n = Math.max(0, Math.floor(amount));
-  s.shell += n; s.stats.shellEarned += n;
+  s.shell += n;
+  s.stats.earnedBy[source] += n;
+  if (source !== "refund") s.stats.shellEarned += n;
+  s.tradable += Math.floor(n * share);
   return n;
 }
 

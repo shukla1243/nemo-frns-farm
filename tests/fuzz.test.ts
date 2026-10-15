@@ -40,7 +40,7 @@ function bases(): GameState[] {
   const mines = dispatch(rich(), { type: "minesStart", stake: 50, traps: 3 }, T0).state;
   const dive = dispatch(rich(), { type: "diveStart", stake: 50 }, T0).state;
   const crab = dispatch(rich(), { type: "crabStart" }, T0).state;
-  const won = { ...rich(), lastWin: { amount: 100, flips: 0, source: "dive" } };
+  const won = { ...rich(), lastWin: { amount: 100, flips: 0, source: "dive", tradableShare: 0 } };
   const sailing = dispatch(rich(), { type: "voyageStart", id: "scout" }, T0).state;
   return [plain, mines, dive, crab, won, sailing];
 }
@@ -77,6 +77,7 @@ describe("hostile action payloads", () => {
       let r;
       try { r = dispatch(base, a, T0 + 5000); } catch (e) { problems.push(`${JSON.stringify(a)} threw ${(e as Error).message}`); continue; }
       if (typeof r.ok !== "boolean") problems.push(`${JSON.stringify(a)} returned no ok flag`);
+      if (r.state.tradable > r.state.shell) problems.push(`${JSON.stringify(a)} left tradable above the balance`);
       const found: string[] = [];
       audit(r.state, base, "state", found);
       if (found.length) problems.push(`${JSON.stringify(a)}: ${found.slice(0, 3).join("; ")}`);

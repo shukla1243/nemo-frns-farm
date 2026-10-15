@@ -1,12 +1,12 @@
 import {
   ASCEND, BOSS, CRAB, CROPS, DIVE, ENERGY_DRINK, FISH_ENERGY, FISH_FIRST_CATCH_ZONE, FISH_TABLE, FISH_ZONE_BASE, FISH_ZONE_PER_ROD, FLIP, FORGE_CHANCE,
   FORGE_PITY_STEP, GATHER, GEAR, GOLDEN_CROP_CHANCE, HOMES, ITEMS, MAX_GEAR, MAX_LEVEL, MAX_PLOTS, MINES, RAID, RECIPES,
-  SHOP, WELL_FED_MS, WHEEL, WHEEL_FREE_MS, ZONES, ascendCost, diveMultiplierAt, forgeCost, plotCost,
+  FISH_GOODS, SHOP, WELL_FED_MS, WHEEL, WHEEL_FREE_MS, ZONES, ascendCost, diveMultiplierAt, forgeCost, plotCost,
   titleFor, xpToNext, type CropId, type GearId, type ItemId, type MealId, type ZoneId,
 } from "./config";
 import { createRng, hashSeed, weighted, type Rng } from "./rng";
 import {
-  addXp, clamp, clampNeeds, discounted, giveShell, hasTrait, log, luck, maxEnergy, missing, pay,
+  addXp, clamp, clampNeeds, discounted, giveShell, hasTrait, log, luck, maxEnergy, missing, pay, takeShell,
   power, shellMult, yieldMult,
 } from "./state";
 import { bossStatus, cropReady, eventActive, growMs, startSleep, tick, wakeUp } from "./systems";
@@ -151,9 +151,10 @@ function stakeCheck(s: GameState, stake: number, minShell: number) {
   if (stake < minShell) fail(`Minimum stake is ${minShell} SHELL.`);
   if (s.shell < stake) fail("Not enough SHELL.");
 }
-function takeStake(s: GameState, stake: number) {
-  s.shell -= stake; s.stats.shellSpent += stake;
-}
+/** Take a stake; returns its tradable part. */
+const takeStake = (s: GameState, stake: number) => takeShell(s, stake);
+/** The tradable share of a stake, 0 to 1. */
+const shareOf = (part: number, whole: number) => (whole > 0 ? Math.min(1, Math.max(0, part / whole)) : 0);
 function giveItems(s: GameState, items: Partial<Record<ItemId, number>>) {
   for (const [id, n] of Object.entries(items)) if (n) s.inv[id as ItemId] += n;
 }
@@ -366,7 +367,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const qty = Math.min(a.qty ?? 1, s.inv[a.item]);
       if (s.inv[a.item] < 1) fail("You have none.");
       s.inv[a.item] -= qty;
-      const got = giveShell(s, sellPrice(s, a.item, now) * qty * shellMult(s));
+      const got = giveShell(s, sellPrice(s, a.item, now) * qty * shellMult(s), FISH_GOODS.includes(a.item) ? "fishing" : "work");
       log(s, events, `Sold ${qty}x ${ITEMS[a.item].name} for ${got} SHELL.`, "good", { cue: "reward" }, now);
       return { got };
     }
@@ -374,9 +375,9 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     case "diveStart": {
       requireZone(s, "abyss"); requireNoRun(s); requireEnergy(s, DIVE.energy);
       stakeCheck(s, a.stake, DIVE.minShell);
-      takeStake(s, a.stake);
+      const tStake = takeStake(s, a.stake);
       s.energy -= DIVE.energy;
-      s.run = { kind: "dive", stake: a.stake, startedAt: now };
+      s.run = { kind: "dive", stake: a.stake, tStake, startedAt: now };
       s.lastWin = null;
       s.stats.dives++;
       addXp(s, events, 4);
@@ -395,7 +396,8 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
         log(s, events, `The abyss bit at ${crashAt.toFixed(2)}x! Lost ${r.stake} SHELL.`, "bad", { cue: "impact", fx: "shake" }, now);
         return { crashed: true, crashAt };
       }
-      const win = giveShell(s, r.stake * mult);
+      const share = shareOf(r.tStake, r.stake);
+      const win = giveShell(s, r.stake * mult, "chance", share);
       // Loot from the deep: one roll per full multiplier step past 1x.
       const loot: Partial<Record<ItemId, number>> = {};
       const rolls = Math.floor((mult - 1) / DIVE.lootEvery) * (eventActive(s, "frenzy", now) ? 2 : 1);
@@ -409,7 +411,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (mult >= 2) progress(s, events, "dive");
       addXp(s, events, Math.round(4 * mult));
       s.mood += mult >= 3 ? 8 : 3;
-      s.lastWin = { amount: win, flips: 0, source: "dive" };
+      s.lastWin = { amount: win, flips: 0, source: "dive", tradableShare: share };
       log(s, events, `Cashed out at ${mult.toFixed(2)}x: +${win} SHELL ${itemsText(loot)}`, mult >= 5 ? "epic" : "good", { cue: mult >= 10 ? "reveal-legendary" : mult >= 3 ? "reveal-rare" : "reward", fx: mult >= 5 ? "confetti" : undefined }, now);
       return { crashed: false, mult, win, loot };
     }
@@ -419,9 +421,9 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       requireZone(s, "mines"); requireNoRun(s); requireEnergy(s, MINES.energy);
       if (!MINES.trapOptions.includes(a.traps)) fail("Invalid trap count.");
       stakeCheck(s, a.stake, MINES.minShell);
-      takeStake(s, a.stake);
+      const tStake = takeStake(s, a.stake);
       s.energy -= MINES.energy;
-      s.run = { kind: "mines", stake: a.stake, revealed: [], trapCount: a.traps, loot: {}, safeHint: hasTrait(s, "void") ? rng.int(0, MINES.size - 1) : null };
+      s.run = { kind: "mines", stake: a.stake, tStake, revealed: [], trapCount: a.traps, loot: {}, safeHint: hasTrait(s, "void") ? rng.int(0, MINES.size - 1) : null };
       s.lastWin = null;
       addXp(s, events, 3);
       events.push({ tone: "info", text: `${a.traps} traps hidden. Dig carefully…`, cue: "action-start" });
@@ -457,14 +459,15 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (r.revealed.length === 0) fail("Dig at least one tile first.");
       const mult = minesRunMultiplier(r);
       s.run = null;
-      const win = giveShell(s, r.stake * mult);
+      const share = shareOf(r.tStake, r.stake);
+      const win = giveShell(s, r.stake * mult, "chance", share);
       giveItems(s, r.loot);
       s.stats.minesCashouts++;
       s.stats.bestMinesTiles = Math.max(s.stats.bestMinesTiles, r.revealed.length);
       progress(s, events, "mines");
       addXp(s, events, 2 * r.revealed.length);
       s.mood += 4;
-      s.lastWin = { amount: win, flips: 0, source: "mines" };
+      s.lastWin = { amount: win, flips: 0, source: "mines", tradableShare: share };
       log(s, events, `Mines cashout ${mult.toFixed(2)}x: +${win} SHELL ${itemsText(r.loot)}`, mult >= 5 ? "epic" : "good", { cue: mult >= 5 ? "reveal-rare" : "reward", fx: mult >= 5 ? "confetti" : undefined }, now);
       return { mult, win, traps: trapLayout(r, rng) };
     }
@@ -477,14 +480,16 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (s.shell < w!.amount) fail("That win was already spent.");
       const chance = FLIP.winChance + (hasTrait(s, "chaos") ? 0.02 : 0);
       if (rng.chance(chance)) {
-        giveShell(s, w!.amount);
+        giveShell(s, w!.amount, "chance", w!.tradableShare);
         w!.amount *= 2; w!.flips++;
         s.stats.flipsWon++;
         s.mood += 3;
         log(s, events, `DOUBLED! Now ${w!.amount} SHELL.`, "epic", { cue: "reveal-rare", fx: w!.flips >= 3 ? "jackpot" : "confetti" }, now);
         return { won: true };
       }
-      s.shell -= w!.amount;
+      // The win's tradable part is what a loss takes from the tradable balance.
+      s.shell -= w!.amount; s.stats.shellSpent += w!.amount;
+      s.tradable = Math.min(s.tradable - Math.ceil(w!.amount * w!.tradableShare), Math.max(0, s.shell));
       s.stats.flipsLost++;
       s.mood -= 6;
       log(s, events, `Flip lost… ${w!.amount} SHELL gone.`, "bad", { cue: "impact", fx: "shake" }, now);
@@ -536,7 +541,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (now < r.startedAt + CRAB.roundMs - CRAB.finishGraceMs) fail("The round is still running.");
       s.run = null;
       const score = Number.isFinite(a.score) ? clamp(Math.floor(a.score), 0, CRAB.maxScore) : 0;
-      const shell = giveShell(s, score * CRAB.shellPerPoint * shellMult(s));
+      const shell = giveShell(s, score * CRAB.shellPerPoint * shellMult(s), "crab");
       const xp = 5 + Math.floor(score / 4);
       addXp(s, events, xp);
       const items: Partial<Record<ItemId, number>> = {};
@@ -570,9 +575,9 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (rng.next() < chance) {
         const frac = RAID.stealFraction[0] + rng.next() * (RAID.stealFraction[1] - RAID.stealFraction[0]);
         const stolen = Math.max(1, Math.floor(Math.floor(t.vault) * frac * (hasTrait(s, "trickster") ? 1.25 : 1)));
-        giveShell(s, stolen);
+        giveShell(s, stolen, "reward");
         let bonus = 0;
-        if (rng.chance(0.15)) bonus = giveShell(s, rng.int(30, 120));
+        if (rng.chance(0.15)) bonus = giveShell(s, rng.int(30, 120), "reward");
         t.vault = Math.max(0, t.vault - stolen); t.lastRaidedAt = now;
         if (s.revenge?.rivalId === t.id) s.revenge = null;
         s.stats.raidsWon++;
@@ -583,7 +588,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
         return { won: true, stolen, bonus, chance };
       }
       const fee = Math.floor(s.shell * RAID.hospitalFraction);
-      s.shell -= fee; s.stats.shellSpent += fee;
+      takeShell(s, fee);
       s.mood -= RAID.moodLoss;
       s.stats.raidsLost++;
       addXp(s, events, 5);
@@ -619,7 +624,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (s.boss.damage <= 0) fail("You didn't hit the Kraken this time.");
       s.boss.claimed = true;
       const share = Math.min(1, s.boss.damage / BOSS.hp);
-      const shell = giveShell(s, Math.max(15, BOSS.poolShell * share) + 50 + s.boss.damage / 20);
+      const shell = giveShell(s, Math.max(15, BOSS.poolShell * share) + 50 + s.boss.damage / 20, "reward");
       const loot: Partial<Record<ItemId, number>> = { coral: rng.int(3, 8), pearl: rng.chance(0.4 + share) ? 1 : 0 };
       giveItems(s, loot);
       s.stats.bossKills++;
@@ -634,7 +639,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       s.wheelFreeAt = now + WHEEL_FREE_MS;
       const prize = weighted(rng, WHEEL);
       const big = (prize.shell ?? 0) >= 150;
-      if (prize.shell) giveShell(s, prize.shell);
+      if (prize.shell) giveShell(s, prize.shell, "reward");
       if (prize.items) giveItems(s, prize.items);
       s.stats.spins++;
       if (prize.jackpot) s.stats.jackpots++;
@@ -670,7 +675,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (a.charm) {
         s.inv.charm--;
         const refundShell = Math.floor((cost.shell ?? 0) / 2);
-        s.shell += refundShell;
+        giveShell(s, refundShell, "refund");
         for (const [id, n] of Object.entries(cost.items ?? {})) if (n) s.inv[id as ItemId] += Math.floor(n / 2);
         text += ` Charm refunded ${refundShell} SHELL and half the materials.`;
       }
@@ -703,7 +708,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (a.charm) {
         s.inv.charm--;
         for (const [id, n] of Object.entries(cost.items ?? {})) if (n) s.inv[id as ItemId] += Math.floor(n / 2);
-        s.shell += Math.floor((cost.shell ?? 0) / 2);
+        giveShell(s, (cost.shell ?? 0) / 2, "refund");
         text += " Charm saved half your materials.";
       }
       log(s, events, text, "bad", { cue: "impact", fx: "shake" }, now);
@@ -717,7 +722,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const today = dayNumber(now);
       if (s.npcGifts[a.npc] === today) fail("Come back tomorrow for another gift.");
       s.npcGifts[a.npc] = today;
-      if (gift!.shell) giveShell(s, gift!.shell);
+      if (gift!.shell) giveShell(s, gift!.shell, "reward");
       if (gift!.items) giveItems(s, gift!.items);
       addXp(s, events, 5);
       const what = [gift!.shell ? `${gift!.shell} SHELL` : "", gift!.items ? itemsText(gift!.items) : ""].filter(Boolean).join(", ");
@@ -735,13 +740,13 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (s.hunger < 40) fail("Your Friend is too hungry to sail. Eat first.");
       if (foodCount(s) < v!.food) fail(`Pack ${v!.food} food for the trip (bread, fish or crops).`);
       const need = missing(s, { shell: v!.costShell }); if (need) fail(need);
-      pay(s, { shell: v!.costShell });
+      const tShare = shareOf(pay(s, { shell: v!.costShell }), v!.costShell);
       let packed = v!.food;
       for (const id of ["bread", "sardine", "kelp", "carrot", "coconut", "clownfish", "berry", "tuna", "sushi", "pumpkin", "angler", "stew", "pie"] as ItemId[]) {
         while (packed > 0 && s.inv[id] > 0) { s.inv[id]--; packed--; }
       }
       // The odds lock at departure; the outcome is rolled when the chest is opened.
-      s.voyage = { id: v!.id, startedAt: now, endsAt: now + v!.minutes * 60_000, odds: voyageOdds(s, v!).map(o => o.weight), announced: false };
+      s.voyage = { id: v!.id, startedAt: now, endsAt: now + v!.minutes * 60_000, odds: voyageOdds(s, v!).map(o => o.weight), tShare, announced: false };
       s.stats.voyages++;
       const where = v!.id === "homeland" ? `${homeIsle(s.family)}` : v!.name;
       log(s, events, `Your Friend set sail for ${where}. Back in ${v!.minutes >= 60 ? `${v!.minutes / 60} h` : `${v!.minutes} min`}.`, "info", { cue: "action-start", icon: "anchor" }, now);
@@ -761,11 +766,14 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (now < v!.endsAt) fail("Your Friend is still at sea.");
       const r = rollVoyage(VOYAGES.find(x => x.id === v!.id)!, v!.odds, rng);
       s.voyage = null;
-      if (r.shell) giveShell(s, r.shell);
+      if (r.shell) giveShell(s, r.shell, "chance", v!.tShare);
       giveItems(s, r.items);
-      if (r.stock) s.stocks[r.stock.id] = Math.round((s.stocks[r.stock.id] + r.stock.shares) * 1000) / 1000;
+      if (r.stock) {
+        s.stocks[r.stock.id] = Math.round((s.stocks[r.stock.id] + r.stock.shares) * 1000) / 1000;
+        s.tradableStocks[r.stock.id] = Math.round((s.tradableStocks[r.stock.id] + r.stock.shares * v!.tShare) * 1000) / 1000;
+      }
       if (r.relic) s.relics++;
-      if (r.lost) { const lost = Math.floor(s.shell * 0.1); s.shell -= lost; s.mood -= 30; s.energy = Math.min(s.energy, 10); }
+      if (r.lost) { takeShell(s, Math.floor(s.shell * 0.1)); s.mood -= 30; s.energy = Math.min(s.energy, 10); }
       const won = !!(r.shell || Object.keys(r.items).length || r.stock || r.relic);
       if (won) s.stats.voyageWins++;
       addXp(s, events, won ? 40 : 15);
@@ -779,8 +787,10 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       const shares = Math.min(held, Math.round(a.shares * 1000) / 1000);
       if (shares <= 0) fail("No shares to sell.");
       const gross = stockPrice(a.id, now) * shares;
-      const got = giveShell(s, gross * (1 - STOCK_SELL_FEE));
+      const ratio = shareOf(s.tradableStocks[a.id], held);
+      const got = giveShell(s, gross * (1 - STOCK_SELL_FEE), "chance", ratio);
       s.stocks[a.id] = Math.round((held - shares) * 1000) / 1000;
+      s.tradableStocks[a.id] = Math.max(0, Math.round((s.tradableStocks[a.id] - shares * ratio) * 1000) / 1000);
       log(s, events, `Sold ${shares} ${a.id} for ${got} SHELL (simulated).`, "good", { cue: "reward", icon: "coin" }, now);
       return { got };
     }
@@ -804,7 +814,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     case "storyClaim": {
       const ch = chapterAt(s.story);
       if (!ch.done(s)) fail(`Chapter goal: ${ch.goal}`);
-      if (ch.reward.shell) giveShell(s, ch.reward.shell);
+      if (ch.reward.shell) giveShell(s, ch.reward.shell, "reward");
       if (ch.reward.items) giveItems(s, ch.reward.items);
       addXp(s, events, 20 + s.story * 10);
       s.story++;
@@ -826,7 +836,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       if (i < 0) fail("No such bounty.");
       const q = s.quests[i];
       if (q.progress < q.target) fail("Bounty not complete.");
-      const got = giveShell(s, q.reward.shell * shellMult(s));
+      const got = giveShell(s, q.reward.shell * shellMult(s), "reward");
       addXp(s, events, q.reward.xp);
       if (q.reward.items) giveItems(s, q.reward.items);
       s.quests.splice(i, 1, newQuest(s, rng));

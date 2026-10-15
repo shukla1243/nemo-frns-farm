@@ -126,7 +126,7 @@ function StatsTab() {
   const { s } = useG();
   const st = s.stats;
   const rows: [string, string][] = [
-    ["SHELL spent on the island", n0(st.shellSunk)], ["SHELL earned", n0(st.shellEarned)],
+    ["SHELL spent on the island", n0(st.shellSunk)], ["SHELL earned", n0(st.shellEarned)], ["Tradable SHELL (earned by play)", n0(s.tradable)],
     ["Fish caught", n0(st.fish)], ["Harvests", n0(st.harvests)], ["Dives / best", `${st.dives} / ${st.bestDive.toFixed(2)}x`],
     ["Mines cashouts / best", `${st.minesCashouts} / ${st.bestMinesTiles} tiles`], ["Raids W/L", `${st.raidsWon}/${st.raidsLost}`], ["Defended / raided", `${st.defended}/${st.raidedBy}`],
     ["Ascensions", `${st.ascends} (${st.ascendFails} fails)`], ["Forges", `${st.forges - st.forgeFails}/${st.forges}`], ["Kraken kills", n0(st.bossKills)],

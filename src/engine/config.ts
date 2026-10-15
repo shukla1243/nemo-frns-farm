@@ -130,6 +130,8 @@ export const SHOP: { id: ItemId; price: Cost; qty: number }[] = [
 export const MARKET_TIDE_MS = 120_000;
 export const MARKET_TIDE_RANGE: [number, number] = [0.7, 1.4];
 export const ENERGY_DRINK = { energy: 40, mood: -3 };
+/** Fish and meals cooked from fish. Fishing is client-reported (fishReel {hit}), so their sales are not tradable. */
+export const FISH_GOODS: readonly ItemId[] = ["sardine", "clownfish", "tuna", "angler", "goldnemo", "sushi", "stew", "feast"];
 
 
 // ---------- Zones (grow your island) ----------

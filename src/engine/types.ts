@@ -8,16 +8,19 @@ export type Rival = {
   vault: number; sunk: number; bot: true; lastRaidedAt: number;
 };
 
-export type DiveRun = { kind: "dive"; stake: number; startedAt: number };
-export type MinesRun = { kind: "mines"; stake: number; revealed: number[]; trapCount: number; loot: Partial<Record<ItemId, number>>; safeHint: number | null };
+/** `tStake` is the tradable part of the stake (see `tradable`). */
+export type DiveRun = { kind: "dive"; stake: number; tStake: number; startedAt: number };
+export type MinesRun = { kind: "mines"; stake: number; tStake: number; revealed: number[]; trapCount: number; loot: Partial<Record<ItemId, number>>; safeHint: number | null };
 type FishRun = { kind: "fish"; fish: FishId; zone: number; castAt: number };
 type CrabRun = { kind: "crab"; startedAt: number };
 type ActiveRun = DiveRun | MinesRun | FishRun | CrabRun;
 
-type LastWin = { amount: number; flips: number; source: string } | null;
+type LastWin = { amount: number; flips: number; source: string; tradableShare: number } | null;
 
 type LogEntry = { t: number; text: string; tone: Tone };
 export type Tone = "good" | "bad" | "epic" | "info";
+/** Where granted SHELL came from. Only work and reward count as tradable outright; chance pays by stake share. */
+export type ShellSource = "work" | "reward" | "chance" | "fishing" | "crab" | "refund";
 
 export type Quest = { id: number; kind: QuestKind; target: number; progress: number; reward: { shell: number; xp: number; items?: Partial<Record<ItemId, number>> } };
 export type QuestKind = "fish" | "harvest" | "gather" | "dive" | "mines" | "raid" | "spend" | "forge" | "cook" | "boss";
@@ -25,6 +28,8 @@ export type QuestKind = "fish" | "harvest" | "gather" | "dive" | "mines" | "raid
 export type Stats = {
   shellSunk: number; // SHELL paid for purchases and upgrades (stakes and losses excluded)
   shellEarned: number; shellSpent: number;
+  /** SHELL granted, by source. */
+  earnedBy: Record<ShellSource, number>;
   fish: number; harvests: number; gathered: number; dives: number; bestDive: number;
   minesCashouts: number; bestMinesTiles: number; raidsWon: number; raidsLost: number; defended: number; raidedBy: number;
   bossDamage: number; bossKills: number; ascends: number; ascendFails: number; forges: number; forgeFails: number;
@@ -37,6 +42,11 @@ export type GameState = {
   friendId: string; name: string; family: number; trait: TraitId; guest: boolean;
   createdAt: number; lastTick: number; lastActive: number; seed: number;
   shell: number;
+  /**
+   * The part of `shell` earned by real play, the only SHELL the Pearl Market may take (plan 2.7). Never above `shell`:
+   * spending uses untracked SHELL first. Chance games pay it only in proportion to the tradable part of the stake.
+   */
+  tradable: number;
   inv: Record<ItemId, number>;
   hunger: number; energy: number; mood: number;
   level: number; xp: number; ascendPity: number;
@@ -62,8 +72,10 @@ export type GameState = {
   milestones: Record<string, number>;
   streak: { day: number; count: number };
   /** Bonus-adjusted outcome weights locked at departure; the outcome is rolled at claim. */
-  voyage: { id: VoyageId; startedAt: number; endsAt: number; odds: number[]; announced: boolean } | null;
+  voyage: { id: VoyageId; startedAt: number; endsAt: number; odds: number[]; tShare: number; announced: boolean } | null;
   stocks: Record<StockId, number>;
+  /** Shares bought with tradable SHELL (via the voyage cost); their sales are tradable. */
+  tradableStocks: Record<StockId, number>;
   /** Family relics found on voyages: +2% XP each, forever. */
   relics: number;
   stats: Stats;

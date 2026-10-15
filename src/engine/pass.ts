@@ -27,7 +27,7 @@ export function claimPass(s: GameState, events: GameEvent[], now: number) {
   const n = passClaimable(s);
   let shell = 0;
   for (const t of PASS.slice(s.season.pass, s.season.pass + n)) {
-    if (t.shell) shell += giveShell(s, t.shell);
+    if (t.shell) shell += giveShell(s, t.shell, "reward");
     for (const [id, q] of Object.entries(t.items ?? {})) s.inv[id as ItemId] += q ?? 0;
   }
   s.season.pass += n;

@@ -3,7 +3,7 @@ import {
   RIVAL_RAID_LOSS, RIVAL_RAID_MIN_SHELL, SLEEP_MS, STORM_WITHER_CHANCE, TENT_THIEF, SEASON, RESIDENT_NAMES, dayNumber, seasonIdAt, seasonStartOf, streakReward, type EventId, type ItemId,
 } from "./config";
 import { createRng, hashSeed, type Rng } from "./rng";
-import { clamp, clampNeeds, defense, hasTrait, log, maxEnergy, seasonScore } from "./state";
+import { clamp, clampNeeds, defense, giveShell, hasTrait, log, maxEnergy, seasonScore, takeShell } from "./state";
 import type { GameEvent, GameState } from "./types";
 
 /** Boss status for a given epoch: simulated hunters plus this Friend's own damage. */
@@ -41,7 +41,7 @@ export function tick(s: GameState, now: number, events: GameEvent[]): void {
   if (s.streak.day !== today) {
     s.streak = { day: today, count: s.streak.day === today - 1 ? s.streak.count + 1 : 1 };
     const r = streakReward(s.streak.count);
-    s.shell += r.shell; s.stats.shellEarned += r.shell;
+    giveShell(s, r.shell, "reward");
     for (const [id, n] of Object.entries(r.items)) if (n) s.inv[id as ItemId] += n;
     log(s, events, `Day ${s.streak.count} streak! +${r.shell} SHELL${r.items.charm ? " and a Protection Charm" : ""}. Come back tomorrow to keep it going.`, "good", { cue: "reward", icon: "star" }, now);
   }
@@ -146,7 +146,7 @@ function rivalRaid(s: GameState, events: GameEvent[], rng: Rng, now: number) {
   }
   const exposed = s.shell * (1 - HOMES[s.home].vault);
   const loss = Math.floor(exposed * RIVAL_RAID_LOSS);
-  s.shell -= loss; r.vault += loss;
+  takeShell(s, loss); r.vault += loss;
   s.stats.raidedBy++;
   s.shieldUntil = now + RAID.shieldMs;
   s.revenge = { rivalId: r.id, until: now + RAID.revengeMs };
@@ -179,7 +179,7 @@ export function wakeUp(s: GameState, events: GameEvent[], rng: Rng, now: number,
   if (s.home === 0 && natural && rng.chance(TENT_THIEF.chance) && s.shell > 0) {
     // Capped, so the starting SHELL (which now includes the old RF grant) is not a crab buffet.
     const stolen = Math.max(1, Math.min(TENT_THIEF.max, Math.floor(s.shell * TENT_THIEF.fraction)));
-    s.shell -= stolen;
+    takeShell(s, stolen);
     text += ` Crabs raided your tent and took ${stolen} SHELL! Build a hut.`;
     log(s, events, text, "bad", { cue: "impact" }, now);
     return;

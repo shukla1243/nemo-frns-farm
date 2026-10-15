@@ -2,6 +2,7 @@
  * Automatic lifetime milestones. Every track has infinite tiers; the moment a stat passes the next
  * threshold the reward is granted automatically (checked after every action and tick).
  */
+import { giveShell } from "./state";
 import type { GameEvent, GameState } from "./types";
 
 type Track = { id: string; name: string; unit: string; base: number; value: (s: GameState) => number };
@@ -50,7 +51,7 @@ export function checkMilestones(s: GameState, events: GameEvent[], now: number) 
     while (v >= threshold(t.base, tier)) {
       tier++;
       const r = milestoneReward(tier);
-      s.shell += r.shell; s.stats.shellEarned += r.shell;
+      giveShell(s, r.shell, "reward");
       s.season.xp += r.xp;
       const text = `Milestone: ${t.name} ${rankName(tier)} (${fmt(threshold(t.base, tier - 1))} ${t.unit}). +${r.shell} SHELL`;
       events.push({ tone: "epic", text, cue: "reveal-rare", fx: "confetti", icon: "trophy" });

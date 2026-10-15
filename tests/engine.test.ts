@@ -199,7 +199,7 @@ describe("double or nothing", () => {
   it("flip has ~48% win rate and loses the whole amount", () => {
     let wins = 0; const N = 2000;
     for (let i = 0; i < N; i++) {
-      const s = { ...fresh(), seed: i + 1, lastWin: { amount: 100, flips: 0, source: "test" }, shell: 500 };
+      const s = { ...fresh(), seed: i + 1, lastWin: { amount: 100, flips: 0, source: "test", tradableShare: 0 }, shell: 500 };
       const r = run(s, { type: "flip" });
       if (r.data!.won) { wins++; expect(r.state.shell).toBe(600); } else expect(r.state.shell).toBe(400);
     }
