@@ -16,7 +16,7 @@ import { checkMilestones } from "./milestones";
 import { claimPass, passClaimable } from "./pass";
 import { STOCKS, STOCK_SELL_FEE, VOYAGES, VOYAGE_CHAPTER, foodCount, homeIsle, rollVoyage, stockPrice, voyageGateText, voyagesOpen, type StockId, type VoyageId } from "./voyages";
 import { checkAchievements, newQuest, progress } from "./quests";
-import type { GameEvent, GameState, RaidTarget } from "./types";
+import type { GameEvent, GameState, Rival } from "./types";
 
 export type Action =
   | { type: "tick" }
@@ -47,10 +47,9 @@ export type Action =
   | { type: "crabFinish"; score: number }
   | { type: "crabQuit" }
   | { type: "flip" } | { type: "keepWin" }
-  | { type: "raid"; target: RaidTarget }
-  | { type: "raidReceived"; id: string; attacker: string; amount: number }
-  | { type: "bossAttack"; others?: number }
-  | { type: "bossClaim"; others?: number }
+  | { type: "raid"; rivalId: string }
+  | { type: "bossAttack" }
+  | { type: "bossClaim" }
   | { type: "spin"; free: true }
   | { type: "claimQuest"; id: number }
   | { type: "passClaim" }
@@ -63,12 +62,7 @@ export type Action =
   | { type: "voyageRecall" }
   | { type: "sellStock"; id: StockId; shares: number };
 
-/** Outgoing network messages produced by an action (published by the net layer). */
-type Outbox =
-  | { kind: "raid"; targetId: string; amount: number; won: boolean }
-  | { kind: "boss"; epoch: number; damage: number };
-
-export type Result = { state: GameState; events: GameEvent[]; outbox: Outbox[]; ok: boolean; data?: Record<string, unknown> };
+export type Result = { state: GameState; events: GameEvent[]; ok: boolean; data?: Record<string, unknown> };
 
 class Reject extends Error {}
 const fail = (message: string): never => { throw new Reject(message); };
@@ -81,18 +75,17 @@ export function dispatch(prev: GameState, action: Action, now: number): Result {
   // Mix server time and the action into the seed, so the stored seed alone never predicts the next roll.
   s.seed = hashSeed(`${s.seed}:${now}:${action.type}`);
   const events: GameEvent[] = [];
-  const outbox: Outbox[] = [];
   let data: Record<string, unknown> | undefined;
   tick(s, now, events);
   const rng = createRng(s.seed);
   try {
-    data = apply(s, action, now, rng, events, outbox) ?? undefined;
+    data = apply(s, action, now, rng, events) ?? undefined;
   } catch (error) {
     if (error instanceof Reject) {
       // Discard partial mutations: re-derive the state from prev + time only.
       const base: GameState = clone(prev);
       tick(base, now, []);
-      return { state: base, events: [...events, { tone: "bad", text: error.message, cue: "select" }], outbox: [], ok: false };
+      return { state: base, events: [...events, { tone: "bad", text: error.message, cue: "select" }], ok: false };
     }
     throw error;
   }
@@ -101,7 +94,7 @@ export function dispatch(prev: GameState, action: Action, now: number): Result {
   clampNeeds(s);
   checkAchievements(s, events);
   checkMilestones(s, events, now);
-  return { state: s, events, outbox, ok: true, data };
+  return { state: s, events, ok: true, data };
 }
 
 function requireAwake(s: GameState) { if (s.sleeping) fail("Your Friend is asleep. Wake them first."); }
@@ -143,14 +136,14 @@ const fishZone = (s: GameState, difficulty: number) => {
 };
 export const ascendChance = (s: GameState, blessing: boolean) => Math.min(100, Math.max(ASCEND.floor, ASCEND.base - ASCEND.perLevel * s.level) + s.ascendPity * ASCEND.pityStep + (blessing ? ASCEND.blessing : 0) + (s.mood >= 75 ? ASCEND.happy : 0) + (hasTrait(s, "shiny") ? 4 : 0));
 export const forgeChance = (s: GameState, gear: GearId, blessing: boolean) => Math.min(100, FORGE_CHANCE[s.gear[gear]] + s.forgePity[gear] * FORGE_PITY_STEP + (blessing ? 10 : 0) + (hasTrait(s, "shiny") ? 4 : 0));
-export const raidChance = (s: GameState, target: RaidTarget, now: number) => {
+export const raidChance = (s: GameState, target: Rival, now: number) => {
   const atk = power(s), def = target.defense;
   const revenge = s.revenge && s.revenge.rivalId === target.id && s.revenge.until > now ? RAID.revengeBonus : 0;
   return clamp(0.5 + 0.5 * (atk - def) / (atk + def) + (hasTrait(s, "trickster") ? 0.05 : 0) + revenge, 0.08, 0.92);
 };
 export const sellPrice = (s: GameState, item: ItemId, now: number) => Math.max(1, Math.floor((ITEMS[item].sell ?? 0) * s.marketTide * (eventActive(s, "boom", now) ? 1.5 : 1)));
 
-function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent[], outbox: Outbox[]): Record<string, unknown> | void {
+function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent[]): Record<string, unknown> | void {
   switch (a.type) {
     case "tick": return;
 
@@ -407,7 +400,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       }
       const safeTiles = MINES.size - r.trapCount;
       events.push({ tone: "good", text: `Safe! ${minesMultiplier(r.trapCount, r.revealed.length).toFixed(2)}x`, cue: r.revealed.length > 5 ? "anticipation" : "select" });
-      if (r.revealed.length >= safeTiles) return apply(s, { type: "minesCashout" }, now, rng, events, outbox);
+      if (r.revealed.length >= safeTiles) return apply(s, { type: "minesCashout" }, now, rng, events);
       return { trap: false, mult: minesMultiplier(r.trapCount, r.revealed.length) };
     }
     case "minesCashout": {
@@ -519,24 +512,23 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     case "raid": {
       requireZone(s, "harbor"); requireNoRun(s); requireEnergy(s, RAID.energy);
       cooldown(s, "raid", RAID.cooldownMs, now);
-      const t = a.target;
-      if (t.id === s.friendId) fail("You can't raid yourself.");
+      // The engine looks up its own simulated rival; the request only names it.
+      const t = s.rivals.find(r => r.id === a.rivalId);
+      if (!t) return fail("No such rival.");
       s.energy -= RAID.energy;
       const chance = raidChance(s, t, now);
-      const bot = s.rivals.find(r => r.id === t.id);
       if (rng.next() < chance) {
         const frac = RAID.stealFraction[0] + rng.next() * (RAID.stealFraction[1] - RAID.stealFraction[0]);
-        const stolen = Math.max(1, Math.floor(t.vault * frac * (hasTrait(s, "trickster") ? 1.25 : 1)));
+        const stolen = Math.max(1, Math.floor(Math.floor(t.vault) * frac * (hasTrait(s, "trickster") ? 1.25 : 1)));
         giveShell(s, stolen);
         let bonus = 0;
         if (rng.chance(0.15)) bonus = giveShell(s, rng.int(30, 120));
-        if (bot) { bot.vault = Math.max(0, bot.vault - stolen); bot.lastRaidedAt = now; }
+        t.vault = Math.max(0, t.vault - stolen); t.lastRaidedAt = now;
         if (s.revenge?.rivalId === t.id) s.revenge = null;
         s.stats.raidsWon++;
         s.mood += 8;
         addXp(s, events, 25);
         progress(s, events, "raid");
-        if (!t.bot) outbox.push({ kind: "raid", targetId: t.id, amount: stolen, won: true });
         log(s, events, `Raid on ${t.name} succeeded! +${stolen} SHELL${bonus ? ` +${bonus} bonus SHELL` : ""}`, "epic", { cue: "reveal-rare", fx: "confetti" }, now);
         return { won: true, stolen, bonus, chance };
       }
@@ -545,26 +537,15 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       s.mood -= RAID.moodLoss;
       s.stats.raidsLost++;
       addXp(s, events, 5);
-      if (!t.bot) outbox.push({ kind: "raid", targetId: t.id, amount: 0, won: false });
       log(s, events, `${t.name}'s defenses held. Clinic fee ${fee} SHELL, -${RAID.moodLoss} mood.`, "bad", { cue: "impact", fx: "shake" }, now);
       return { won: false, fee, chance };
-    }
-    case "raidReceived": {
-      if (s.shieldUntil > now) return { ignored: true };
-      const exposed = Math.floor(s.shell * (1 - HOMES[s.home].vault));
-      const loss = clamp(Math.floor(a.amount), 0, Math.floor(exposed * 0.1));
-      s.shell -= loss;
-      s.stats.raidedBy++;
-      s.shieldUntil = now + RAID.shieldMs;
-      log(s, events, `${a.attacker} (online) raided your island and took ${loss} SHELL! You're shielded for 8 min.`, "bad", { cue: "impact", fx: "shake" }, now);
-      return { loss };
     }
 
     // ---------------- Kraken world boss ----------------
     case "bossAttack": {
       requireZone(s, "reef"); requireNoRun(s);
       syncBoss(s, now);
-      const status = bossStatus(now, s.boss.damage, a.others ?? 0);
+      const status = bossStatus(now, s.boss.damage);
       if (!status.active) fail("The Kraken is sleeping. Wait for the next rising.");
       if (status.defeated) fail("The Kraken is defeated! Claim your share.");
       requireEnergy(s, BOSS.energy);
@@ -575,7 +556,6 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       s.boss.damage += damage; s.stats.bossDamage += damage;
       progress(s, events, "boss");
       addXp(s, events, 6);
-      outbox.push({ kind: "boss", epoch: s.boss.epoch, damage });
       let text = `${crit ? "CRIT! " : ""}Hit the Kraken for ${damage}.`;
       if (rng.chance(BOSS.counterChance)) { s.energy -= 10; s.mood -= 8; text += " Tentacle slam! -10 energy."; }
       log(s, events, text, crit ? "epic" : "good", { cue: crit ? "impact" : "select", fx: crit ? "shake" : undefined }, now);
@@ -583,7 +563,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
     }
     case "bossClaim": {
       syncBoss(s, now);
-      const status = bossStatus(now, s.boss.damage, a.others ?? 0);
+      const status = bossStatus(now, s.boss.damage);
       if (!status.defeated) fail("The Kraken still stands!");
       if (s.boss.claimed) fail("Already claimed for this rising.");
       if (s.boss.damage <= 0) fail("You didn't hit the Kraken this time.");
@@ -801,7 +781,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       s.quests.splice(i, 1, newQuest(s, rng));
       log(s, events, `Bounty claimed: +${got} SHELL +${q.reward.xp} XP ${q.reward.items ? itemsText(q.reward.items) : ""}`, "good", { cue: "reward", fx: "confetti" }, now);
       return;
-    }
+    }    default: return fail("Unknown action.");
   }
 }
 

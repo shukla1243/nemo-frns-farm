@@ -6,24 +6,23 @@ import { bossStatus, seasonBoard } from "../../engine/systems";
 import { ACHIEVEMENTS, questLabel } from "../../engine/quests";
 import { TRACKS, milestoneReward, rankName, trackProgress } from "../../engine/milestones";
 import { defense, power, seasonScore } from "../../engine/state";
-import type { RaidTarget } from "../../engine/types";
+import type { Rival } from "../../engine/types";
 import { Bar, Panel, SimTag, Tabs, mmss, n0, useG } from "../common";
 import { Icon, SpriteImg } from "../Icon";
 import { kraken } from "../../art/sprites";
 
 export function HarborPanel({ onClose }: { onClose: () => void }) {
   const { s, act, now } = useG();
-  const bots: RaidTarget[] = s.rivals.map(r => ({ id: r.id, name: r.name, level: r.level, power: r.power, defense: r.defense, vault: Math.floor(r.vault), bot: true }));
   const cd = Math.max(0, (s.cooldowns.raid ?? 0) - now);
-  const Row = ({ t }: { t: RaidTarget }) => {
+  const Row = ({ t }: { t: Rival }) => {
     const chance = raidChance(s, t, now);
     const revenge = s.revenge?.rivalId === t.id && s.revenge.until > now;
     return (
       <div className="list-row">
         <span className="big-icon"><Icon id="skull" size={30} /></span>
-        <span className="grow"><b>{t.name}{revenge && <span className="hot-chip">REVENGE +15%</span>}</b><small>Lv{t.level} · defense {t.defense} · vault {n0(t.vault)} SHELL · sim</small></span>
+        <span className="grow"><b>{t.name}{revenge && <span className="hot-chip">REVENGE +15%</span>}</b><small>Lv{t.level} · defense {t.defense} · vault {n0(Math.floor(t.vault))} SHELL · sim</small></span>
         <span className={`chance ${chance > 0.6 ? "good" : chance < 0.35 ? "bad" : ""}`}>{Math.round(chance * 100)}%</span>
-        <button type="button" className="btn hot" disabled={cd > 0 || s.energy < RAID.energy} onClick={() => act({ type: "raid", target: t })}>Raid</button>
+        <button type="button" className="btn hot" disabled={cd > 0 || s.energy < RAID.energy} onClick={() => act({ type: "raid", rivalId: t.id })}>Raid</button>
       </div>
     );
   };
@@ -37,7 +36,7 @@ export function HarborPanel({ onClose }: { onClose: () => void }) {
       </div>
       <p className="muted">Raids cost {RAID.energy} energy. Win: steal 10 to 22% of their exposed vault (+ 15% chance of bonus SHELL). Lose: {RAID.hospitalFraction * 100}% clinic fee and −{RAID.moodLoss} mood. {cd > 0 ? `Cooldown ${mmss(cd)}.` : ""}</p>
       <h3>Simulated rivals</h3>
-      <div className="list">{bots.map(t => <Row key={t.id} t={t} />)}</div>
+      <div className="list">{s.rivals.map(t => <Row key={t.id} t={t} />)}</div>
       <p className="fineprint"><SimTag /> Every rival is simulated.</p>
     </Panel>
   );

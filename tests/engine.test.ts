@@ -234,26 +234,46 @@ describe("fishing", () => {
 });
 
 describe("raids", () => {
-  it("raiding a bot either steals shell or charges a clinic fee", () => {
+  it("raiding a rival by id either steals shell or charges a clinic fee", () => {
     const s = rich(fresh());
-    const bot = s.rivals[0];
-    const r = run(s, { type: "raid", target: { ...bot } });
+    const r = run(s, { type: "raid", rivalId: s.rivals[0].id });
     expect(r.ok).toBe(true);
     if (r.data!.won) expect(r.state.shell).toBeGreaterThan(s.shell);
     else expect(r.state.shell).toBeLessThan(s.shell);
-    expect(r.outbox).toHaveLength(0); // bots are local
   });
-  it("raiding an online player produces a network message", () => {
+  it("the loot comes from the engine's own rival, never from the request", () => {
     const s = rich(fresh());
-    const r = run(s, { type: "raid", target: { id: "npub-x", name: "Online Pal", level: 1, power: 10, defense: 1, vault: 500, bot: false } });
-    expect(r.outbox[0]).toMatchObject({ kind: "raid", targetId: "npub-x" });
+    const bot = s.rivals[0];
+    bot.defense = 0; bot.vault = 100;
+    const forged = { type: "raid", rivalId: bot.id, target: { ...bot, vault: 10_000_000 } } as unknown as Action;
+    for (let seed = 1; seed < 40; seed++) {
+      const r = run({ ...structuredClone(s), seed }, forged);
+      if (r.data?.won) expect(r.data.stolen as number).toBeLessThanOrEqual(Math.ceil(100 * 0.22 * 1.25));
+    }
   });
-  it("incoming online raids are capped and grant a shield", () => {
+  it("an unknown rival cannot be raided", () => {
+    expect(run(rich(fresh()), { type: "raid", rivalId: "npub-x" }).ok).toBe(false);
+  });
+});
+
+describe("removed network actions", () => {
+  it("unknown action types are rejected", () => {
     const s = fresh({ shell: 1000 });
-    const r = run(s, { type: "raidReceived", id: "e1", attacker: "Pal", amount: 999999 });
-    expect(r.state.shell).toBe(900);
-    const again = run(r.state, { type: "raidReceived", id: "e2", attacker: "Pal", amount: 50 });
-    expect(again.state.shell).toBe(900);
+    for (const a of [{ type: "raidReceived", id: "e1", attacker: "Pal", amount: 999 }, { type: "swap" }, { type: "seasonClaim", rank: 1, pool: 1 }, { type: "nope" }]) {
+      const r = run(s, a as unknown as Action);
+      expect(r.ok).toBe(false);
+      expect(r.state.shell).toBe(1000);
+    }
+  });
+  it("results carry no network outbox", () => {
+    expect("outbox" in run(fresh(), { type: "tick" })).toBe(false);
+  });
+  it("reported damage from other players cannot finish the Kraken", () => {
+    const epochStart = Math.ceil(T0 / BOSS.periodMs) * BOSS.periodMs;
+    const s = rich(fresh()); s.lastTick = epochStart;
+    const hit = run(s, { type: "bossAttack" }, epochStart + 1000);
+    const claim = run(hit.state, { type: "bossClaim", others: 10_000_000 } as unknown as Action, epochStart + 2000);
+    expect(claim.ok).toBe(false);
   });
 });
 
@@ -263,7 +283,6 @@ describe("Kraken boss", () => {
     const s = rich(fresh()); s.lastTick = epochStart;
     const hit = run(s, { type: "bossAttack" }, epochStart + 1000);
     expect(hit.ok).toBe(true);
-    expect(hit.outbox[0].kind).toBe("boss");
     expect(run(hit.state, { type: "bossClaim" }, epochStart + 2000).ok).toBe(false);
     const late = epochStart + BOSS.activeMs * 0.9;
     expect(bossStatus(late, 0).defeated).toBe(true);

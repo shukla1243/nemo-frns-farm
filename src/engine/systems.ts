@@ -6,14 +6,14 @@ import { createRng, hashSeed, type Rng } from "./rng";
 import { clamp, clampNeeds, defense, hasTrait, log, maxEnergy, seasonScore } from "./state";
 import type { GameEvent, GameState } from "./types";
 
-/** Boss status for a given epoch. `others` = damage by other online players (from the network). */
-export function bossStatus(now: number, own: number, others = 0) {
+/** Boss status for a given epoch: simulated hunters plus this Friend's own damage. */
+export function bossStatus(now: number, own: number) {
   const epoch = Math.floor(now / BOSS.periodMs);
   const elapsed = now - epoch * BOSS.periodMs;
   const active = elapsed < BOSS.activeMs;
   // Simulated rivals wear the Kraken down so a solo player can always finish it before the window closes.
   const sim = Math.floor(BOSS.hp * Math.min(1, elapsed / (BOSS.activeMs * BOSS.simShare)));
-  const total = sim + own + others;
+  const total = sim + own;
   const defeated = total >= BOSS.hp;
   return {
     epoch, active, elapsed, sim, total: Math.min(total, BOSS.hp), hp: BOSS.hp, defeated,
@@ -189,7 +189,7 @@ export function wakeUp(s: GameState, events: GameEvent[], rng: Rng, now: number,
 export const eventActive = (s: GameState, id: EventId, now: number) => !!s.event && s.event.id === id && now >= s.event.startsAt && now < s.event.endsAt;
 
 // ---------- Seasons ----------
-export type SeasonEntry = { id: string; name: string; score: number; you?: boolean; online?: boolean };
+type SeasonEntry = { id: string; name: string; score: number; you?: boolean };
 /** Deterministic simulated residents (same for every client in a season) whose scores grow through the week. */
 function seasonResidents(seasonId: number, now: number): SeasonEntry[] {
   const start = seasonStartOf(seasonId);
@@ -202,8 +202,8 @@ function seasonResidents(seasonId: number, now: number): SeasonEntry[] {
     return { id: `res-${i}`, name, score: Math.round(final * curve) };
   });
 }
-export function seasonBoard(s: GameState, now: number, online: SeasonEntry[] = [], seasonId = s.season.id, yourScore?: number) {
+export function seasonBoard(s: GameState, now: number, seasonId = s.season.id, yourScore?: number) {
   const you: SeasonEntry = { id: "you", name: s.name, score: yourScore ?? seasonScore(s), you: true };
   const endOrNow = seasonId === s.season.id ? now : seasonStartOf(seasonId) + SEASON.ms;
-  return [...seasonResidents(seasonId, endOrNow), ...online.filter(o => o.id !== s.friendId), you].sort((a, b) => b.score - a.score);
+  return [...seasonResidents(seasonId, endOrNow), you].sort((a, b) => b.score - a.score);
 }

@@ -16,7 +16,7 @@ describe("seasons", () => {
     expect(rolled.season.id).toBe(seasonIdAt(next));
     expect(rolled.season.pass).toBe(0);
     expect(rolled.lastSeason?.score).toBeGreaterThan(0);
-    const board = seasonBoard(rolled, next, [], rolled.lastSeason!.id, rolled.lastSeason!.score);
+    const board = seasonBoard(rolled, next, rolled.lastSeason!.id, rolled.lastSeason!.score);
     expect(board.findIndex(e => e.you) + 1).toBe(1);
   });
   it("season score counts SHELL spent at 7.5 SHELL per point", () => {

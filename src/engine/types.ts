@@ -8,12 +8,6 @@ export type Rival = {
   vault: number; sunk: number; bot: true; lastRaidedAt: number;
 };
 
-/** A raid target from either a simulated rival or an online player's published profile. */
-export type RaidTarget = {
-  id: string; name: string; level: number; power: number; defense: number; vault: number;
-  bot: boolean; friendId?: string;
-};
-
 export type DiveRun = { kind: "dive"; stake: number; crashAt: number; startedAt: number };
 export type MinesRun = { kind: "mines"; stake: number; traps: number[]; revealed: number[]; trapCount: number; loot: Partial<Record<ItemId, number>>; safeHint: number | null };
 type FishRun = { kind: "fish"; fish: FishId; zone: number; castAt: number };

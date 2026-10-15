@@ -102,7 +102,7 @@ function simulate(seed: number, hours: number, style: Style) {
     }
     if (r === 2 && s.zones.harbor && s.energy > 30) {
       const target = [...s.rivals].sort((a, b) => a.defense - b.defense)[0];
-      act({ type: "raid", target: { ...target } });
+      act({ type: "raid", rivalId: target.id });
       continue;
     }
     if (r === 3) {
