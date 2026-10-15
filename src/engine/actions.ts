@@ -391,7 +391,10 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       s.run = null;
       // Rolled now, not at the start: surviving to m has probability (1 - edge) / m, the same as a hidden crash point.
       if (rng.next() >= Math.min(1, (1 - diveEdge(s)) / mult)) {
-        const crashAt = Math.max(1, Math.floor(100 * (1 + rng.next() * (mult - 1))) / 100);
+        // Show a crash point from the real distribution, C = (1 - edge) / (1 - u), conditioned on C < m.
+        const edge = diveEdge(s);
+        const u = rng.next() * (1 - (1 - edge) / mult);
+        const crashAt = Math.max(1, Math.floor(100 * (1 - edge) / (1 - u)) / 100);
         s.mood -= 6;
         log(s, events, `The abyss bit at ${crashAt.toFixed(2)}x! Lost ${r.stake} SHELL.`, "bad", { cue: "impact", fx: "shake" }, now);
         return { crashed: true, crashAt };
@@ -570,6 +573,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       // The engine looks up its own simulated rival; the request only names it.
       const t = s.rivals.find(r => r.id === a.rivalId);
       if (!t) return fail("No such rival.");
+      if (s.shell < RAID.minFee) fail(`Keep ${RAID.minFee} SHELL for the clinic in case the raid fails.`);
       s.energy -= RAID.energy;
       const chance = raidChance(s, t, now);
       if (rng.next() < chance) {
@@ -587,7 +591,7 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
         log(s, events, `Raid on ${t.name} succeeded! +${stolen} SHELL${bonus ? ` +${bonus} bonus SHELL` : ""}`, "epic", { cue: "reveal-rare", fx: "confetti" }, now);
         return { won: true, stolen, bonus, chance };
       }
-      const fee = Math.floor(s.shell * RAID.hospitalFraction);
+      const fee = Math.min(s.shell, Math.max(RAID.minFee, Math.floor(s.shell * RAID.hospitalFraction)));
       takeShell(s, fee);
       s.mood -= RAID.moodLoss;
       s.stats.raidsLost++;
@@ -842,7 +846,8 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
       s.quests.splice(i, 1, newQuest(s, rng));
       log(s, events, `Bounty claimed: +${got} SHELL +${q.reward.xp} XP ${q.reward.items ? itemsText(q.reward.items) : ""}`, "good", { cue: "reward", fx: "confetti" }, now);
       return;
-    }    default: return fail("Unknown action.");
+    }
+    default: return fail("Unknown action.");
   }
 }
 

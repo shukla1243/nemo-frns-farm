@@ -222,7 +222,7 @@ export const MINES = { size: 25, trapOptions: [1, 3, 5, 10, 20], energy: 8, edge
 export const FLIP = { winChance: 0.48, maxFlips: 5 };
 
 // ---------- Raids ----------
-export const RAID = { energy: 15, stealFraction: [0.1, 0.22] as [number, number], hospitalFraction: 0.05, moodLoss: 15, shieldMs: 8 * 60_000, revengeMs: 90_000, revengeBonus: 0.15, cooldownMs: 20_000 };
+export const RAID = { energy: 15, stealFraction: [0.1, 0.22] as [number, number], hospitalFraction: 0.05, minFee: 20, moodLoss: 15, shieldMs: 8 * 60_000, revengeMs: 90_000, revengeBonus: 0.15, cooldownMs: 20_000 };
 export const RIVAL_RAID_INTERVAL: [number, number] = [120_000, 300_000];
 export const RIVAL_RAID_MIN_SHELL = 80;
 export const RIVAL_RAID_LOSS = 0.15;

@@ -109,7 +109,7 @@ Nemo**. The Reef Rod and luck shift the odds toward rare fish.
 
 **Raids.** Simulated rivals only. Cost 15 energy. Win chance = `0.5 + 0.5 × (power − defense) / (power + defense)`,
 limited to 8 to 92%. A win steals 10 to 22% of the rival's vault, with a 15% chance of 30 to 120 bonus SHELL. A loss
-costs a 5% clinic fee and 15 mood.
+costs a 5% clinic fee (at least 20 SHELL, so a raid needs 20 SHELL) and 15 mood.
 
 **Kraken.** Rises every 20 minutes for 12 minutes with 60,000 HP shared with simulated hunters. A hit costs 10 energy
 and deals power × 3 (±20%) damage. 15% of hits crit. Hitters split 4,500 SHELL by damage share.

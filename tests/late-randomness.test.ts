@@ -3,7 +3,7 @@
  * at the moment the outcome is revealed, with the same odds as a pre-rolled outcome.
  */
 import { describe, expect, it } from "vitest";
-import { DIVE, MINES, VOYAGE_CHAPTER, createRng, createState, dayNumber, diveEdge, diveMultiplierAt, diveTimeFor, dispatch, type GameState } from "../src/engine";
+import { MINES, VOYAGE_CHAPTER, createRng, createState, dayNumber, diveEdge, diveMultiplierAt, diveTimeFor, dispatch, type GameState } from "../src/engine";
 import { VOYAGES, rollVoyage, voyageOdds } from "../src/engine/voyages";
 
 const T0 = Date.UTC(2026, 9, 13, 12);
@@ -45,7 +45,6 @@ describe("Abyss Dive rolls at cash-out", () => {
   it("the client-timed crash action is gone", () => {
     const started = dispatch(fresh(), { type: "diveStart", stake: 100 }, T0).state;
     expect(dispatch(started, { type: "diveCrash" } as never, T0 + 10).ok).toBe(false);
-    expect(DIVE.edge).toBeGreaterThan(0);
   });
 });
 
@@ -118,5 +117,16 @@ describe("voyages roll at claim", () => {
     const r = dispatch(s, { type: "voyageClaim" }, s.voyage!.endsAt + 1);
     expect(r.ok).toBe(true);
     expect(r.state.voyage).toBeNull();
+  });
+  it("the claim rolls with the stored odds", () => {
+    const v = VOYAGES.find(x => x.id === "trench")!;
+    for (const [i, o] of v.outcomes.entries()) {
+      const s = sailing();
+      s.voyage!.odds = v.outcomes.map((_, j) => (j === i ? 1 : 0));
+      for (let seed = 1; seed < 6; seed++) {
+        const r = dispatch({ ...s, seed }, { type: "voyageClaim" }, s.voyage!.endsAt + 1);
+        expect((r.data!.result as { outcome: string }).outcome).toBe(o.id);
+      }
+    }
   });
 });

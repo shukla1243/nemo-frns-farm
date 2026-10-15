@@ -34,7 +34,7 @@ describe("server-safe engine", () => {
     expect(dispatch(s, { type: "buy", item: "nope" as never, qty: 1 }, T0).ok).toBe(false);
   });
 
-  it("the stored seed alone does not predict the next roll", () => {
+  it("the next seed depends on the server time, not only the stored seed", () => {
     const s = fresh();
     const a = dispatch(s, { type: "fishCast" }, T0);
     const b = dispatch(s, { type: "fishCast" }, T0 + 1);

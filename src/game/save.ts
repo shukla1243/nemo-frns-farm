@@ -1,7 +1,7 @@
-import { ITEM_IDS, ZONE_ORDER, type ItemId } from "../engine/config";
+import { ZONE_ORDER } from "../engine/config";
 import { hashSeed } from "../engine/rng";
 import { createState, emptyStats, emptyStocks } from "../engine/state";
-import { STOCK_IDS, VOYAGES, voyageOdds } from "../engine/voyages";
+import { VOYAGES, voyageOdds } from "../engine/voyages";
 import type { GameState } from "../engine/types";
 
 const PREFIX = "NFF1";
@@ -36,17 +36,33 @@ export function importSave(code: string, friendId: string): GameState {
   return migrate(parsed);
 }
 
-/** Fill any fields missing from older saves so the engine never sees undefined. */
+/** Keep a saved value only when it has the field's type; numbers must be finite. */
+function pick<T>(fallback: T, value: unknown): T {
+  if (typeof fallback === "number") return (Number.isFinite(value) ? value : fallback) as T;
+  if (fallback === null) return (value && typeof value === "object" ? value : null) as T;
+  return (typeof value === typeof fallback && value !== null ? value : fallback) as T;
+}
+/** Copy only the fields the current state has (an allowlist), so retired fields such as rf, pool or world never return. */
+function allow<T extends object>(base: T, raw: unknown): T {
+  const out = { ...base };
+  const src = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  for (const k of Object.keys(base) as (keyof T & string)[]) if (Object.hasOwn(src, k)) out[k] = pick(base[k], src[k]);
+  return out;
+}
+
+/** Rebuild a saved state from an allowlist of current fields, so the engine never sees undefined or retired data. */
 export function migrate(raw: GameState): GameState {
   const base = createState({ friendId: raw.friendId, name: raw.name, family: raw.family, guest: raw.guest, now: raw.lastTick ?? Date.now(), seed: raw.seed ?? 1 });
-  const s: GameState = { ...base, ...raw };
-  s.inv = { ...base.inv, ...raw.inv };
-  for (const id of ITEM_IDS) if (!Number.isFinite(s.inv[id as ItemId])) s.inv[id as ItemId] = 0;
-  s.zones = { ...base.zones, ...raw.zones };
-  for (const z of ZONE_ORDER) s.zones[z] = !!s.zones[z];
-  s.stats = { ...emptyStats(), ...raw.stats };
-  s.gear = { ...base.gear, ...raw.gear };
-  s.forgePity = { ...base.forgePity, ...raw.forgePity };
+  const s: GameState = allow(base, raw);
+  s.inv = allow(base.inv, raw.inv);
+  s.zones = { ...base.zones };
+  for (const z of ZONE_ORDER) s.zones[z] = !!raw.zones?.[z] || base.zones[z];
+  s.stats = allow(emptyStats(), raw.stats);
+  s.stats.earnedBy = allow(emptyStats().earnedBy, raw.stats?.earnedBy);
+  if (!Number.isFinite(raw.shell)) s.shell = 0; // a broken balance never falls back to the starting grant
+  s.tradable = Math.min(Math.max(0, s.tradable), Math.max(0, s.shell));
+  s.gear = allow(base.gear, raw.gear);
+  s.forgePity = allow(base.forgePity, raw.forgePity);
   s.buffs = raw.buffs ?? {};
   s.npcGifts = raw.npcGifts ?? {};
   s.rebirths = raw.rebirths ?? 0;
@@ -56,10 +72,10 @@ export function migrate(raw: GameState): GameState {
   const v = raw.voyage, def = v && VOYAGES.find(x => x.id === v.id);
   s.voyage = v && def ? { id: v.id, startedAt: v.startedAt, endsAt: v.endsAt, odds: Array.isArray(v.odds) ? v.odds : voyageOdds(s, def).map(o => o.weight), tShare: 0, announced: !!v.announced } : null;
   // Tickers outside the current list (renamed companies) are dropped.
-  s.stocks = emptyStocks();
-  for (const id of STOCK_IDS) if (Number.isFinite(raw.stocks?.[id])) s.stocks[id] = raw.stocks[id];
+  s.stocks = allow(emptyStocks(), raw.stocks);
+  s.tradableStocks = allow(emptyStocks(), raw.tradableStocks);
   s.relics = raw.relics ?? 0;
-  s.season = { ...base.season, ...raw.season, pass: raw.season?.pass ?? 0 };
+  s.season = allow(base.season, raw.season);
   s.cooldowns = {};
   if (!Number.isFinite(s.lastActive)) s.lastActive = s.lastTick;
   s.run = null; // never resume a hidden-outcome game from a save
