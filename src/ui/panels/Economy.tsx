@@ -139,9 +139,9 @@ export function WheelPanel({ onClose }: { onClose: () => void }) {
   const weights = WHEEL.map(p => p.weight);
   const free = s.wheelFreeAt <= now;
   useEffect(() => { if (cv.current) drawWheel(cv.current, angle.current, WHEEL.map(p => p.weight)); }, []);
-  const spin = () => {
+  const spin = async () => {
     if (spinning) return;
-    const r = act({ type: "spin", free: true });
+    const r = await act({ type: "spin", free: true });
     if (!r.ok) return;
     const idx = r.data!.index as number;
     const before = WHEEL.slice(0, idx).reduce((n, p) => n + p.weight, 0);
@@ -182,7 +182,7 @@ export function UnlockPanel({ zone, onClose }: { zone: ZoneId; onClose: () => vo
       <p className="lead">{z.blurb}</p>
       <p className="muted">Build a boardwalk and grow the island. The new land appears on the map forever.</p>
       <CostList cost={cost} s={s} />
-      <button type="button" className="btn primary big" disabled={!!missing(s, cost)} onClick={() => { const r = act({ type: "unlockZone", zone }); if (r.ok) onClose(); }}>Unlock {z.name}</button>
+      <button type="button" className="btn primary big" disabled={!!missing(s, cost)} onClick={async () => { const r = await act({ type: "unlockZone", zone }); if (r.ok) onClose(); }}>Unlock {z.name}</button>
       {missing(s, cost) && <p className="warn">{missing(s, cost)}</p>}
       <p className="fineprint">Tip: {zone === "cove" ? "Chop wood in the Palm Grove and sell it at the Market." : "Sell at the Market, gather materials, and claim bounties."}</p>
     </Panel>

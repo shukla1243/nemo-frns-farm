@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { animate } from "animejs";
 import { BOSS, EVENTS, GATHER, HOMES, ITEMS, titleFor, xpToNext } from "../engine/config";
 import { bossStatus } from "../engine/systems";
@@ -8,7 +8,6 @@ import type { Station } from "../world/map";
 import type { Guide } from "../world/guide";
 import { stationSprite } from "../world/World";
 import { sound } from "../game/sound";
-import { music } from "../game/music";
 import { Icon, SpriteImg } from "./Icon";
 import { mmss, n0, useG } from "./common";
 
@@ -61,8 +60,8 @@ function guideButton(g: Guide, now: number) {
 export function Hud({ portraitUrl, near, onAction, toasts, unread, guide, onGuide }: {
   portraitUrl: string | null; near: Station | null; onAction: () => void; toasts: Toast[]; unread: number; guide: Guide; onGuide: () => void;
 }) {
-  const { s, now, act, open, reducedMotion } = useG();
-  const [muted, setMuted] = useState(sound.muted);
+  const { s, now, act, open, reducedMotion, prefs, setPrefs } = useG();
+  const muted = prefs.muted && !prefs.music;
   const toastBox = useRef<HTMLDivElement>(null);
   const need = xpToNext(s.level);
   const ch = chapterAt(s.story);
@@ -132,7 +131,7 @@ export function Hud({ portraitUrl, near, onAction, toasts, unread, guide, onGuid
           <button type="button" className="pbtn icon-only" onClick={() => open("bag")} aria-label="Backpack"><Icon id="bag" size={26} /></button>
           <button type="button" className="pbtn icon-only" onClick={() => open("map")} aria-label="Island map and fast travel"><Icon id="map" size={26} /></button>
           <button type="button" className="pbtn icon-only bell" onClick={() => open("inbox")} aria-label={`Notifications, ${unread} unread`}><Icon id="board" size={26} />{unread > 0 && <span className="badge">{unread > 99 ? "99+" : unread}</span>}</button>
-          <button type="button" className="pbtn icon-only" onClick={() => { const v = !muted; sound.setMuted(v); music.setOn(!v); setMuted(v); if (!v) sound.play("select"); }} aria-label={muted ? "Turn sound and music on" : "Mute sound and music"}><Icon id={muted ? "soundOff" : "soundOn"} size={26} /></button>
+          <button type="button" className="pbtn icon-only" onClick={() => { const v = !muted; setPrefs({ muted: v, music: !v }); if (!v) { sound.setMuted(false); sound.play("select"); } }} aria-label={muted ? "Turn sound and music on" : "Mute sound and music"}><Icon id={muted ? "soundOff" : "soundOn"} size={26} /></button>
           <button type="button" className="pbtn icon-only" onClick={() => open("settings")} aria-label="Settings"><Icon id="settings" size={26} /></button>
         </nav>
         {near && (

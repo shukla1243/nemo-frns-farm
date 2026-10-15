@@ -109,7 +109,8 @@ small { font-size: 13px; }
 .xp i { display: block; height: 100%; background: repeating-linear-gradient(90deg, #ffa54f 0 6px, #ee6f22 6px 8px); transition: width .4s steps(8); }
 .xp i.full { background: repeating-linear-gradient(90deg, #fff1a8 0 6px, #f5c542 6px 8px); }
 .ready-badge { position: absolute; top: -12px; right: -10px; animation: bob 1s steps(2) infinite; }
-.wallets { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+/* The host's full-screen button owns the top-right 52 x 52 px: the HUD padding (8 px) plus this margin keep it free. */
+.wallets { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; margin-right: 44px; }
 .coin { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; font-weight: 700; font-size: 17px;  white-space: nowrap; min-height: 34px; }
 .coin small { color: var(--orange-2); font-size: 12px; }
 .coin[data-flash="up"] { color: #b8f58a; }
@@ -451,7 +452,6 @@ small, .fineprint { font-size: 14px; }
   .quest-row { width: 100%; }
   .quest-note { flex: 1 1 auto; }
   .quest-go { font-size: 16px; min-width: 52px; padding: 0 6px; }
-  .wallets { display: grid; grid-template-columns: auto auto; gap: 3px; justify-items: end; align-items: center; }
   .coin { font-size: 16px; min-height: 28px; gap: 3px; padding: 0 4px; }
   .coin .px-icon { width: 16px; height: 16px; }
   .banners { flex-direction: row; flex-wrap: wrap; gap: 4px; }

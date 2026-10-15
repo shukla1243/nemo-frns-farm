@@ -15,8 +15,8 @@ export function ForgePanel({ onClose }: { onClose: () => void }) {
   const lvl = s.gear[gear];
   const cost = lvl < MAX_GEAR ? forgeCost(lvl + 1) : null;
   const chance = lvl < MAX_GEAR ? forgeChance(s, gear, blessing) : 0;
-  const strike = () => {
-    const r = act({ type: "forge", gear, blessing, charm });
+  const strike = async () => {
+    const r = await act({ type: "forge", gear, blessing, charm });
     if (!r.ok) return;
     setFlash(r.data?.success ? "ok" : "fail");
     setTimeout(() => setFlash(null), 900);

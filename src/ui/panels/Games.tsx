@@ -50,7 +50,7 @@ export function DockPanel({ onClose }: { onClose: () => void }) {
         const e = (t - phase.started) / 1000;
         const m = (Math.sin(e * phase.speed * Math.PI) + 1) / 2; // ping-pong 0..1
         markerRef.current = m; setMarker(m);
-        if (e > 4.5) { act({ type: "fishReel", hit: false }); setPhase({ k: "done", text: "Too slow. It got away!" }); return; }
+        if (e > 4.5) { void act({ type: "fishReel", hit: false }); setPhase({ k: "done", text: "Too slow. It got away!" }); return; }
         raf.current = requestAnimationFrame(loop);
       };
       raf.current = requestAnimationFrame(loop);
@@ -58,21 +58,22 @@ export function DockPanel({ onClose }: { onClose: () => void }) {
     }
   }, [phase, act, reducedMotion]);
 
-  const cast = () => {
-    const r = act({ type: "fishCast" });
+  const cast = async () => {
+    const r = await act({ type: "fishCast" });
     if (r.ok) setPhase({ k: "wait", until: Date.now() + 900 + Math.random() * 1600 });
   };
-  const reel = () => {
+  const reel = async () => {
     if (phase.k !== "reel") return;
     cancelAnimationFrame(raf.current);
     const m = markerRef.current;
     const hit = m >= phase.zoneStart && m <= phase.zoneStart + phase.zone;
-    const r = act({ type: "fishReel", hit });
+    setPhase({ k: "done", text: "Reeling in..." });
+    const r = await act({ type: "fishReel", hit });
     const fish = r.data?.fish as FishId | undefined;
     setPhase({ k: "done", text: hit && fish ? `Caught a ${ITEMS[fish].name}!` : "It slipped off the hook…", fish: hit ? fish : undefined, xp: r.data?.xp as number | undefined });
   };
   useEffect(() => {
-    const key = (e: KeyboardEvent) => { if (e.key === " " || e.key === "Enter") { if (phase.k === "reel") { e.preventDefault(); reel(); } } };
+    const key = (e: KeyboardEvent) => { if (e.key === " " || e.key === "Enter") { if (phase.k === "reel") { e.preventDefault(); void reel(); } } };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   });
@@ -128,13 +129,13 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
   const safe = run ? run.revealed.length : 0;
   const mult = run ? minesRunMultiplier(run) : 1;
   const nextMult = run ? minesRunMultiplier(run, 1) : minesMultiplier(traps, 1);
-  const start = () => { setBoom(null); act({ type: "minesStart", stake, traps }); };
-  const reveal = (i: number) => {
-    const r = act({ type: "minesReveal", index: i });
+  const start = () => { setBoom(null); void act({ type: "minesStart", stake, traps }); };
+  const reveal = async (i: number) => {
+    const r = await act({ type: "minesReveal", index: i });
     if (r.data?.trap) setBoom(r.data.traps as number[]);
   };
-  const cashout = () => {
-    const r = act({ type: "minesCashout" });
+  const cashout = async () => {
+    const r = await act({ type: "minesCashout" });
     if (r.ok) setBoom(r.data!.traps as number[]);
   };
   const loot = run ? Object.entries(run.loot).filter(([, v]) => v) : [];
@@ -177,7 +178,7 @@ export function MinesPanel({ onClose }: { onClose: () => void }) {
 
 // ---------------- Abyss Dive (crash) ----------------
 export function AbyssPanel({ onClose }: { onClose: () => void }) {
-  const { s, act, reducedMotion } = useG();
+  const { s, act, clock, reducedMotion } = useG();
   const [stake, setStake] = useState(50);
   const [auto, setAuto] = useState(0);
   const [mult, setMult] = useState(1);
@@ -193,12 +194,13 @@ export function AbyssPanel({ onClose }: { onClose: () => void }) {
     const loop = () => {
       const r = runRef.current;
       if (!r || done.current) return;
-      const m = diveMultiplierAt(Date.now() - r.startedAt);
+      const m = diveMultiplierAt(clock() - r.startedAt);
       setMult(m);
       if (auto >= 1.01 && m >= auto) {
         done.current = true;
-        const res = act({ type: "diveCashout" });
-        if (res.ok) setLast({ crashed: !!res.data?.crashed, at: res.data?.crashed ? (res.data.crashAt as number) : ((res.data?.mult as number) ?? m) });
+        void act({ type: "diveCashout" }).then(res => {
+          if (res.ok) setLast({ crashed: !!res.data?.crashed, at: res.data?.crashed ? (res.data.crashAt as number) : ((res.data?.mult as number) ?? m) });
+        });
         return;
       }
       raf = requestAnimationFrame(loop);
@@ -207,11 +209,11 @@ export function AbyssPanel({ onClose }: { onClose: () => void }) {
     return () => cancelAnimationFrame(raf);
   }, [run?.startedAt]);
 
-  const start = () => { setLast(null); setMult(1); act({ type: "diveStart", stake }); };
-  const cashout = () => {
+  const start = () => { setLast(null); setMult(1); void act({ type: "diveStart", stake }); };
+  const cashout = async () => {
     if (done.current) return;
     done.current = true;
-    const r = act({ type: "diveCashout" });
+    const r = await act({ type: "diveCashout" });
     if (r.ok) {
       const m = (r.data?.mult as number) ?? mult;
       setLast({ crashed: !!r.data?.crashed, at: r.data?.crashed ? (r.data.crashAt as number) : m });

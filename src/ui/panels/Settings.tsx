@@ -1,21 +1,21 @@
-import { useState } from "react";
 import { homeIsle } from "../../engine/voyages";
 import { TRAITS } from "../../engine/config";
 import { sound } from "../../game/sound";
 import { Panel, SimTag, useG } from "../common";
-import { music } from "../../game/music";
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
-  const { reducedMotion, setReducedMotion } = useG();
-  const [musicOn, setMusicOn] = useState(music.on);
-  const [muted, setMuted] = useState(sound.muted);
+  const { s, prefs, setPrefs, reducedMotion, setReducedMotion } = useG();
   return (
     <Panel title="Settings" icon="settings" onClose={onClose}>
       <section className="section">
         <h3>Accessibility</h3>
-        <label className="check"><input type="checkbox" checked={!muted} onChange={e => { sound.setMuted(!e.target.checked); setMuted(!e.target.checked); if (e.target.checked) sound.play("select"); }} /> Sound effects</label>
-        <label className="check"><input type="checkbox" checked={musicOn} onChange={e => { music.setOn(e.target.checked); setMusicOn(e.target.checked); }} /> Music (the calm island theme)</label>
+        <label className="check"><input type="checkbox" checked={!prefs.muted} onChange={e => { setPrefs({ muted: !e.target.checked }); if (e.target.checked) { sound.setMuted(false); sound.play("select"); } }} /> Sound effects</label>
+        <label className="check"><input type="checkbox" checked={prefs.music} onChange={e => setPrefs({ music: e.target.checked })} /> Music (the calm island theme)</label>
         <label className="check"><input type="checkbox" checked={reducedMotion} onChange={e => setReducedMotion(e.target.checked)} /> Reduce motion (no shake, confetti or wave animation)</label>
+      </section>
+      <section className="section">
+        <h3>Your island</h3>
+        <p className="fineprint">Your island is kept on the Rare Friends game server for Friend #{s.friendId} and follows it to every device. Time away counts: crops keep growing and your Friend rests at home (needs drain at most 50% while away).</p>
       </section>
       <p className="fineprint"><SimTag /> Every SHELL balance, reward and trade here is simulated. The game holds no RF.</p>
     </Panel>

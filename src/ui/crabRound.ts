@@ -1,6 +1,6 @@
 /**
  * Crab Dash round state (presentation only: the engine clamps the score and pays SHELL).
- * `endAt` runs on the wall clock (Date.now) because the engine checks it; the pop timers run on performance.now.
+ * `endAt` runs on the server clock because the engine checks it; the pop timers run on performance.now.
  */
 export type Kind = "crab" | "gold" | "trap";
 type Hole = { kind: Kind; born: number; until: number } | null;

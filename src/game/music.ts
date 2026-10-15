@@ -18,6 +18,9 @@ let nextTime = 0;
 let step = 0;
 let seed = 7;
 let on = true;
+let suspended = false;
+/** Whether the soundtrack was playing when it was suspended. */
+let resume = false;
 const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 
 function pluck(t: number, freq: number, gain: number, dur: number, type: OscillatorType = "triangle") {
@@ -65,10 +68,9 @@ function tickLoop() {
 }
 
 export const music = {
-  get on() { return on; },
   /** Call from a user gesture (browsers block audio until then). */
   start() {
-    if (!on || timer) return;
+    if (!on || timer || suspended) return;
     try {
       ctx = ctx ?? new AudioContext();
       master = master ?? ctx.createGain();
@@ -83,14 +85,21 @@ export const music = {
     clearInterval(timer); timer = 0;
     master?.disconnect();
   },
-  /** Silence the soundtrack while the tab is hidden and bring it back when the tab returns. */
-  setHidden(hidden: boolean) {
-    if (!ctx) return;
-    if (hidden) void ctx.suspend();
-    else if (on && timer) { void ctx.resume(); nextTime = Math.max(nextTime, ctx.currentTime + 0.1); }
+  /** Silence the soundtrack and its scheduler while the host pauses the game or the tab is hidden. */
+  setSuspended(v: boolean) {
+    if (v === suspended) return;
+    suspended = v;
+    if (v) {
+      if (timer) { this.stop(); resume = true; }
+      void ctx?.suspend();
+    } else if (resume) {
+      resume = false;
+      this.start();
+    }
   },
+  /** The player's music choice. Starts only once a gesture has created the audio context. */
   setOn(v: boolean) {
     on = v;
-    if (v) this.start(); else this.stop();
+    if (!v) { resume = false; this.stop(); } else if (ctx) this.start();
   },
 };

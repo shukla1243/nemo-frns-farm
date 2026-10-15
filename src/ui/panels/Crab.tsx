@@ -76,7 +76,7 @@ function draw(ctx: CanvasRenderingContext2D, g: Round | null, t: number, rm: boo
 }
 
 export function CrabPanel({ onClose }: { onClose: () => void }) {
-  const { s, act, reducedMotion } = useG();
+  const { s, act, clock, paused, reducedMotion } = useG();
   const [phase, setPhase] = useState<Phase>({ k: "idle" });
   const [hud, setHud] = useState<Hud>({ left: CRAB.roundMs, score: 0, mult: 1, streak: 0, paused: false });
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -86,9 +86,11 @@ export function CrabPanel({ onClose }: { onClose: () => void }) {
   const rmRef = useRef(reducedMotion); rmRef.current = reducedMotion;
   const hudRef = useRef(hud);
 
-  const finish = (g: Round) => {
+  const clockRef = useRef(clock); clockRef.current = clock;
+  const pausedRef = useRef(paused); pausedRef.current = paused;
+  const finish = async (g: Round) => {
     g.over = true;
-    const r = actRef.current({ type: "crabFinish", score: g.score });
+    const r = await actRef.current({ type: "crabFinish", score: g.score });
     if (r.ok) setPhase({ k: "done", score: r.data!.score as number, shell: r.data!.shell as number, best: !!r.data!.best, text: "" });
     else setPhase({ k: "done", score: g.score, shell: 0, best: false, text: r.events[r.events.length - 1]?.text ?? "Round not counted." });
   };
@@ -122,11 +124,11 @@ export function CrabPanel({ onClose }: { onClose: () => void }) {
     ctx.imageSmoothingEnabled = false;
     let raf = 0;
     const frame = () => {
-      const t = performance.now(), now = Date.now();
+      const t = performance.now(), now = clockRef.current();
       const g = roundRef.current;
       if (g && !g.over) {
         const paused = !!g.pausedAt;
-        if (!paused && now >= g.endAt) finishRef.current(g);
+        if (!paused && now >= g.endAt) void finishRef.current(g);
         else if (!paused) step(g, t, now);
         const next: Hud = { left: Math.max(0, g.endAt - (paused ? g.pausedAt!.wall : now)), score: g.score, mult: g.mult, streak: g.streak, paused };
         const cur = hudRef.current;
@@ -147,8 +149,8 @@ export function CrabPanel({ onClose }: { onClose: () => void }) {
     const vis = () => {
       const g = roundRef.current;
       if (!g || g.over) return;
-      if (document.visibilityState === "hidden") pauseRound(g, Date.now(), performance.now());
-      else resumeRound(g, Date.now(), performance.now());
+      if (document.visibilityState === "hidden") pauseRound(g, clockRef.current(), performance.now());
+      else if (!pausedRef.current) resumeRound(g, clockRef.current(), performance.now());
     };
     document.addEventListener("visibilitychange", vis);
     return () => {
@@ -156,12 +158,20 @@ export function CrabPanel({ onClose }: { onClose: () => void }) {
       window.removeEventListener("keydown", key);
       document.removeEventListener("visibilitychange", vis);
       // Leaving mid-round forfeits it so no other game stays blocked.
-      if (roundRef.current && !roundRef.current.over) { roundRef.current.over = true; actRef.current({ type: "crabQuit" }); }
+      if (roundRef.current && !roundRef.current.over) { roundRef.current.over = true; void actRef.current({ type: "crabQuit" }); }
     };
   }, []);
 
-  const start = () => {
-    const r = act({ type: "crabStart" });
+  // The host's pause freezes the round like a hidden tab does.
+  useEffect(() => {
+    const g = roundRef.current;
+    if (!g || g.over) return;
+    if (paused) pauseRound(g, clockRef.current(), performance.now());
+    else if (!document.hidden) resumeRound(g, clockRef.current(), performance.now());
+  }, [paused]);
+
+  const start = async () => {
+    const r = await act({ type: "crabStart" });
     if (!r.ok) return;
     const startedAt = r.data!.startedAt as number;
     roundRef.current = {

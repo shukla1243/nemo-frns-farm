@@ -9,6 +9,6 @@ installUiFrames();
 createRoot(document.getElementById("root")!).render(
   <FriendSession<LoadResult> title="NEMO FRNS FARM" loading="Rowing to your island..." closed="This session ended."
     check={game => { if (!game.art) throw new Error("The host could not read this Friend's artwork."); }}>
-    {ready => <Game ready={ready} />}
+    {(ready, paused) => <Game ready={ready} paused={paused} />}
   </FriendSession>,
 );

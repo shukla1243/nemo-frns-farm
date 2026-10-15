@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import type { GameState } from "../engine/types";
-import type { Action, Result } from "../engine/actions";
+import type { GameEvent, GameState } from "../engine/types";
+import type { Action } from "../engine/actions";
+import type { Prefs } from "../../server/index";
 import type { Cost, ItemId } from "../engine/config";
 import { Icon } from "./Icon";
 import { animate } from "animejs";
@@ -20,11 +21,23 @@ export type PanelId =
   | "home" | "farm" | "market" | "pool" | "dock" | "crabs" | "shrine" | "wheel" | "board" | "mines" | "forge" | "harbor" | "abyss" | "reef"
   | "bag" | "settings" | "help" | "story" | "map" | "pier" | "play" | "inbox" | "report" | `unlock:${string}` | `npc:${string}`;
 
+/** The answer to one action: `data` as the engine returned it, and the events it raised. */
+export type ActOutcome = { ok: boolean; data: Record<string, unknown> | undefined; events: readonly GameEvent[] };
+export type PrefsPatch = Partial<Pick<Prefs, "muted" | "music" | "reducedMotion">> & { inboxSeen?: true };
+
 export type Ctx = {
+  /** The island projected to the server's current time. */
   s: GameState;
+  /** Server time at the last projection (updated every second). */
   now: number;
-  act: (a: Action) => Result;
+  /** Server time now, for animations that compare with server timestamps. */
+  clock: () => number;
+  act: (a: Action) => Promise<ActOutcome>;
   open: (p: PanelId | null) => void;
+  /** True while the host pauses the game. */
+  paused: boolean;
+  prefs: Prefs;
+  setPrefs: (patch: PrefsPatch) => void;
   reducedMotion: boolean;
   setReducedMotion: (v: boolean) => void;
 };

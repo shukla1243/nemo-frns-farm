@@ -28,6 +28,10 @@ export type WorldApi = { floaters: Floater[]; pos: Pt; teleport(p: Pt): void };
 type Props = {
   stateRef: React.MutableRefObject<GameState>;
   art: FriendArt;
+  /** Server time now (crops, the Kraken and floaters use server timestamps). */
+  clock: () => number;
+  /** The host paused the game: no input, no movement, no drawing. */
+  paused: boolean;
   blocked: boolean;
   reducedMotion: boolean;
   apiRef: React.MutableRefObject<WorldApi | null>;
@@ -119,11 +123,11 @@ function decorations(zones: Record<ZoneId, boolean>): Decor[] {
   return out;
 }
 
-export function World({ stateRef, art, blocked, reducedMotion, apiRef, onNear, onInteract }: Props) {
+export function World({ stateRef, art, clock, paused, blocked, reducedMotion, apiRef, onNear, onInteract }: Props) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const live = useRef({ blocked, reducedMotion, onNear, onInteract });
-  live.current = { blocked, reducedMotion, onNear, onInteract };
+  const live = useRef({ blocked, paused, reducedMotion, clock, onNear, onInteract });
+  live.current = { blocked, paused, reducedMotion, clock, onNear, onInteract };
 
   useEffect(() => {
     const cv = canvas.current!, host = wrap.current!;
@@ -287,7 +291,7 @@ export function World({ stateRef, art, blocked, reducedMotion, apiRef, onNear, o
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 0; last = now;
-      if (document.hidden) return;
+      if (document.hidden || live.current.paused) { if (keys.size || dest) stop(); return; }
       const s = stateRef.current;
       const rm = live.current.reducedMotion;
       const t = rm ? 0 : now / 1000;
@@ -348,7 +352,7 @@ export function World({ stateRef, art, blocked, reducedMotion, apiRef, onNear, o
       lctx.drawImage(terrain!, -cx, -cy);
       if (!rm) drawWaterGlints(lctx, s.zones, cx, cy, vw, vh, t);
 
-      const bossNow = s.zones.reef ? bossStatus(Date.now(), s.boss.damage) : null;
+      const bossNow = s.zones.reef ? bossStatus(live.current.clock(), s.boss.damage) : null;
       const bossUp = !!bossNow && bossNow.active && !bossNow.defeated;
       type D = { y: number; draw: () => void };
       const ds: D[] = [];
@@ -368,7 +372,7 @@ export function World({ stateRef, art, blocked, reducedMotion, apiRef, onNear, o
         ds.push({ y: st.y + 6, draw: () => { shadow(st.x, st.y + 6, Math.round(spr.width / 2.4)); put(spr, st.x, st.y + 8); } });
       }
       // farm plots (flat, drawn under everything)
-      const nowMs = Date.now();
+      const nowMs = live.current.clock();
       s.plots.forEach((p, i) => {
         const pp = plotPos(i);
         put(A.soil(!!p.crop), pp.x, pp.y + 20);
