@@ -18,7 +18,7 @@
 | Source | Gives | Notes |
 |---|---|---|
 | Start | 3,120 SHELL, 4 kelp seeds, 5 bait, 2 bread | Includes the old 20 RF starting grant. |
-| Chopping, quarrying, farming, fishing | SHELL (via selling), materials, food | The main income. Hunger below 25 cuts yields 25%. |
+| Chopping, quarrying, farming, fishing | SHELL (via selling), materials, food | The main income. Hunger below 25 cuts yields 25%. A quarry trip finds glass 15%, coral 16% and ore 22% of the time. |
 | Crab Dash | 3 SHELL per point, bait at 60+, a pearl at 100+ | Skill game, 6 energy per round. |
 | Bounties and story chapters | SHELL and items | Act I to III chapter rewards grow slowly and never end. |
 | Milestones (15 tracks, infinite tiers) | `25 × tier^1.6` SHELL, plus `37.5 × tier` every third tier | Paid automatically. |
@@ -138,20 +138,21 @@ percentage points to the good outcomes. Recalling early returns nothing and cost
 
 ## Simulation results
 
-`npm run sim` plays scripted bots. Risk net is the SHELL plus loot (at sell price) the bot gained or lost at the chance
-games.
+`npm run sim` plays scripted bots for 4 hours each. Risk net is the SHELL plus loot (at sell price) a bot won or lost
+at dive, mines and flip; risk tradable is the change in tradable SHELL from the same actions. Three exploit bots farm
+loot at the minimum stake, dig the Hollow Belly safe hint at 20 traps, and spend every win before trying to flip it.
 
-| Bot | Hours | Level | Home | SHELL spent | Prosperity | Risk net |
-|---|---|---|---|---|---|---|
-| Grinder 1 | 4 | 15 | Hut | 44,791 | 22% | -1,149 |
-| Grinder 2 | 4 | 15 | Hut | 45,683 | 22% | +811 |
-| Grinder 3 | 4 | 15 | Hut | 51,685 | 25% | +1,418 |
-| Grinder 4 | 4 | 17 | Hut | 47,230 | 23% | -6,951 |
-| Degens (9 bots) | 4 | 18 to 20 | Cottage or Villa | 49,278 to 61,452 | 24 to 30% | median -12,206 |
-| New players (8 bots) | 0.5 | 6 to 8 | Hut | 8,060 to 11,617 | 4 to 5% | |
+| Style | Bots | Level | Median risk net | Median risk tradable |
+|---|---|---|---|---|
+| Grinder | 5 | 15 to 17 | -5,315 | -4,072 |
+| Degen | 9 | 14 to 18 | -20,364 | -19,778 |
+| Minimum stake | 5 | 14 to 16 | -815 | -713 |
+| Hollow hint | 5 | 14 to 17 | -4,675 | -4,884 |
+| Spend then flip | 5 | 13 to 15 | -12,112 | -11,306 |
+| New players (30 min) | 8 | 6 to 8 | | |
 
-The chance games net every style negative overall; a single degen can run hot because stakes scale with the balance.
-New players reach level 6 to 8 and a hut in the first half hour, as fast as the RF-era economy (level 5 to 7).
+The test fails if the median bot of any style nets SHELL or tradable SHELL at the tables. New players reach level 6 to 8
+and a hut in the first half hour, as fast as the RF-era economy (level 5 to 7). Grinders match the RF era (14 to 16).
 
 ## Going on-chain
 

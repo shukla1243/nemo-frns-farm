@@ -105,6 +105,12 @@ export const GATHER = {
   quarry: { energy: 5, zone: "cove" as ZoneId, xp: 4, cooldownMs: 1200 },
 };
 
+/**
+ * Quarry find chances. Dive and mines loot now scales with the stake, so the quarry carries the coral, glass and
+ * ore that ascension and the forge need.
+ */
+export const QUARRY_FINDS = { glass: 0.15, coral: 0.16, ore: 0.22 };
+
 // ---------- Kitchen ----------
 export const RECIPES: Record<MealId, Partial<Record<ItemId, number>>> = {
   sushi: { sardine: 2, kelp: 1 },

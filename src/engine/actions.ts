@@ -1,7 +1,7 @@
 import {
   ASCEND, BOSS, CRAB, CROPS, DIVE, ENERGY_DRINK, FISH_ENERGY, FISH_FIRST_CATCH_ZONE, FISH_TABLE, FISH_ZONE_BASE, FISH_ZONE_PER_ROD, FLIP, FORGE_CHANCE,
   FORGE_PITY_STEP, GATHER, GEAR, GOLDEN_CROP_CHANCE, HOMES, ITEMS, MAX_GEAR, MAX_LEVEL, MAX_PLOTS, MINES, RAID, RECIPES,
-  FISH_GOODS, SHOP, WELL_FED_MS, WHEEL, WHEEL_FREE_MS, ZONES, ascendCost, diveMultiplierAt, forgeCost, plotCost,
+  FISH_GOODS, QUARRY_FINDS, SHOP, WELL_FED_MS, WHEEL, WHEEL_FREE_MS, ZONES, ascendCost, diveMultiplierAt, forgeCost, plotCost,
   titleFor, xpToNext, type CropId, type GearId, type ItemId, type MealId, type ZoneId,
 } from "./config";
 import { createRng, hashSeed, weighted, type Rng } from "./rng";
@@ -322,9 +322,9 @@ function apply(s: GameState, a: Action, now: number, rng: Rng, events: GameEvent
         if (rng.chance(0.06)) found.coconut = 1;
       } else {
         found.stone = Math.max(1, Math.round(rng.int(2, 3) * mult));
-        if (rng.chance(0.1)) found.glass = 1;
-        if (rng.chance(0.08)) found.coral = 1;
-        if (rng.chance(0.12 + s.gear.pick * 0.02)) found.ore = (1 + Math.floor(s.gear.pick / 3)) * (eventActive(s, "meteor", now) ? 2 : 1);
+        if (rng.chance(QUARRY_FINDS.glass)) found.glass = 1;
+        if (rng.chance(QUARRY_FINDS.coral)) found.coral = 1;
+        if (rng.chance(QUARRY_FINDS.ore + s.gear.pick * 0.02)) found.ore = (1 + Math.floor(s.gear.pick / 3)) * (eventActive(s, "meteor", now) ? 2 : 1);
       }
       giveItems(s, found);
       s.stats.gathered++;
