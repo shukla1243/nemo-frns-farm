@@ -40,22 +40,22 @@ Needs (Hunger, Energy, Mood) drain → work (gather, farm, fish) → earn $SHELL
 All tunables live in `src/engine/config.ts` and are documented in the README economy tables.
 
 ## Persistence
-localStorage per Friend (autosave 10 s + on hide), exportable save code (base64 + checksum,
-bound to Friend ID). Offline progress: crops
-grow, voyages finish, needs decay (capped), sleep regen at home.
+Every island lives on the game server (FriendSDK 1.0 `defineGame`, Friend-scoped storage on Nakama). The client sends
+intents only; the server runs the engine at server time and keeps nothing in browser storage. Time away: crops grow,
+voyages finish, needs decay (capped), sleep regen at home.
 
 ## Identity
-Wallet via FriendSDK `createFriendWalletSession`, discovery via `readOwnedFriends`,
-play gate via fresh `readGenerationEligibility` (gen ≥ 1, owned). Every playable build
-requires the gate. Sample Friends are a test fixture that exists only in the e2e test
-build (`vite build --mode e2e`); production builds contain none of that code.
+The Rare Friends website signs the player in and supplies the selected Friend (FriendSDK 1.0 `connect()`): its id,
+generation, wallet and on-chain artwork. The game never connects a wallet. The server reads the Friend's family on
+chain for its trait.
 
 ## Rivals
 The island is solo. Simulated rivals, residents and Kraken hunters fill the world so play
-always has targets. Trust model: client-authoritative, simulated economy only.
+always has targets. Trust model: server-authoritative, simulated economy only.
 
 ## Testing
 - Vitest unit tests per engine module.
 - Economy simulation: RTP of every chance game, bot playthroughs (no NaN, no negatives,
   progression reachable, chance games net negative, early wins for new players).
-- Playwright e2e (test build with sample Friends): desktop + phone viewports, panels, minigames, screenshots.
+- Playwright e2e against `friendsdk dev` (fixture Friends, simulated platform): desktop + phone viewports, panels,
+  minigames, server saves across reloads.

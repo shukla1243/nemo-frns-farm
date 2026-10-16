@@ -2,27 +2,18 @@
 
 **Your Rare Friend washes ashore. Keep it alive, grow the island, and gamble on a better life.**
 
-NEMO FRNS FARM is an endless, risk-to-earn pixel island life sim. You play as your own verified Rare
-Friends Generations NFT. You feed it, rest it, farm, fish, mine and dive, and build a home from a clownfish tent to a
-Sea Castle. You also send it on voyages that last up to 12 hours. Every level-up and upgrade is a gamble that spends
-$SHELL, the island currency.
+An endless, risk-to-earn pixel island life sim for [Rare Friends](https://rarefriends.com), built on
+[FriendSDK 1.0](https://github.com/rarefriends/friendsdk). You play as your own Rare Friends Generations NFT: feed it,
+rest it, farm, fish, mine and dive, build a home from a clownfish tent to a Sea Castle, and send it on voyages that last
+up to 12 hours.
 
-> **Simulated economy.** Every $SHELL balance, reward, island company share and trade in this build is simulated. The
-> game holds no RF. No transactions, no real funds, no real securities.
+> **Simulated economy.** This build is SHELL only: every balance, reward, island company share and trade is simulated.
+> It declares no paid actions and holds no RF.
 
-- **Play:** https://shukla1243.github.io/nemo-frns-farm/ (desktop and phone; needs a browser wallet holding a Rare
-  Friends Generations NFT, generation 1 or higher, on Robinhood Chain 4663)
+- **Game id:** `nemo-farm`, version 0.1.0 (`friendsdk.json`)
 - **Builder:** [@mutantonchain](https://x.com/mutantonchain)
-- **Category:** Economy Potential (also built to compete in Token Activity and Character Spotlight)
+- **Vibeathon:** 6th place, Economy Potential ([submission](https://github.com/spokesz/rarefriends-vibeathon/pull/50))
 - **Docs:** [Tokenomics](docs/TOKENOMICS.md) · [Lore and how to play](docs/LORE.md) · [Design](docs/DESIGN.md)
-
-## Why it wins
-
-| Prize category | What NEMO FRNS FARM delivers |
-|---|---|
-| **Economy Potential** | A complete, testable SHELL economy with documented faucets and sinks. Every chance game shows its odds and pays back less than 100%, and Monte Carlo bots check that the chance games net every play style negative. Real RF is planned only through the Rare Friends platform contracts (paid charters, a paid wheel and cosmetics), not through the game ledger. |
-| **Token Activity** | SHELL is spent constantly, and each spend is a real decision: ascension rolls, forge strikes, land, homes, charms, voyages and rebirths. Spending raises Prosperity and the weekly season score, and players come back for daily streaks, 12-hour voyages, a Kraken every 20 minutes and weekly seasons. |
-| **Character Spotlight** | Your Friend is the hero, drawn in-world from its canonical on-chain sprite and never recolored. Its family sets 1 of 9 play-style traits. Its family island is the target of the Homeland Voyage. It earns a new hat and title every 10 levels, and a star for every rebirth. Simulated rivals and residents share its island. |
 
 ## What you can do
 
@@ -73,9 +64,8 @@ The tables are in [docs/TOKENOMICS.md](docs/TOKENOMICS.md#simulation-results).
 
 ## How to play
 
-1. **Enter.** Connect a browser wallet holding a Rare Friends Generations NFT (generation 1 or higher) on Robinhood
-   Chain (4663) and pick your Friend. FriendSDK checks ownership on-chain before play. On phones, open the link in your
-   wallet app's browser. Every playable build requires this check; there is no guest mode.
+1. **Enter.** Open NEMO FRNS FARM on rarefriends.com and pick a Rare Friends Generations NFT (generation 1 or higher).
+   The website signs you in and checks ownership; the game never touches your wallet.
 2. **Move.** Tap or click the ground or a building, or use WASD and the arrow keys. Press **E** or the orange action
    button near a station.
 3. **Follow the story.** The note under your needs shows the current chapter goal. Press **Go** to get there and the
@@ -84,78 +74,25 @@ The tables are in [docs/TOKENOMICS.md](docs/TOKENOMICS.md#simulation-results).
 
 The full guide, the lore and every islander are in **[docs/LORE.md](docs/LORE.md)**.
 
-## Solo island and saves
+## Built on FriendSDK 1.0
 
-- **Solo island.** Rival islands, residents and Kraken hunters are simulated. The FriendSDK v0.2 sandbox blocks the
-  former Nostr and WebRTC layer, so this port removed it.
-- **Saves.** localStorage autosave every 10 s and when the page is hidden, with timestamps for offline progress (crops
-  grow, voyages finish, needs drain at most 50%). Checksummed **save codes** for manual backup.
-- **Trust model.** The client is authoritative and the economy is simulated. Real value would need on-chain
-  settlement first (see the roadmap below).
-
-## Rare Friends integration
-
-- FriendSDK v0.2.3 (`@rarefriends/friendsdk`, vendored archive in `vendor/`):
-  - `createFriendWalletSession` for EIP-6963 and injected wallets.
-  - `readOwnedFriends` for owned-Friend discovery.
-  - `readGenerationEligibility` for a fresh gen ≥ 1 ownership check before play.
-  - `createFriendReader` and `spriteFrame` for canonical sprites.
-  - `createFriendSoundKit` for the sound kit.
-- The Friend's family selects its trait: Skeleton **Bone Diver**, Mask **Trickster**, Family **Homebody**, Cellular
-  **Green Cells**, Asymmetry **Chaos Engine**, Hoverer **Glider**, Colossus **Titan**, Sparkling **Sparkle Luck** and
-  Hollow **Hollow Belly**.
-- The Friend is drawn exactly as minted, with a thin outline so it reads on sand and grass. Hats, dust puffs, titles
-  and rebirth stars are added around it, never painted over it.
-- The FriendSDK sandbox is optional for vibeathon entries. This build runs as a standalone host, so it can keep real
-  local saves. The wallet and ownership gate stay intact.
-
-## Roadmap to on-chain
-
-Real RF moves only through the Rare Friends platform contracts, never through a game ledger. Planned, not implemented:
-
-1. **Paid charters and a paid Tide Wheel** as Draw actions with published odds and RF prize rows, settled by Dice.
-2. **Cosmetics** (flags, hats, sails, pets) as one-row Draw actions that mint Friend-bound GameItems.
-3. **Server rules** in a FriendSDK `server.ts`, so SHELL, items and timers are decided by the game server.
+- **Client** (`src/client.tsx`): mounts through `FriendSession`, draws the Friend from `game.art` with `spriteFrame`,
+  honors `paused`, fills any box from 320 px wide and keeps the host's top-right corner free.
+- **Server** (`server/index.ts`): `defineGame` calls `load`, `act`, `sync` and `prefs`. The server runs the game engine
+  at server time, validates every input, rolls value randomness with `ctx.randomInt` and stores one island per Friend.
+  The client sends intents only; nothing is kept in browser storage.
+- **Family traits** come from `ctx.friend.family`, read on chain.
+- No paid actions, items or deployment record in this version.
 
 ## Run it
 
 ```sh
 npm ci
-npm run dev        # http://localhost:5173 (also on your LAN for phone testing)
-npm run build      # static site in dist/ (GitHub Pages ready, relative base)
-npm test           # engine, economy, voyage and world tests (+ Monte Carlo)
-npm run sim        # economy simulation tables
-npm run test:e2e   # Playwright: builds the e2e test build (dist-e2e) and plays it on desktop and phone
+npx friendsdk dev     # http://localhost:4173: simulated chain, Nakama and fixture Friends
+npx friendsdk check
+npx friendsdk build   # release artifacts in .friendsdk/build
+npm test              # engine, server, economy and Monte Carlo tests
+npm run test:e2e      # Playwright against friendsdk dev, desktop and phone
 ```
 
-Requires Node.js 22+. The FriendSDK v0.2.3 package archive is vendored in `vendor/`.
-
-## Checks
-
-- `npm run typecheck`: TypeScript strict, 0 errors. `knip`: no unused files, exports or dependencies.
-- `npm test`: all passing. Covers:
-  - engine rules and the RTP of every chance game
-  - a SHELL-only economy (no RF anywhere in state, prices or prizes) and a server-safe engine (no clock, ambient
-    randomness or browser globals)
-  - late randomness: dive survival, mines trap rate and voyage odds rolled at reveal, checked by distribution tests
-  - the story guide (never blank, voyage countdown, wood and stone before Home), the voyage gate and the Welcome back
-    report
-  - seasons, islanders and the endless story
-  - milestones, rebirth and the daily streak
-  - voyages: costs, locked odds, recall, a net SHELL-negative EV at max bonus, and island share sales
-  - save codes, map reachability for every station, and economy bots
-- `npm run test:e2e`: every check passing on desktop (1280×800) and phone (390×844). Covers entry, story, fast
-  travel, chop plus autosave, every HUD panel fitting the screen (including Play, Settings and the notification inbox),
-  farm, the island share market, wheel, fishing, NPC gifts and map travel, with zero page errors.
-- **Known limitations:** the economy is client-authoritative and simulated until the game server lands. Rivals are simulated. The wallet flow uses
-  the SDK functions directly. Automated tests enter through sample Friends that exist only in the e2e test build
-  (`vite build --mode e2e`, output `dist-e2e/`); `npm run build` contains none of that code. A real-wallet playthrough
-  needs a Gen 1+ holder.
-
-## Credits
-
-- **Code, art and music:** original to this project. The pixel art is generated procedurally in `src/art/`, and the
-  "Tide Garden" music is generated live with Web Audio in `src/game/music.ts`.
-- **Fonts:** [Jersey 15](https://fonts.google.com/specimen/Jersey+15) and [Nunito](https://fonts.google.com/specimen/Nunito) (SIL OFL).
-- **FriendSDK** (Apache-2.0) by Rare Friends: wallet, identity, canonical Friend sprites and the sound kit.
-- **Libraries:** React, Vite and anime.js.
+Requires Node.js 22+.

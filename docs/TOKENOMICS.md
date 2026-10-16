@@ -48,7 +48,7 @@
 
 ## Tradable SHELL
 
-Only SHELL earned by real play is tradable (the planned Pearl Market takes nothing else). The engine tags every grant
+Only SHELL earned by real play counts as tradable. The engine tags every grant
 by source:
 
 - **Tradable:** sales of gathered, farmed and mined goods, bounties, story chapters, milestones, trophies, the daily
